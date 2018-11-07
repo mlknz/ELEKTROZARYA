@@ -31,14 +31,22 @@ SET(SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanDevice.hpp
     ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanSwapchain.cpp
     ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanSwapchain.hpp
-    ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanRenderPass.hpp
+	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanBuffer.cpp
+	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanBuffer.hpp
+	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/GraphicsPipeline.cpp
+	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/GraphicsPipeline.hpp
     ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/Utils.hpp
+	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/Text/Text.hpp
+
+	${PROJECT_SOURCE_DIR}/source/FileUtils.cpp
+	${PROJECT_SOURCE_DIR}/source/FileUtils.hpp
 
     ${PROJECT_SOURCE_DIR}/source/Scene/Mesh.hpp
+	${PROJECT_SOURCE_DIR}/source/Scene/Scene.hpp
 )
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin/")
 add_executable(vulkan-ride ${SOURCE_FILES} )
-target_compile_definitions(vulkan-ride PRIVATE VK_USE_PLATFORM_XCB_KHR=1)
+target_compile_definitions(vulkan-ride PRIVATE VK_USE_PLATFORM_XCB_KHR=1 GLM_FORCE_RADIANS=1)
 
 TARGET_LINK_LIBRARIES(vulkan-ride -L$ENV{VK_SDK_PATH}/x86_64/lib ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} -lSDL2main -lSDL2 -lSDL2_image -lvulkan)

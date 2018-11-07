@@ -176,15 +176,10 @@ VulkanSwapchain::~VulkanSwapchain()
 
 void VulkanSwapchain::Cleanup()
 {
+    printf("clean swapchain");
     for (size_t i = 0; i < info.framebuffers.size(); i++) {
         vkDestroyFramebuffer(logicalDevice, info.framebuffers[i], nullptr);
     }
-
-    // vkFreeCommandBuffers(logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
-
-    // vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr);
-    // vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr);
-    // vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
 
     for (size_t i = 0; i < info.imageViews.size(); i++) {
         vkDestroyImageView(logicalDevice, info.imageViews[i], nullptr);

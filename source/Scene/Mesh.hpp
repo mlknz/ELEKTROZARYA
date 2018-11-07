@@ -1,5 +1,16 @@
 #pragma once
 
+#include <glm/glm.hpp>
+#include <array>
+
+/*
+// assimp
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include <assimp/cimport.h>
+*/
+
 namespace Ride {
 
 struct Vertex {
@@ -38,7 +49,7 @@ struct Mesh
     std::vector<uint16_t> indices;
 };
 
-Mesh GetTestMesh()
+inline Mesh GetTestMesh()
 {
     const std::vector<Vertex> vertices = {
         {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
