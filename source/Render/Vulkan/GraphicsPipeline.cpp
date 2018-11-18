@@ -4,7 +4,6 @@
 #include "source/FileUtils.hpp"
 #include "source/Scene/Mesh.hpp"
 
-
 namespace Ride {
 
 GraphicsPipeline::GraphicsPipeline(VkDevice logicalDeviceIn, VkExtent2D swapchainExtent,

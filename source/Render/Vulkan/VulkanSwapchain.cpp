@@ -176,7 +176,6 @@ VulkanSwapchain::~VulkanSwapchain()
 
 void VulkanSwapchain::Cleanup()
 {
-    printf("clean swapchain");
     for (size_t i = 0; i < info.framebuffers.size(); i++) {
         vkDestroyFramebuffer(logicalDevice, info.framebuffers[i], nullptr);
     }

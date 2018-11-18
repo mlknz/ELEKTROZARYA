@@ -9,13 +9,11 @@
 
 #include "Render/RenderSystem.hpp"
 
-float timeAdd = 0.0f;
-
 int main() {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
-    auto renderSystem = std::make_unique<Ride::RenderSystem>();
-    if (!renderSystem->Ready())
+    std::unique_ptr<Ride::RenderSystem> renderSystem = Ride::RenderSystem::Create();
+    if (!renderSystem)
     {
         printf("Failed to create RenderSystem");
         return EXIT_FAILURE;
@@ -33,27 +31,24 @@ int main() {
             }
             if (evt.type == SDL_KEYDOWN)
             {
-                timeAdd += 0.25f;
+                printf("Keydown\n");
             }
         }
 
-        // update scene
-        const Ride::SwapchainInfo& swapchainInfo = renderSystem->GetSwapchainInfo();
-        static auto startTime = std::chrono::high_resolution_clock::now();
+        const float screenWidth = static_cast<float>(renderSystem->GetScreenWidth());
+        const float screenHeight = static_cast<float>(renderSystem->GetScreenHeight());
 
+        static auto startTime = std::chrono::high_resolution_clock::now();
         auto currentTime = std::chrono::high_resolution_clock::now();
         float time = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0f;
-        time += timeAdd;
 
         UniformBufferObject ubo = {};
         ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), swapchainInfo.extent.width / (float) swapchainInfo.extent.height, 0.1f, 10.0f);
+        ubo.proj = glm::perspective(glm::radians(45.0f), screenWidth / screenHeight, 0.1f, 10.0f);
         ubo.proj[1][1] *= -1;
 
         renderSystem->UpdateUBO(ubo);
-
-        // draw
         renderSystem->Draw();
     }
 

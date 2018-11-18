@@ -21,10 +21,7 @@ namespace Ride {
 class RenderSystem
 {
 public:
-    RenderSystem();
     ~RenderSystem();
-
-    bool Ready() const { return ready; }
 
     void Draw();
 
@@ -32,12 +29,18 @@ public:
     VkPhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }
     VkSurfaceKHR GetSurface() { return vulkanDevice->GetSurface(); }
     VkQueue GetGraphicsQueue() { return vulkanDevice->GetGraphicsQueue(); }
-
     SwapchainInfo& GetSwapchainInfo() { return vulkanSwapchain->GetInfo(); }
+
+    uint32_t GetScreenWidth() const { return vulkanSwapchain->GetInfo().extent.width; }
+    uint32_t GetScreenHeight() const { return vulkanSwapchain->GetInfo().extent.height; }
 
     void UpdateUBO(const UniformBufferObject&);
 
+    static std::unique_ptr<RenderSystem> Create();
+
 private:
+    RenderSystem();
+
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
 
@@ -62,9 +65,6 @@ private:
     std::vector<VkCommandBuffer> commandBuffers;
 
     // todo: move out
-    bool createBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkDeviceSize size,
-                      VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-    void copyBuffer(VkDevice logicalDevice, VkQueue graphicsQueue, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
     bool createVertexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh);
     bool createIndexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh);
     bool createUniformBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice);
