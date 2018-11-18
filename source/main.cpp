@@ -8,6 +8,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Render/RenderSystem.hpp"
+#include "Scene/Scene.hpp"
 
 int main() {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
@@ -18,6 +19,8 @@ int main() {
         printf("Failed to create RenderSystem");
         return EXIT_FAILURE;
     }
+
+    auto scene = std::make_shared<Ride::Scene>();
 
     bool run = true;
     while (run)
@@ -49,7 +52,7 @@ int main() {
         ubo.proj[1][1] *= -1;
 
         renderSystem->UpdateUBO(ubo);
-        renderSystem->Draw();
+        renderSystem->Draw(scene);
     }
 
     renderSystem.reset();

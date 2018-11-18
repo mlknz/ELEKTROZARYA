@@ -24,7 +24,7 @@ bool VulkanBuffer::createBuffer(VkDevice logicalDevice, VkPhysicalDevice physica
     bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bufferInfo.size = size;
     bufferInfo.usage = usage;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS) {
         printf("failed to create buffer!");
@@ -67,6 +67,7 @@ void VulkanBuffer::copyBuffer(VkDevice logicalDevice, VkQueue graphicsQueue, VkC
 
     VkBufferCopy copyRegion = {};
     copyRegion.size = size;
+    copyRegion.dstOffset = 0; // todo
     vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
     vkEndCommandBuffer(commandBuffer);

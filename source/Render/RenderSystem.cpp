@@ -2,6 +2,7 @@
 #include "source/Render/Vulkan/Utils.hpp"
 #include "source/FileUtils.hpp"
 #include "source/Render/Vulkan/VulkanBuffer.hpp"
+#include "source/Scene/Scene.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -34,27 +35,27 @@ RenderSystem::RenderSystem()
         return;
     }
 
-    ready = CreateSwapchain();
-    ready = ready && CreateSemaphores();
-    ready = ready && CreateRenderPass();
-    ready = ready && CreateDescriptorSetLayout();
-    ready = ready && CreateGraphicsPipeline();
-    ready = ready && CreateFramebuffers();
-    ready = ready && CreateCommandPool();
+    ready = CreateSwapchain()
+            && CreateSemaphores()
+            && CreateRenderPass()
+            && CreateFramebuffers()
+            && CreateCommandPool()
+            && CreateAttrBuffers()
+            && createUniformBuffer()
+            && createDescriptorPool();
 
-            // todo: move out
+    // todo: move out
     VkDevice logicalDevice = GetDevice();
     VkPhysicalDevice physicalDevice = GetPhysicalDevice();
     VkQueue graphicsQueue = GetGraphicsQueue();
     SwapchainInfo& swapchainInfo = GetSwapchainInfo();
 
     Mesh testMesh = Ride::GetTestMesh();
-    ready = ready && createVertexBuffer(logicalDevice, physicalDevice, graphicsQueue, testMesh)
-                        && createIndexBuffer(logicalDevice, physicalDevice, graphicsQueue, testMesh)
-                        && createUniformBuffer(logicalDevice, physicalDevice)
-                        && createDescriptorPool(logicalDevice)
-                        && createDescriptorSet(logicalDevice)
-                        && createCommandBuffers(logicalDevice, swapchainInfo, testMesh);
+    ready = ready && CreateDescriptorSetLayout()
+                    && CreateGraphicsPipeline()
+                    && uploadMeshAttributes(logicalDevice, physicalDevice, graphicsQueue, testMesh)
+                    && createDescriptorSet(logicalDevice)
+                    && createCommandBuffers(logicalDevice, swapchainInfo, testMesh);
 }
 
 bool RenderSystem::CreateSwapchain()
@@ -211,69 +212,35 @@ bool RenderSystem::CreateCommandPool() {
     return true;
 }
 
+bool RenderSystem::CreateAttrBuffers()
+{
+    VkDevice logicalDevice = GetDevice();
+    VkPhysicalDevice physicalDevice = GetPhysicalDevice();
 
-// todo: move out
-
-bool RenderSystem::createVertexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh) {
-    VkDeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                 stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, mesh.vertices.data(), (size_t) bufferSize);
-    vkUnmapMemory(logicalDevice, stagingBufferMemory);
-
-    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                 bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
-
-    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+    VulkanBuffer::createBuffer(logicalDevice, physicalDevice, vertexBufferSize,
+                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                               vertexBuffer, vertexBufferMemory);
+    VulkanBuffer::createBuffer(logicalDevice, physicalDevice, indexBufferSize,
+                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                               indexBuffer, indexBufferMemory);
     return true;
 }
 
-bool RenderSystem::createIndexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh)
+bool RenderSystem::createUniformBuffer()
 {
-    VkDeviceSize bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                 bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, mesh.indices.data(), (size_t) bufferSize);
-    vkUnmapMemory(logicalDevice, stagingBufferMemory);
-
-    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                 bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
-
-    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, indexBuffer, bufferSize);
-
-    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+    VulkanBuffer::createBuffer(GetDevice(), GetPhysicalDevice(), uniformBufferSize,
+                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                               uniformBuffer, uniformBufferMemory);
     return true;
 }
 
-bool RenderSystem::createUniformBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice)
+bool RenderSystem::createDescriptorPool()
 {
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                 bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-                 | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffer, uniformBufferMemory);
-    return true;
-}
+    VkDevice logicalDevice = GetDevice();
 
-bool RenderSystem::createDescriptorPool(VkDevice logicalDevice)
-{
     VkDescriptorPoolSize poolSize = {};
     poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSize.descriptorCount = 1;
@@ -287,6 +254,53 @@ bool RenderSystem::createDescriptorPool(VkDevice logicalDevice)
     if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
         printf("Failed to create descriptor pool!");
         return false;
+    }
+    return true;
+}
+
+// todo: move out
+
+bool RenderSystem::uploadMeshAttributes(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh)
+{
+    // vert
+    {
+    VkDeviceSize vertexBufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
+                vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                 stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(logicalDevice, stagingBufferMemory, 0, vertexBufferSize, 0, &data);
+        memcpy(data, mesh.vertices.data(), (size_t) vertexBufferSize);
+    vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, vertexBuffer, vertexBufferSize);
+
+    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+    }
+
+    // index
+    {
+    VkDeviceSize indexBufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
+                 indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(logicalDevice, stagingBufferMemory, 0, indexBufferSize, 0, &data);
+        memcpy(data, mesh.indices.data(), (size_t) indexBufferSize);
+    vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, indexBuffer, indexBufferSize);
+
+    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
+    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
     }
     return true;
 }
@@ -360,8 +374,8 @@ bool RenderSystem::createCommandBuffers(VkDevice logicalDevice, Ride::SwapchainI
 
         VkBuffer vertexBuffers[] = {vertexBuffer};
         VkDeviceSize offsets[] = {0};
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
+        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
         vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
         vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->GetLayout(), 0, 1, &descriptorSet, 0, nullptr);
@@ -403,11 +417,11 @@ void RenderSystem::RecreateTotalPipeline()
 {
     CleanupTotalPipeline();
 
-    ready = CreateSwapchain();
-    ready = ready && CreateRenderPass();
-    ready = ready && CreateGraphicsPipeline();
-    ready = ready && CreateFramebuffers();
-    ready = ready && createCommandBuffers(GetDevice(), GetSwapchainInfo(), Ride::GetTestMesh());
+    ready = CreateSwapchain()
+            && CreateRenderPass()
+            && CreateGraphicsPipeline() // todo: move to primitive
+            && CreateFramebuffers()
+            && createCommandBuffers(GetDevice(), GetSwapchainInfo(), Ride::GetTestMesh());
 }
 
 void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
@@ -419,7 +433,7 @@ void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
     vkUnmapMemory(logicalDevice, uniformBufferMemory);
 }
 
-void RenderSystem::Draw()
+void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
 {
     VkDevice logicalDevice = vulkanDevice->GetDevice();
     const SwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();

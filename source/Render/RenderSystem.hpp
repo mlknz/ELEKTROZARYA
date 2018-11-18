@@ -10,6 +10,10 @@
 
 #include "source/Scene/Mesh.hpp"
 
+namespace Ride {
+    class Scene;
+}
+
 struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
@@ -23,7 +27,7 @@ class RenderSystem
 public:
     ~RenderSystem();
 
-    void Draw();
+    void Draw(const std::shared_ptr<Scene>& scene);
 
     VkDevice GetDevice() { return vulkanDevice->GetDevice(); }
     VkPhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }
@@ -64,21 +68,26 @@ private:
     VkCommandPool commandPool;
     std::vector<VkCommandBuffer> commandBuffers;
 
+    bool CreateAttrBuffers();
+    bool createUniformBuffer();
+    bool createDescriptorPool();
+
     // todo: move out
-    bool createVertexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh);
-    bool createIndexBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh);
-    bool createUniformBuffer(VkDevice logicalDevice, VkPhysicalDevice physicalDevice);
-    bool createDescriptorPool(VkDevice logicalDevice);
+    bool uploadMeshAttributes(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh);
     bool createDescriptorSet(VkDevice logicalDevice);
     bool createCommandBuffers(VkDevice logicalDevice, Ride::SwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
 
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
+    uint32_t vertexBufferSize = 1000;
+
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
+    uint32_t indexBufferSize = 200;
 
     VkBuffer uniformBuffer;
     VkDeviceMemory uniformBufferMemory;
+    uint32_t uniformBufferSize = 200;
 
     VkDescriptorPool descriptorPool;
     VkDescriptorSet descriptorSet;
