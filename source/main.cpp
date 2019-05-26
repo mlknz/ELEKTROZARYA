@@ -1,7 +1,8 @@
 #include <iostream>
 #include <chrono>
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
+#include <SDL_syswm.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>

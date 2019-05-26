@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.12.0)
 project(vulkan-ride)
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+set(CXX_STANDARD 17)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 include_directories(external)
 include_directories(external/glm)
@@ -12,16 +13,16 @@ find_package(Freetype REQUIRED)
 find_package(PkgConfig REQUIRED)
 find_package(ASSIMP REQUIRED)
 find_package(SDL2 REQUIRED)
+find_package(Vulkan REQUIRED)
 
-#PKG_SEARCH_MODULE(SDL2 REQUIRED sdl2>=2.0.8)
-#PKG_SEARCH_MODULE(SDL2IMAGE REQUIRED SDL2_image>=2.0.8)
-include_directories(${SDL2_INCLUDE_DIRS})
-
-#TODO: use findVulkan cmake module (3.7.2+ cmake version)
-include_directories("${PROJECT_SOURCE_DIR}" $ENV{VK_SDK_PATH}/x86_64/include ${FREETYPE_INCLUDE_DIRS})
+include_directories(
+    ${PROJECT_SOURCE_DIR}
+    ${FREETYPE_INCLUDE_DIRS}
+    ${SDL2_INCLUDE_DIRS}
+    ${Vulkan_INCLUDE_DIRS}
+)
 
 SET(SOURCE_FILES
-    # ${HEADERS}
     ${PROJECT_SOURCE_DIR}/source/main.cpp
     ${PROJECT_SOURCE_DIR}/source/Render/RenderSystem.cpp
     ${PROJECT_SOURCE_DIR}/source/Render/RenderSystem.hpp
