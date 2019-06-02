@@ -26,6 +26,8 @@ namespace Ride {
 class RenderSystem
 {
 public:
+    RenderSystem() = delete;
+    RenderSystem(std::unique_ptr<VulkanInstance>, std::unique_ptr<VulkanDevice>);
     ~RenderSystem();
 
     void Draw(const std::shared_ptr<Scene>& scene);
@@ -44,8 +46,6 @@ public:
     static ResultValue<std::unique_ptr<RenderSystem>> Create();
 
 private:
-    RenderSystem();
-
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
 

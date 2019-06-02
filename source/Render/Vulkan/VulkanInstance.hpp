@@ -4,31 +4,30 @@
 #include <vector>
 
 #include <Vulkan/Vulkan.hpp>
+#include <GraphicsResult.hpp>
 
 namespace Ride {
 
 class VulkanInstance
 {
 public:
-    VulkanInstance();
-    ~VulkanInstance();
+    VulkanInstance() = delete;
+    VulkanInstance(const VulkanInstance&) = delete;
 
-    bool Ready() const { return ready; }
+    VulkanInstance(vk::Instance aInstance, std::vector<const char*> aSupportedExtensions, VkDebugReportCallbackEXT aVkDebugCallback);
+    ~VulkanInstance();
 
     vk::Instance GetInstance() { return instance; }
 
+    static ResultValue<std::unique_ptr<VulkanInstance>> CreateVulkanInstance();
+
 private:
-    bool CreateVulkanInstance();
-    bool CheckValidationLayerSupport();
-
-    bool SetupDebugCallback();
-
-    std::vector<const char*> supportedExtensions;
+    static bool CheckValidationLayerSupport();
+    static bool SetupDebugCallback(vk::Instance instance, VkDebugReportCallbackEXT& vkDebugCallback);
 
     vk::Instance instance;
+    std::vector<const char*> supportedExtensions;
     VkDebugReportCallbackEXT vkDebugCallback;
-
-    bool ready = false;
 };
 
 }

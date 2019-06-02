@@ -5,18 +5,20 @@
 
 #include <SDL2/SDL.h>
 #include <Vulkan/Vulkan.hpp>
+#include <GraphicsResult.hpp>
 
 namespace Ride {
 
 class VulkanDevice
 {
 public:
-    VulkanDevice(vk::Instance instance);
+    VulkanDevice() = delete;
+    VulkanDevice(const VulkanDevice&) = delete;
+
+    VulkanDevice(vk::Instance, vk::PhysicalDevice, vk::Device, SDL_Window*, VkSurfaceKHR);
     ~VulkanDevice();
 
-    bool Ready() const { return ready; }
-
-    vk::Device GetDevice() { return logicalDevice; }
+    vk::Device GetDevice() { return device; }
     vk::PhysicalDevice GetPhysicalDevice() { return physicalDevice; }
     vk::SurfaceKHR GetSurface() { return surface; }
     SDL_Window* GetWindow() { return window; }
@@ -24,25 +26,24 @@ public:
     vk::Queue GetGraphicsQueue() { return graphicsQueue; }
     vk::Queue GetPresentQueue() { return presentQueue; }
 
+    static ResultValue<std::unique_ptr<VulkanDevice>> CreateVulkanDevice(vk::Instance instance);
+
 private:
-    bool InitWindow();
-    bool PickPhysicalDevice();
-    bool CreateLogicalDevice();
+    static ResultValue<vk::PhysicalDevice> PickPhysicalDevice(vk::Instance, VkSurfaceKHR);
 
-    bool IsDeviceSuitable(vk::PhysicalDevice);
-    bool CheckDeviceExtensionSupport(vk::PhysicalDevice);
+    static bool IsDeviceSuitable(vk::PhysicalDevice, VkSurfaceKHR);
+    static bool CheckDeviceExtensionSupport(vk::PhysicalDevice);
 
-    SDL_Window* window = nullptr;
+    static ResultValue<vk::Device> CreateDevice(vk::PhysicalDevice, VkSurfaceKHR);
 
     vk::Instance instance;
-    VkSurfaceKHR surface;
     vk::PhysicalDevice physicalDevice;
-    vk::Device logicalDevice;
+    vk::Device device;
 
+    SDL_Window* window;
+    VkSurfaceKHR surface;
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
-
-    bool ready = false;
 };
 
 }

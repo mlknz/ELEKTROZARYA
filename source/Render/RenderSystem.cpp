@@ -11,31 +11,32 @@ namespace Ride{
 
 ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
 {
-    auto rs = new RenderSystem();
+    auto vulkanInstanceRV = VulkanInstance::CreateVulkanInstance();
+    if (vulkanInstanceRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to init VulkanInstance");
+        return vulkanInstanceRV.result;
+    }
+
+    auto vulkanDeviceRV = VulkanDevice::CreateVulkanDevice(vulkanInstanceRV.value->GetInstance());
+    if (vulkanDeviceRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to init VulkanDevice");
+        return vulkanDeviceRV.result;
+    }
+
+    auto rs = new RenderSystem(std::move(vulkanInstanceRV.value), std::move(vulkanDeviceRV.value));
     if (!rs->ready)
     {
         return GraphicsResult::Error;
     }
+
     return {GraphicsResult::Ok, std::unique_ptr<RenderSystem>(rs)};
 }
 
-RenderSystem::RenderSystem()
+RenderSystem::RenderSystem(std::unique_ptr<VulkanInstance> aInstance, std::unique_ptr<VulkanDevice> aDevice)
+    : vulkanInstance(std::move(aInstance)), vulkanDevice(std::move(aDevice))
 {
-    vulkanInstance = std::make_unique<VulkanInstance>();
-    ready = vulkanInstance->Ready();
-    if (!ready)
-    {
-        printf("Failed to init VulkanInstance");
-        return;
-    }
-    vulkanDevice = std::make_unique<VulkanDevice>(vulkanInstance->GetInstance());
-    ready = vulkanDevice->Ready();
-    if (!ready)
-    {
-        printf("Failed to init VulkanDevice");
-        return;
-    }
-
     ready = CreateSwapchain()
             && CreateSemaphores()
             && CreateRenderPass()
@@ -379,8 +380,8 @@ bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, Ride::Swapchai
 
 void RenderSystem::CleanupTotalPipeline()
 {
-    assert(vulkanInstance && vulkanInstance->Ready());
-    assert(vulkanDevice && vulkanDevice->Ready());
+    assert(vulkanInstance);
+    assert(vulkanDevice);
 
     vk::Device logicalDevice = vulkanDevice->GetDevice();
     logicalDevice.waitIdle();

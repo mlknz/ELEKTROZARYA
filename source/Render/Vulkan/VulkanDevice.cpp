@@ -17,24 +17,56 @@ const std::vector<const char*> requiredDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-VulkanDevice::VulkanDevice(vk::Instance instanceIn)
-    : instance(instanceIn)
+ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::Instance instance)
 {
-    ready = InitWindow() && PickPhysicalDevice() && CreateLogicalDevice();
-}
-
-bool VulkanDevice::InitWindow()
-{
-    window = SDL_CreateWindow(
+    SDL_Window* window = SDL_CreateWindow(
         "Vulkan Ride",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WIDTH, HEIGHT,
         SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
     );
+    if (window == nullptr)
+    {
+        printf("Failed to create SDL window");
+        return GraphicsResult::Error;
+    }
 
-    SDL_bool result = SDL_Vulkan_CreateSurface(window, instance, &surface);
+    VkSurfaceKHR surface;
+    if (SDL_Vulkan_CreateSurface(window, instance, &surface) != SDL_TRUE)
+    {
+        printf("Failed to create SDL vulkan surface");
+        return GraphicsResult::Error;
+    }
 
-    return window != 0 && result == SDL_TRUE;
+    auto physicalDeviceRV = PickPhysicalDevice(instance, surface);
+    if (physicalDeviceRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to choose physical device");
+        return physicalDeviceRV.result;
+    }
+
+    auto deviceRV = CreateDevice(physicalDeviceRV.value, surface);
+    if (deviceRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to create device");
+        return deviceRV.result;
+    }
+
+    return {GraphicsResult::Ok, std::make_unique<VulkanDevice>(instance, physicalDeviceRV.value, deviceRV.value, window, surface) };
+}
+
+VulkanDevice::VulkanDevice(vk::Instance aInstance, vk::PhysicalDevice aPhysicalDevice,
+                           vk::Device aDevice, SDL_Window* aWindow, VkSurfaceKHR aSurface)
+    : instance(aInstance)
+      , physicalDevice(aPhysicalDevice)
+      , device(aDevice)
+      , window(aWindow)
+      , surface(aSurface)
+{
+    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
+
+    device.getQueue(indices.graphicsFamily, 0, &graphicsQueue);
+    device.getQueue(indices.presentFamily, 0, &presentQueue);
 }
 
 bool VulkanDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device) {
@@ -43,7 +75,7 @@ bool VulkanDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device) {
     {
         return false;
     }
-    std::vector<vk::ExtensionProperties> availableExtensions = extensionsRV.value;
+    const std::vector<vk::ExtensionProperties>& availableExtensions = extensionsRV.value;
 
     std::set<std::string> requiredExtensions(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end());
 
@@ -54,7 +86,7 @@ bool VulkanDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device) {
     return requiredExtensions.empty();
 }
 
-bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device) {
+bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, VkSurfaceKHR surface) {
     QueueFamilyIndices indices = FindQueueFamilies(device, surface);
 
     bool extensionsSupported = CheckDeviceExtensionSupport(device);
@@ -68,31 +100,32 @@ bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device) {
     return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-bool VulkanDevice::PickPhysicalDevice()
+ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance instance, VkSurfaceKHR surface)
 {
     auto devicesRV = instance.enumeratePhysicalDevices();
     if (devicesRV.result != vk::Result::eSuccess)
     {
         printf("Failed to find GPUs with Vulkan support!");
-        return false;
+        return GraphicsResult::Error;
     }
     const std::vector<vk::PhysicalDevice>& devices = devicesRV.value;
 
+    vk::PhysicalDevice chosenDevice;
     for (const auto& device : devices) {
-        if (IsDeviceSuitable(device)) {
-            physicalDevice = device;
+        if (IsDeviceSuitable(device, surface)) {
+            chosenDevice = device;
             break;
         }
     }
 
-    if (!physicalDevice) {
+    if (!chosenDevice) {
         printf("Failed to find a suitable GPU!");
-        return false;
+        return GraphicsResult::Error;
     }
-    return true;
+    return {GraphicsResult::Ok, chosenDevice};
 }
 
-bool VulkanDevice::CreateLogicalDevice() {
+ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDevice, VkSurfaceKHR surface) {
     QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
 
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -126,19 +159,18 @@ bool VulkanDevice::CreateLogicalDevice() {
         createInfo.enabledLayerCount = 0;
     }
 
-    if (physicalDevice.createDevice(&createInfo, nullptr, &logicalDevice) != vk::Result::eSuccess) {
-        printf("Failed to create logical device!");
-        return false;
+    vk::Device device;
+    if (physicalDevice.createDevice(&createInfo, nullptr, &device) != vk::Result::eSuccess) {
+        printf("Failed to create vk::device!");
+        return GraphicsResult::Error;
     }
 
-    logicalDevice.getQueue(indices.graphicsFamily, 0, &graphicsQueue);
-    logicalDevice.getQueue(indices.presentFamily, 0, &presentQueue);
-    return true;
+    return {GraphicsResult::Ok, device};
 }
 
 VulkanDevice::~VulkanDevice()
 {
-    logicalDevice.destroy();
+    device.destroy();
     instance.destroySurfaceKHR(surface);
     SDL_DestroyWindow(window);
 }

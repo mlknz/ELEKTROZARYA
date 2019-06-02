@@ -30,7 +30,7 @@ VkResult CreateDebugReportCallbackEXT(vk::Instance instance, const VkDebugReport
     }
 }
 
-bool VulkanInstance::SetupDebugCallback() {
+bool VulkanInstance::SetupDebugCallback(vk::Instance instance, VkDebugReportCallbackEXT& vkDebugCallback) {
     if (!enableValidationLayers) return true;
 
     VkDebugReportCallbackCreateInfoEXT createInfo = {};
@@ -46,33 +46,17 @@ bool VulkanInstance::SetupDebugCallback() {
     return true;
 }
 
-VulkanInstance::VulkanInstance()
-{
-    ready = CreateVulkanInstance();
-}
+VulkanInstance::VulkanInstance(vk::Instance aInstance, std::vector<const char*> aSupportedExtensions, VkDebugReportCallbackEXT aVkDebugCallback)
+    : instance(std::move(aInstance)),
+      supportedExtensions(std::move(aSupportedExtensions)),
+      vkDebugCallback(std::move(aVkDebugCallback))
+{}
 
-void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
-    auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
-    if (func != nullptr) {
-        func(instance, callback, pAllocator);
-    }
-}
-
-VulkanInstance::~VulkanInstance()
-{
-    if (enableValidationLayers && vkDebugCallback)
-    {
-        DestroyDebugReportCallbackEXT(instance, vkDebugCallback, 0);
-    }
-
-    instance.destroy();
-}
-
-bool VulkanInstance::CreateVulkanInstance()
+ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstance()
 {
     if (enableValidationLayers && !CheckValidationLayerSupport()) {
         printf("Error: validation layers requested, but not available!");
-        return false;
+        return GraphicsResult::Error;
     }
 
     vk::ApplicationInfo appInfo = {};
@@ -90,34 +74,13 @@ bool VulkanInstance::CreateVulkanInstance()
         extensionsProps = extPropsResultValue.value;
     }
 
+    vk::Instance instance;
+    std::vector<const char*> supportedExtensions;
+    VkDebugReportCallbackEXT vkDebugCallback;
+
     for (const auto& extension : extensionsProps) {
         supportedExtensions.push_back(extension.extensionName);
-        // std::cout << "\t" << extension.extensionName << std::endl;
     }
-
-    // todo: clean up asking for extensions
-    /*
-    std::vector<const char*> extensions = {
-        VK_KHR_SURFACE_EXTENSION_NAME,
-        VK_KHR_XCB_SURFACE_EXTENSION_NAME
-    };
-
-    if (enableValidationLayers) {
-        extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    } */
-
-    /*uint32_t extensionCount = 0;
-    if (!SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, nullptr))
-    {
-        printf("Can't get vulkan extension count");
-        return false;
-    }
-
-    std::vector<const char*> supportedExtensions = {};
-    SDL_Vulkan_GetInstanceExtensions(window, &extensionCount, &supportedExtensions[0]);
-    if (enableValidationLayers) {
-        supportedExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-    } */
 
     vk::InstanceCreateInfo createInfo = {};
     createInfo.pApplicationInfo = &appInfo;
@@ -134,15 +97,33 @@ bool VulkanInstance::CreateVulkanInstance()
     if (vk::createInstance(&createInfo, nullptr, &instance) != vk::Result::eSuccess)
     {
         printf("Can't create vk instance");
-        return false;
+        return GraphicsResult::Error;
     }
 
-    if (!SetupDebugCallback())
+    if (!SetupDebugCallback(instance, vkDebugCallback))
     {
-        return false;
+        printf("Can't setup debug callbacks");
+        return GraphicsResult::Error;
     }
 
-    return true;
+    return {GraphicsResult::Ok, std::make_unique<VulkanInstance>(std::move(instance), std::move(supportedExtensions), std::move(vkDebugCallback))};
+}
+
+void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
+    auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+    if (func != nullptr) {
+        func(instance, callback, pAllocator);
+    }
+}
+
+VulkanInstance::~VulkanInstance()
+{
+    if (vkDebugCallback)
+    {
+        DestroyDebugReportCallbackEXT(instance, vkDebugCallback, 0);
+    }
+
+    instance.destroy();
 }
 
 bool VulkanInstance::CheckValidationLayerSupport() {
@@ -154,11 +135,14 @@ bool VulkanInstance::CheckValidationLayerSupport() {
         availableLayers = layersResultValue.value;
     }
 
-    for (const char* layerName : validationLayers) {
+    for (const char* layerName : validationLayers)
+    {
         bool layerFound = false;
 
-        for (const auto& layerProperties : availableLayers) {
-            if (strcmp(layerName, layerProperties.layerName) == 0) {
+        for (const auto& layerProperties : availableLayers)
+        {
+            if (strcmp(layerName, layerProperties.layerName) == 0)
+            {
                 layerFound = true;
                 break;
             }
