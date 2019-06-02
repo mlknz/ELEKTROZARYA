@@ -8,20 +8,20 @@ class VulkanBuffer
 {
 public:
     static bool createBuffer(
-            VkDevice logicalDevice,
-            VkPhysicalDevice physicalDevice,
-            VkDeviceSize size,
-            VkBufferUsageFlags usage,
-            VkMemoryPropertyFlags properties,
-            VkBuffer& buffer,
-            VkDeviceMemory& bufferMemory);
+            vk::Device logicalDevice,
+            vk::PhysicalDevice physicalDevice,
+            vk::DeviceSize size,
+            vk::BufferUsageFlags usage,
+            vk::MemoryPropertyFlags properties,
+            vk::Buffer& buffer,
+            vk::DeviceMemory& bufferMemory);
 
     static void copyBuffer(
-            VkDevice logicalDevice,
-            VkQueue graphicsQueue,
-            VkCommandPool commandPool,
-            VkBuffer srcBuffer,
-            VkBuffer dstBuffer,
-            VkDeviceSize size);
+            vk::Device logicalDevice,
+            vk::Queue graphicsQueue,
+            vk::CommandPool commandPool,
+            vk::Buffer srcBuffer,
+            vk::Buffer dstBuffer,
+            vk::DeviceSize size);
 };
 }

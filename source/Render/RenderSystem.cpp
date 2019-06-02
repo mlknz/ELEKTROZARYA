@@ -46,9 +46,9 @@ RenderSystem::RenderSystem()
             && createDescriptorPool();
 
     // todo: move out
-    VkDevice logicalDevice = GetDevice();
-    VkPhysicalDevice physicalDevice = GetPhysicalDevice();
-    VkQueue graphicsQueue = GetGraphicsQueue();
+    vk::Device logicalDevice = GetDevice();
+    vk::PhysicalDevice physicalDevice = GetPhysicalDevice();
+    vk::Queue graphicsQueue = GetGraphicsQueue();
     SwapchainInfo& swapchainInfo = GetSwapchainInfo();
 
     Mesh testMesh = Ride::GetTestMesh();
@@ -77,13 +77,12 @@ bool RenderSystem::CreateSwapchain()
 }
 
 bool RenderSystem::CreateSemaphores() {
-    VkDevice logicalDevice = vulkanDevice->GetDevice();
-    VkSemaphoreCreateInfo semaphoreInfo = {};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    vk::Device logicalDevice = vulkanDevice->GetDevice();
+    vk::SemaphoreCreateInfo semaphoreInfo = {};
 
-    if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &imageAvailableSemaphore) != VK_SUCCESS ||
-        vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, &renderFinishedSemaphore) != VK_SUCCESS) {
-
+    if (logicalDevice.createSemaphore(&semaphoreInfo, nullptr, &imageAvailableSemaphore) != vk::Result::eSuccess ||
+        logicalDevice.createSemaphore(&semaphoreInfo, nullptr, &renderFinishedSemaphore) != vk::Result::eSuccess)
+    {
         printf("Failed to create semaphores!");
         return false;
     }
@@ -92,44 +91,39 @@ bool RenderSystem::CreateSemaphores() {
 
 bool RenderSystem::CreateRenderPass()
 {
-    VkAttachmentDescription colorAttachment = {};
-    colorAttachment.format = vulkanSwapchain->GetInfo().imageFormat;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    vk::AttachmentDescription colorAttachment = {};
+    colorAttachment.setFormat(vulkanSwapchain->GetInfo().imageFormat)
+            .setSamples(vk::SampleCountFlagBits::e1)
+            .setLoadOp(vk::AttachmentLoadOp::eClear)
+            .setStoreOp(vk::AttachmentStoreOp::eStore)
+            .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+            .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+            .setInitialLayout(vk::ImageLayout::eUndefined)
+            .setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
 
-    VkAttachmentReference colorAttachmentRef = {};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    vk::AttachmentReference colorAttachmentRef = {0, vk::ImageLayout::eColorAttachmentOptimal};
 
-    VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
+    vk::SubpassDescription subpass = {};
+    subpass.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+            .setColorAttachmentCount(1)
+            .setPColorAttachments(&colorAttachmentRef);
 
-    VkSubpassDependency dependency = {};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask = 0;
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    vk::SubpassDependency dependency = { // todo: dont' need dep with one subpass. remove it
+        VK_SUBPASS_EXTERNAL, 0,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        vk::AccessFlagBits::eColorAttachmentRead, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite
+        };
 
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
+    vk::RenderPassCreateInfo renderPassInfo = {};
+    renderPassInfo.setAttachmentCount(1)
+            .setPAttachments(&colorAttachment)
+            .setSubpassCount(1)
+            .setPSubpasses(&subpass)
+            .setDependencyCount(1)
+            .setPDependencies(&dependency);
 
-    VkResult result = vkCreateRenderPass(vulkanDevice->GetDevice(), &renderPassInfo, nullptr, &renderPass);
-    if (result != VK_SUCCESS) {
+    vk::Result result = vulkanDevice->GetDevice().createRenderPass(&renderPassInfo, nullptr, &renderPass);
+    if (result != vk::Result::eSuccess) {
         assert(false);
         printf("Failed to create render pass!");
         return false;
@@ -139,21 +133,20 @@ bool RenderSystem::CreateRenderPass()
 
 bool RenderSystem::CreateDescriptorSetLayout()
 {
-    VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+    vk::DescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorType = vk::DescriptorType::eUniformBuffer;
     uboLayoutBinding.pImmutableSamplers = nullptr;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.stageFlags = vk::ShaderStageFlagBits::eVertex;
 
-    VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    vk::DescriptorSetLayoutCreateInfo layoutInfo = {};
     layoutInfo.bindingCount = 1;
     layoutInfo.pBindings = &uboLayoutBinding;
 
-    VkResult result = vkCreateDescriptorSetLayout(vulkanDevice->GetDevice(), &layoutInfo, nullptr, &descriptorSetLayout);
-    if (result != VK_SUCCESS) {
-        printf("failed to create descriptor set layout!");
+    vk::Result result = vulkanDevice->GetDevice().createDescriptorSetLayout(&layoutInfo, nullptr, &descriptorSetLayout);
+    if (result != vk::Result::eSuccess) {
+        printf("Failed to create descriptor set layout!");
         return false;
     }
     return true;
@@ -178,12 +171,11 @@ bool RenderSystem::CreateFramebuffers() {
     swapchainInfo.framebuffers.resize(swapchainInfo.imageViews.size());
 
     for (size_t i = 0; i < swapchainInfo.imageViews.size(); i++) {
-        VkImageView attachments[] = {
+        vk::ImageView attachments[] = {
             swapchainInfo.imageViews[i]
         };
 
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        vk::FramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.renderPass = renderPass;
         framebufferInfo.attachmentCount = 1;
         framebufferInfo.pAttachments = attachments;
@@ -191,7 +183,7 @@ bool RenderSystem::CreateFramebuffers() {
         framebufferInfo.height = swapchainInfo.extent.height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(vulkanDevice->GetDevice(), &framebufferInfo, nullptr, &swapchainInfo.framebuffers[i]) != VK_SUCCESS) {
+        if (vulkanDevice->GetDevice().createFramebuffer(&framebufferInfo, nullptr, &swapchainInfo.framebuffers[i]) != vk::Result::eSuccess) {
             printf("Failed to create framebuffer!");
             return false;
         }
@@ -202,11 +194,10 @@ bool RenderSystem::CreateFramebuffers() {
 bool RenderSystem::CreateCommandPool() {
     Ride::QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(vulkanDevice->GetPhysicalDevice(), vulkanDevice->GetSurface());
 
-    VkCommandPoolCreateInfo poolInfo = {};
-    poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    vk::CommandPoolCreateInfo poolInfo = {};
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
 
-    if (vkCreateCommandPool(vulkanDevice->GetDevice(), &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+    if (vulkanDevice->GetDevice().createCommandPool(&poolInfo, nullptr, &commandPool) != vk::Result::eSuccess) {
         printf("Failed to create graphics command pool!");
         return false;
     }
@@ -215,16 +206,13 @@ bool RenderSystem::CreateCommandPool() {
 
 bool RenderSystem::CreateAttrBuffers()
 {
-    VkDevice logicalDevice = GetDevice();
-    VkPhysicalDevice physicalDevice = GetPhysicalDevice();
-
-    VulkanBuffer::createBuffer(logicalDevice, physicalDevice, vertexBufferSize,
-                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    VulkanBuffer::createBuffer(GetDevice(), GetPhysicalDevice(), vertexBufferSize,
+                               vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+                               vk::MemoryPropertyFlagBits::eDeviceLocal,
                                vertexBuffer, vertexBufferMemory);
-    VulkanBuffer::createBuffer(logicalDevice, physicalDevice, indexBufferSize,
-                               VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    VulkanBuffer::createBuffer(GetDevice(), GetPhysicalDevice(), indexBufferSize,
+                               vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+                               vk::MemoryPropertyFlagBits::eDeviceLocal,
                                indexBuffer, indexBufferMemory);
     return true;
 }
@@ -232,27 +220,23 @@ bool RenderSystem::CreateAttrBuffers()
 bool RenderSystem::createUniformBuffer()
 {
     VulkanBuffer::createBuffer(GetDevice(), GetPhysicalDevice(), uniformBufferSize,
-                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                               vk::BufferUsageFlagBits::eUniformBuffer,
+                               vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                                uniformBuffer, uniformBufferMemory);
     return true;
 }
 
 bool RenderSystem::createDescriptorPool()
 {
-    VkDevice logicalDevice = GetDevice();
-
-    VkDescriptorPoolSize poolSize = {};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    vk::DescriptorPoolSize poolSize = {};
     poolSize.descriptorCount = 1;
 
-    VkDescriptorPoolCreateInfo poolInfo = {};
-    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    vk::DescriptorPoolCreateInfo poolInfo = {};
     poolInfo.poolSizeCount = 1;
     poolInfo.pPoolSizes = &poolSize;
     poolInfo.maxSets = 1;
 
-    if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+    if (GetDevice().createDescriptorPool(&poolInfo, nullptr, &descriptorPool) != vk::Result::eSuccess) {
         printf("Failed to create descriptor pool!");
         return false;
     }
@@ -261,129 +245,128 @@ bool RenderSystem::createDescriptorPool()
 
 // todo: move out
 
-bool RenderSystem::uploadMeshAttributes(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh)
+bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, const Ride::Mesh& mesh)
 {
     // vert
     {
-    VkDeviceSize vertexBufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
+    vk::DeviceSize vertexBufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
 
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    vk::Buffer stagingBuffer;
+    vk::DeviceMemory stagingBufferMemory;
     VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                vertexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                vertexBufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                  stagingBuffer, stagingBufferMemory);
 
     void* data;
-    vkMapMemory(logicalDevice, stagingBufferMemory, 0, vertexBufferSize, 0, &data);
-        memcpy(data, mesh.vertices.data(), (size_t) vertexBufferSize);
-    vkUnmapMemory(logicalDevice, stagingBufferMemory);
+
+    logicalDevice.mapMemory(stagingBufferMemory, 0, vertexBufferSize, vk::MemoryMapFlags(), &data);
+    memcpy(data, mesh.vertices.data(), (size_t) vertexBufferSize);
+    logicalDevice.unmapMemory(stagingBufferMemory);
 
     VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, vertexBuffer, vertexBufferSize);
 
-    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+    logicalDevice.destroyBuffer(stagingBuffer);
+    logicalDevice.freeMemory(stagingBufferMemory);
     }
 
     // index
     {
-    VkDeviceSize indexBufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
+    vk::DeviceSize indexBufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
+    vk::Buffer stagingBuffer;
+    vk::DeviceMemory stagingBufferMemory;
     VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                 indexBufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+                 indexBufferSize, vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                  stagingBuffer, stagingBufferMemory);
 
     void* data;
-    vkMapMemory(logicalDevice, stagingBufferMemory, 0, indexBufferSize, 0, &data);
-        memcpy(data, mesh.indices.data(), (size_t) indexBufferSize);
-    vkUnmapMemory(logicalDevice, stagingBufferMemory);
+    logicalDevice.mapMemory(stagingBufferMemory, 0, indexBufferSize, vk::MemoryMapFlags(), &data);
+    memcpy(data, mesh.indices.data(), (size_t) indexBufferSize);
+    logicalDevice.unmapMemory(stagingBufferMemory);
 
     VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, indexBuffer, indexBufferSize);
 
-    vkDestroyBuffer(logicalDevice, stagingBuffer, nullptr);
-    vkFreeMemory(logicalDevice, stagingBufferMemory, nullptr);
+    logicalDevice.destroyBuffer(stagingBuffer);
+    logicalDevice.freeMemory(stagingBufferMemory);
     }
     return true;
 }
 
-bool RenderSystem::createDescriptorSet(VkDevice logicalDevice) {
-    VkDescriptorSetLayout layouts[] = {descriptorSetLayout};
-    VkDescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+bool RenderSystem::createDescriptorSet(vk::Device logicalDevice) {
+    vk::DescriptorSetLayout layouts[] = {descriptorSetLayout};
+    vk::DescriptorSetAllocateInfo allocInfo = {};
     allocInfo.descriptorPool = descriptorPool;
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = layouts;
 
-    if (vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet) != VK_SUCCESS) {
+    if (logicalDevice.allocateDescriptorSets(&allocInfo, &descriptorSet) != vk::Result::eSuccess) {
         printf("failed to allocate descriptor set!");
         return false;
     }
 
-    VkDescriptorBufferInfo bufferInfo = {};
+    vk::DescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = uniformBuffer;
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
-    VkWriteDescriptorSet descriptorWrite = {};
-    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    vk::WriteDescriptorSet descriptorWrite = {};
     descriptorWrite.dstSet = descriptorSet;
     descriptorWrite.dstBinding = 0;
     descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
     descriptorWrite.descriptorCount = 1;
     descriptorWrite.pBufferInfo = &bufferInfo;
 
-    vkUpdateDescriptorSets(logicalDevice, 1, &descriptorWrite, 0, nullptr);
+    logicalDevice.updateDescriptorSets(1, &descriptorWrite, 0, nullptr);
     return true;
 }
 
-bool RenderSystem::createCommandBuffers(VkDevice logicalDevice, Ride::SwapchainInfo& swapchainInfo, const Ride::Mesh& mesh) {
+bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, Ride::SwapchainInfo& swapchainInfo, const Ride::Mesh& mesh) {
     commandBuffers.resize(swapchainInfo.framebuffers.size());
 
-    VkCommandBufferAllocateInfo allocInfo = {};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    vk::CommandBufferAllocateInfo allocInfo = {};
     allocInfo.commandPool = commandPool;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.level = vk::CommandBufferLevel::ePrimary;
     allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
 
-    if (vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
+    if (logicalDevice.allocateCommandBuffers(&allocInfo, commandBuffers.data()) != vk::Result::eSuccess) {
         printf("failed to allocate command buffers!");
         return false;
     }
 
+    std::array<float,4> clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
     for (size_t i = 0; i < commandBuffers.size(); i++) {
-        VkCommandBufferBeginInfo beginInfo = {};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+        vk::CommandBufferBeginInfo beginInfo = {};
+        beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 
-        vkBeginCommandBuffer(commandBuffers[i], &beginInfo);
+        commandBuffers[i].begin(&beginInfo);
 
-        VkRenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        vk::RenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.renderPass = renderPass;
         renderPassInfo.framebuffer = swapchainInfo.framebuffers[i];
-        renderPassInfo.renderArea.offset = {0, 0};
+        renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
         renderPassInfo.renderArea.extent = swapchainInfo.extent;
 
-        VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+        vk::ClearValue clearColorVal = vk::ClearColorValue(clearColor);
         renderPassInfo.clearValueCount = 1;
-        renderPassInfo.pClearValues = &clearColor;
+        renderPassInfo.pClearValues = &clearColorVal;
 
-        vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        commandBuffers[i].beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 
-        vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->GetPipeline());
+        commandBuffers[i].bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline->GetPipeline());
 
-        VkBuffer vertexBuffers[] = {vertexBuffer};
-        VkDeviceSize offsets[] = {0};
+        vk::Buffer vertexBuffers[] = {vertexBuffer};
+        vk::DeviceSize offsets[] = {0};
 
-        vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        commandBuffers[i].bindVertexBuffers(0, 1, vertexBuffers, offsets);
+        commandBuffers[i].bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint16);
 
-        vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline->GetLayout(), 0, 1, &descriptorSet, 0, nullptr);
+        commandBuffers[i].bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline->GetLayout(), 0, 1, &descriptorSet, 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+        commandBuffers[i].drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
 
-        vkCmdEndRenderPass(commandBuffers[i]);
+        commandBuffers[i].endRenderPass();
 
         if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
             printf("failed to record command buffer!");
@@ -399,8 +382,8 @@ void RenderSystem::CleanupTotalPipeline()
     assert(vulkanInstance && vulkanInstance->Ready());
     assert(vulkanDevice && vulkanDevice->Ready());
 
-    VkDevice logicalDevice = vulkanDevice->GetDevice();
-    vkDeviceWaitIdle(logicalDevice);
+    vk::Device logicalDevice = vulkanDevice->GetDevice();
+    logicalDevice.waitIdle();
 
     if (vulkanSwapchain)
     {
@@ -408,10 +391,10 @@ void RenderSystem::CleanupTotalPipeline()
         vulkanSwapchain.reset();
     }
 
-    vkFreeCommandBuffers(logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    logicalDevice.freeCommandBuffers(commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
     graphicsPipeline.reset();
-    vkDestroyRenderPass(logicalDevice, renderPass, nullptr);
+    logicalDevice.destroyRenderPass(renderPass);
 }
 
 void RenderSystem::RecreateTotalPipeline()
@@ -428,41 +411,39 @@ void RenderSystem::RecreateTotalPipeline()
 void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
 {
     void* data;
-    VkDevice logicalDevice = vulkanDevice->GetDevice();
-    vkMapMemory(logicalDevice, uniformBufferMemory, 0, sizeof(ubo), 0, &data);
-        memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(logicalDevice, uniformBufferMemory);
+    vk::Device logicalDevice = vulkanDevice->GetDevice();
+    logicalDevice.mapMemory(uniformBufferMemory, 0, sizeof(ubo), vk::MemoryMapFlags(), &data);
+    memcpy(data, &ubo, sizeof(ubo));
+    logicalDevice.unmapMemory(uniformBufferMemory);
 }
 
 void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
 {
-    VkDevice logicalDevice = vulkanDevice->GetDevice();
+    vk::Device logicalDevice = vulkanDevice->GetDevice();
     const SwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();
-    VkQueue graphicsQueue = vulkanDevice->GetGraphicsQueue();
-    VkQueue presentQueue = vulkanDevice->GetPresentQueue();
+    vk::Queue graphicsQueue = vulkanDevice->GetGraphicsQueue();
+    vk::Queue presentQueue = vulkanDevice->GetPresentQueue();
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(
-                logicalDevice,
+    vk::Result result = logicalDevice.acquireNextImageKHR(
                 swapchainInfo.swapchain,
                 std::numeric_limits<uint64_t>::max(),
                 imageAvailableSemaphore,
-                VK_NULL_HANDLE,
+                nullptr,
                 &imageIndex
                 );
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    if (result == vk::Result::eErrorOutOfDateKHR) {
         RecreateTotalPipeline();
         return;
-    } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-        assert("failed to acquire swap chain image!" && false);
+    } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+        assert("Failed to acquire swap chain image!" && false);
     }
 
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    vk::SubmitInfo submitInfo = {};
 
-    VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    vk::Semaphore waitSemaphores[] = {imageAvailableSemaphore};
+    vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
@@ -470,63 +451,62 @@ void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
 
-    VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+    vk::Semaphore signalSemaphores[] = {renderFinishedSemaphore};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-        assert("failed to submit draw command buffer!" && false);
+    if (graphicsQueue.submit(1, &submitInfo, nullptr) != vk::Result::eSuccess) {
+        assert("Failed to submit draw command buffer!" && false);
     }
 
-    VkPresentInfoKHR presentInfo = {};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    vk::PresentInfoKHR presentInfo = {};
 
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    VkSwapchainKHR swapChains[] = {swapchainInfo.swapchain};
+    vk::SwapchainKHR swapChains[] = {swapchainInfo.swapchain};
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
 
     presentInfo.pImageIndices = &imageIndex;
 
-    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+    result = presentQueue.presentKHR(&presentInfo);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) {
+    if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
         RecreateTotalPipeline();
-    } else if (result != VK_SUCCESS) {
-        assert("failed to present swap chain image!" && false);
+    } else if (result != vk::Result::eSuccess) {
+        assert("Failed to present swap chain image!" && false);
     }
 
-    vkQueueWaitIdle(presentQueue);
+    presentQueue.waitIdle();
 }
 
 RenderSystem::~RenderSystem()
 {
     CleanupTotalPipeline();
 
-    VkDevice logicalDevice = vulkanDevice->GetDevice();
-    vkDeviceWaitIdle(logicalDevice);
+    vk::Device logicalDevice = vulkanDevice->GetDevice();
+    logicalDevice.waitIdle();
 
     // todo: move out
-    vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
+    logicalDevice.destroyDescriptorPool(descriptorPool);
 
-    vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayout, nullptr);
+    logicalDevice.destroyDescriptorSetLayout(descriptorSetLayout);
 
-    vkDestroyBuffer(logicalDevice, uniformBuffer, nullptr);
-    vkFreeMemory(logicalDevice, uniformBufferMemory, nullptr);
+    logicalDevice.destroyBuffer(uniformBuffer);
+    logicalDevice.freeMemory(uniformBufferMemory);
 
-    vkDestroyBuffer(logicalDevice, indexBuffer, nullptr);
-    vkFreeMemory(logicalDevice, indexBufferMemory, nullptr);
+    logicalDevice.destroyBuffer(indexBuffer);
+    logicalDevice.freeMemory(indexBufferMemory);
 
-    vkDestroyBuffer(logicalDevice, vertexBuffer, nullptr);
-    vkFreeMemory(logicalDevice, vertexBufferMemory, nullptr);
+    logicalDevice.destroyBuffer(vertexBuffer);
+    logicalDevice.freeMemory(vertexBufferMemory);
     // end of todo
 
-    vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, nullptr);
-    vkDestroySemaphore(logicalDevice, imageAvailableSemaphore, nullptr);
+    logicalDevice.destroySemaphore(renderFinishedSemaphore);
+    logicalDevice.destroySemaphore(imageAvailableSemaphore);
 
-    vkDestroyCommandPool(logicalDevice, commandPool, nullptr);
+    logicalDevice.destroyCommandPool(commandPool);
 
     vulkanDevice.reset();
     vulkanInstance.reset();

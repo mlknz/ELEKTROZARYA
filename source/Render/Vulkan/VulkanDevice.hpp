@@ -11,36 +11,36 @@ namespace Ride {
 class VulkanDevice
 {
 public:
-    VulkanDevice(VkInstance instance);
+    VulkanDevice(vk::Instance instance);
     ~VulkanDevice();
 
     bool Ready() const { return ready; }
 
-    VkDevice GetDevice() { return logicalDevice; }
-    VkPhysicalDevice GetPhysicalDevice() { return physicalDevice; }
-    VkSurfaceKHR GetSurface() { return surface; }
+    vk::Device GetDevice() { return logicalDevice; }
+    vk::PhysicalDevice GetPhysicalDevice() { return physicalDevice; }
+    vk::SurfaceKHR GetSurface() { return surface; }
     SDL_Window* GetWindow() { return window; }
 
-    VkQueue GetGraphicsQueue() { return graphicsQueue; }
-    VkQueue GetPresentQueue() { return presentQueue; }
+    vk::Queue GetGraphicsQueue() { return graphicsQueue; }
+    vk::Queue GetPresentQueue() { return presentQueue; }
 
 private:
     bool InitWindow();
     bool PickPhysicalDevice();
     bool CreateLogicalDevice();
 
-    bool IsDeviceSuitable(VkPhysicalDevice);
-    bool CheckDeviceExtensionSupport(VkPhysicalDevice);
-
-    VkInstance instance;
+    bool IsDeviceSuitable(vk::PhysicalDevice);
+    bool CheckDeviceExtensionSupport(vk::PhysicalDevice);
 
     SDL_Window* window = nullptr;
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice logicalDevice = VK_NULL_HANDLE;
 
-    VkQueue graphicsQueue = VK_NULL_HANDLE;
-    VkQueue presentQueue = VK_NULL_HANDLE;
+    vk::Instance instance;
+    VkSurfaceKHR surface;
+    vk::PhysicalDevice physicalDevice;
+    vk::Device logicalDevice;
+
+    vk::Queue graphicsQueue;
+    vk::Queue presentQueue;
 
     bool ready = false;
 };

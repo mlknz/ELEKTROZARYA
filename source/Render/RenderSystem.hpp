@@ -30,10 +30,10 @@ public:
 
     void Draw(const std::shared_ptr<Scene>& scene);
 
-    VkDevice GetDevice() { return vulkanDevice->GetDevice(); }
-    VkPhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }
-    VkSurfaceKHR GetSurface() { return vulkanDevice->GetSurface(); }
-    VkQueue GetGraphicsQueue() { return vulkanDevice->GetGraphicsQueue(); }
+    vk::Device GetDevice() { return vulkanDevice->GetDevice(); }
+    vk::PhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }
+    vk::SurfaceKHR GetSurface() { return vulkanDevice->GetSurface(); }
+    vk::Queue GetGraphicsQueue() { return vulkanDevice->GetGraphicsQueue(); }
     SwapchainInfo& GetSwapchainInfo() { return vulkanSwapchain->GetInfo(); }
 
     uint32_t GetScreenWidth() const { return vulkanSwapchain->GetInfo().extent.width; }
@@ -61,41 +61,41 @@ private:
     std::unique_ptr<VulkanDevice> vulkanDevice = nullptr;
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain = nullptr;
 
-    VkRenderPass renderPass;
-    VkDescriptorSetLayout descriptorSetLayout;
+    vk::RenderPass renderPass;
+    vk::DescriptorSetLayout descriptorSetLayout;
 
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = nullptr;
 
-    VkCommandPool commandPool;
-    std::vector<VkCommandBuffer> commandBuffers;
+    vk::CommandPool commandPool;
+    std::vector<vk::CommandBuffer> commandBuffers;
 
     bool CreateAttrBuffers();
     bool createUniformBuffer();
     bool createDescriptorPool();
 
     // todo: move out
-    bool uploadMeshAttributes(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkQueue graphicsQueue, const Ride::Mesh& mesh);
-    bool createDescriptorSet(VkDevice logicalDevice);
-    bool createCommandBuffers(VkDevice logicalDevice, Ride::SwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
+    bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, const Ride::Mesh& mesh);
+    bool createDescriptorSet(vk::Device logicalDevice);
+    bool createCommandBuffers(vk::Device logicalDevice, Ride::SwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
 
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
+    vk::Buffer vertexBuffer;
+    vk::DeviceMemory vertexBufferMemory;
     uint32_t vertexBufferSize = 1000;
 
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    vk::Buffer indexBuffer;
+    vk::DeviceMemory indexBufferMemory;
     uint32_t indexBufferSize = 200;
 
-    VkBuffer uniformBuffer;
-    VkDeviceMemory uniformBufferMemory;
+    vk::Buffer uniformBuffer;
+    vk::DeviceMemory uniformBufferMemory;
     uint32_t uniformBufferSize = 200;
 
-    VkDescriptorPool descriptorPool;
-    VkDescriptorSet descriptorSet;
+    vk::DescriptorPool descriptorPool;
+    vk::DescriptorSet descriptorSet;
     // end of todo
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
+    vk::Semaphore imageAvailableSemaphore;
+    vk::Semaphore renderFinishedSemaphore;
 
     bool ready = false;
 };

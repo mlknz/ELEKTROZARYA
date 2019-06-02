@@ -9,26 +9,26 @@ namespace Ride
 
 struct SwapchainInfo
 {
-    VkSwapchainKHR swapchain;
-    std::vector<VkImage> images;
-    VkFormat imageFormat;
-    VkExtent2D extent;
-    std::vector<VkImageView> imageViews;
-    std::vector<VkFramebuffer> framebuffers;
+    vk::SwapchainKHR swapchain;
+    std::vector<vk::Image> images;
+    vk::Format imageFormat;
+    vk::Extent2D extent;
+    std::vector<vk::ImageView> imageViews;
+    std::vector<vk::Framebuffer> framebuffers;
 };
 
 struct SwapChainSupportDetails {
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+    vk::SurfaceCapabilitiesKHR capabilities;
+    std::vector<vk::SurfaceFormatKHR> formats;
+    std::vector<vk::PresentModeKHR> presentModes;
 };
 
 class VulkanSwapchain
 {
 public:
-    static SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice, VkSurfaceKHR);
+    static SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice, vk::SurfaceKHR);
 
-    VulkanSwapchain(VkDevice logicalDevice, VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, SDL_Window* window);
+    VulkanSwapchain(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface, SDL_Window* window);
     ~VulkanSwapchain();
 
     SwapchainInfo& GetInfo() { return info; }
@@ -41,16 +41,16 @@ private:
     bool CreateSwapchain();
     bool CreateImageViews();
 
-    VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
-    VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
+    vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
+    vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
 
     SwapchainInfo info;
 
     SDL_Window* window = nullptr;
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice logicalDevice = VK_NULL_HANDLE;
+    vk::SurfaceKHR surface;
+    vk::PhysicalDevice physicalDevice;
+    vk::Device logicalDevice;
 
     bool ready = false;
 };

@@ -20,7 +20,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
     return VK_FALSE;
 }
 
-VkResult CreateDebugReportCallbackEXT(VkInstance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
+VkResult CreateDebugReportCallbackEXT(vk::Instance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
                                       const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
     auto func = (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
     if (func != nullptr) {
@@ -65,7 +65,7 @@ VulkanInstance::~VulkanInstance()
         DestroyDebugReportCallbackEXT(instance, vkDebugCallback, 0);
     }
 
-    vkDestroyInstance(instance, 0);
+    instance.destroy();
 }
 
 bool VulkanInstance::CreateVulkanInstance()
@@ -75,20 +75,21 @@ bool VulkanInstance::CreateVulkanInstance()
         return false;
     }
 
-    VkApplicationInfo appInfo = {};
-    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    vk::ApplicationInfo appInfo = {};
     appInfo.pApplicationName = "Vulkan Ride";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 0);
 
-    uint32_t extensionCount = 0;
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-    // printf("Found %d extensions:\n", extensionCount);
+    auto extPropsResultValue = vk::enumerateInstanceExtensionProperties();
 
-    std::vector<VkExtensionProperties> extensionsProps(extensionCount);
-    vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensionsProps.data());
+    std::vector<vk::ExtensionProperties> extensionsProps;
+    if (extPropsResultValue.result == vk::Result::eSuccess)
+    {
+        extensionsProps = extPropsResultValue.value;
+    }
+
     for (const auto& extension : extensionsProps) {
         supportedExtensions.push_back(extension.extensionName);
         // std::cout << "\t" << extension.extensionName << std::endl;
@@ -118,8 +119,7 @@ bool VulkanInstance::CreateVulkanInstance()
         supportedExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     } */
 
-    VkInstanceCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    vk::InstanceCreateInfo createInfo = {};
     createInfo.pApplicationInfo = &appInfo;
     createInfo.enabledExtensionCount = supportedExtensions.size();
     createInfo.ppEnabledExtensionNames = supportedExtensions.data();
@@ -131,7 +131,7 @@ bool VulkanInstance::CreateVulkanInstance()
         createInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+    if (vk::createInstance(&createInfo, nullptr, &instance) != vk::Result::eSuccess)
     {
         printf("Can't create vk instance");
         return false;
@@ -146,11 +146,13 @@ bool VulkanInstance::CreateVulkanInstance()
 }
 
 bool VulkanInstance::CheckValidationLayerSupport() {
-    uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
-    std::vector<VkLayerProperties> availableLayers(layerCount);
-    vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
+    auto layersResultValue = vk::enumerateInstanceLayerProperties();
+    std::vector<vk::LayerProperties> availableLayers;
+    if (layersResultValue.result == vk::Result::eSuccess)
+    {
+        availableLayers = layersResultValue.value;
+    }
 
     for (const char* layerName : validationLayers) {
         bool layerFound = false;

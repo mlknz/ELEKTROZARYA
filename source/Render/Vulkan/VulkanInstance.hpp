@@ -15,7 +15,7 @@ public:
 
     bool Ready() const { return ready; }
 
-    VkInstance GetInstance() { return instance; }
+    vk::Instance GetInstance() { return instance; }
 
 private:
     bool CreateVulkanInstance();
@@ -25,7 +25,7 @@ private:
 
     std::vector<const char*> supportedExtensions;
 
-    VkInstance instance;
+    vk::Instance instance;
     VkDebugReportCallbackEXT vkDebugCallback;
 
     bool ready = false;

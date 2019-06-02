@@ -12,7 +12,7 @@
 #include "Scene/Scene.hpp"
 
 // todo:
-// USE <vulkan.hpp> && USE ResultValue<result>, rearrange code
+// USE ResultValue<result>, rearrange code
 
 
 int main() {

@@ -8,22 +8,22 @@ namespace Ride {
 class GraphicsPipeline
 {
 public:
-    GraphicsPipeline(VkDevice logicalDevice, VkExtent2D swapchainExtent,
-                     VkRenderPass renderPass, VkDescriptorSetLayout descriptorSetLayout);
+    GraphicsPipeline(vk::Device logicalDevice, vk::Extent2D swapchainExtent,
+                     vk::RenderPass renderPass, vk::DescriptorSetLayout descriptorSetLayout);
     ~GraphicsPipeline();
 
-    VkPipeline GetPipeline() { return graphicsPipeline; }
-    VkPipelineLayout GetLayout() { return pipelineLayout; }
+    vk::Pipeline GetPipeline() { return graphicsPipeline; }
+    vk::PipelineLayout GetLayout() { return pipelineLayout; }
 
     bool Ready() const { return ready; }
 
 private:
-    VkShaderModule createShaderModule(const std::vector<char>& code);
-    bool CreateGraphicsPipeline(VkExtent2D swapchainExtent, VkRenderPass renderPass, VkDescriptorSetLayout descriptorSetLayout);
+    vk::ShaderModule createShaderModule(const std::vector<char>& code);
+    bool CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::RenderPass renderPass, vk::DescriptorSetLayout descriptorSetLayout);
 
-    VkDevice logicalDevice;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline graphicsPipeline;
+    vk::Device logicalDevice;
+    vk::PipelineLayout pipelineLayout;
+    vk::Pipeline graphicsPipeline;
 
     bool ready = false;
 };
