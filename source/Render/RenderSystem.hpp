@@ -3,10 +3,11 @@
 #include <iostream>
 #include <memory>
 
-#include "source/Render/Vulkan/VulkanInstance.hpp"
-#include "source/Render/Vulkan/VulkanDevice.hpp"
-#include "source/Render/Vulkan/VulkanSwapchain.hpp"
-#include "source/Render/Vulkan/GraphicsPipeline.hpp"
+#include <Vulkan/VulkanInstance.hpp>
+#include <Vulkan/VulkanDevice.hpp>
+#include <Vulkan/VulkanSwapchain.hpp>
+#include <Vulkan/GraphicsPipeline.hpp>
+#include <GraphicsResult.hpp>
 
 #include "source/Scene/Mesh.hpp"
 
@@ -40,7 +41,7 @@ public:
 
     void UpdateUBO(const UniformBufferObject&);
 
-    static std::unique_ptr<RenderSystem> Create();
+    static ResultValue<std::unique_ptr<RenderSystem>> Create();
 
 private:
     RenderSystem();

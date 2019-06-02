@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 #include <array>
+#include <vector>
+#include <Vulkan/Vulkan.hpp>
 
 /*
 // assimp

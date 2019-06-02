@@ -9,13 +9,14 @@
 
 namespace Ride{
 
-std::unique_ptr<RenderSystem> RenderSystem::Create() {
+ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
+{
     auto rs = new RenderSystem();
     if (!rs->ready)
     {
-        return nullptr;
+        return GraphicsResult::Error;
     }
-    return std::unique_ptr<RenderSystem>(rs);
+    return {GraphicsResult::Ok, std::unique_ptr<RenderSystem>(rs)};
 }
 
 RenderSystem::RenderSystem()

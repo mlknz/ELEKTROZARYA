@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <Vulkan/Vulkan.hpp>
+
 namespace Ride
 {
 
@@ -7,6 +10,7 @@ const std::vector<const char*> validationLayers = {
     "VK_LAYER_LUNARG_standard_validation"
 };
 
+// todo: remove enableValidationLayers
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 #else

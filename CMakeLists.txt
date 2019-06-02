@@ -37,6 +37,8 @@ SET(SOURCE_FILES
 	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/GraphicsPipeline.cpp
 	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/GraphicsPipeline.hpp
     ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/Utils.hpp
+    ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/Vulkan.hpp
+    ${PROJECT_SOURCE_DIR}/source/Render/GraphicsResult.hpp
 	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/Text/Text.hpp
 
 	${PROJECT_SOURCE_DIR}/source/FileUtils.cpp
@@ -49,5 +51,6 @@ SET(SOURCE_FILES
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin/")
 add_executable(vulkan-ride ${SOURCE_FILES} )
 target_compile_definitions(vulkan-ride PRIVATE VK_USE_PLATFORM_XCB_KHR=1 GLM_FORCE_RADIANS=1)
+target_include_directories(vulkan-ride PRIVATE ${PROJECT_SOURCE_DIR}/source/Render )
 
-TARGET_LINK_LIBRARIES(vulkan-ride ${Vulkan_LIBRARIES} ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} -lSDL2main -lSDL2 -lSDL2_image)
+target_link_libraries(vulkan-ride ${Vulkan_LIBRARIES} ${FREETYPE_LIBRARIES} ${ASSIMP_LIBRARIES} -lSDL2main -lSDL2 -lSDL2_image)
