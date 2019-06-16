@@ -41,8 +41,7 @@ public:
     ~VulkanSwapchain();
 
     VulkanSwapchainInfo& GetInfo() { return info; }
-
-    void Cleanup();
+    GraphicsResult CreateFramebuffersForRenderPass(vk::RenderPass vkRenderPass);
 
     static ResultValue<std::unique_ptr<VulkanSwapchain>> CreateVulkanSwapchain(const VulkanSwapchainCreateInfo& ci);
     static ResultValue<SwapChainSupportDetails> QuerySwapchainSupport(vk::PhysicalDevice, vk::SurfaceKHR);

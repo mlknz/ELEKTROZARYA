@@ -6,6 +6,7 @@
 #include <Vulkan/VulkanInstance.hpp>
 #include <Vulkan/VulkanDevice.hpp>
 #include <Vulkan/VulkanSwapchain.hpp>
+#include <Vulkan/VulkanRenderPass.hpp>
 #include <Vulkan/GraphicsPipeline.hpp>
 #include <GraphicsResult.hpp>
 
@@ -23,11 +24,26 @@ struct UniformBufferObject {
 
 namespace Ride {
 
+struct FrameSemaphores
+{
+    vk::Semaphore imageAvailableSemaphore;
+    vk::Semaphore renderFinishedSemaphore;
+};
+
+struct RenderSystemCreateInfo
+{
+    std::unique_ptr<VulkanInstance> vulkanInstance;
+    std::unique_ptr<VulkanDevice> vulkanDevice;
+    std::unique_ptr<VulkanSwapchain> vulkanSwapchain;
+    FrameSemaphores frameSemaphores;
+    std::unique_ptr<VulkanRenderPass> vulkanRenderPass;
+};
+
 class RenderSystem
 {
 public:
     RenderSystem() = delete;
-    RenderSystem(std::unique_ptr<VulkanInstance>, std::unique_ptr<VulkanDevice>, std::unique_ptr<VulkanSwapchain>);
+    RenderSystem(RenderSystemCreateInfo& ci);
     ~RenderSystem();
 
     void Draw(const std::shared_ptr<Scene>& scene);
@@ -49,18 +65,18 @@ private:
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
 
-    bool CreateSemaphores();
-    bool CreateRenderPass();
+    bool CreateCommandPool();
+
     bool CreateDescriptorSetLayout();
     bool CreateGraphicsPipeline();
-    bool CreateFramebuffers();
-    bool CreateCommandPool();
+
 
     std::unique_ptr<VulkanInstance> vulkanInstance = nullptr;
     std::unique_ptr<VulkanDevice> vulkanDevice = nullptr;
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain = nullptr;
+    FrameSemaphores frameSemaphores;
+    std::unique_ptr<VulkanRenderPass> vulkanRenderPass = nullptr;
 
-    vk::RenderPass renderPass;
     vk::DescriptorSetLayout descriptorSetLayout;
 
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = nullptr;
@@ -92,9 +108,6 @@ private:
     vk::DescriptorPool descriptorPool;
     vk::DescriptorSet descriptorSet;
     // end of todo
-
-    vk::Semaphore imageAvailableSemaphore;
-    vk::Semaphore renderFinishedSemaphore;
 
     bool ready = false;
 };

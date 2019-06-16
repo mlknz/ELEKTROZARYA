@@ -11,33 +11,61 @@ namespace Ride{
 
 ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
 {
+    RenderSystemCreateInfo ci;
     auto vulkanInstanceRV = VulkanInstance::CreateVulkanInstance();
     if (vulkanInstanceRV.result != GraphicsResult::Ok)
     {
         printf("Failed to create VulkanInstance");
         return vulkanInstanceRV.result;
     }
+    ci.vulkanInstance = std::move(vulkanInstanceRV.value);
 
-    auto vulkanDeviceRV = VulkanDevice::CreateVulkanDevice(vulkanInstanceRV.value->GetInstance());
+    auto vulkanDeviceRV = VulkanDevice::CreateVulkanDevice(ci.vulkanInstance->GetInstance());
     if (vulkanDeviceRV.result != GraphicsResult::Ok)
     {
         printf("Failed to create VulkanDevice");
         return vulkanDeviceRV.result;
     }
+    ci.vulkanDevice = std::move(vulkanDeviceRV.value);
 
     auto vulkanSwapchainRV = VulkanSwapchain::CreateVulkanSwapchain({
-        vulkanDeviceRV.value->GetDevice(),
-        vulkanDeviceRV.value->GetPhysicalDevice(),
-        vulkanDeviceRV.value->GetSurface(),
-        vulkanDeviceRV.value->GetWindow()
+        ci.vulkanDevice->GetDevice(),
+        ci.vulkanDevice->GetPhysicalDevice(),
+        ci.vulkanDevice->GetSurface(),
+        ci.vulkanDevice->GetWindow()
     });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
         printf("Failed to create VulkanSwapchain");
         return vulkanSwapchainRV.result;
     }
+    ci.vulkanSwapchain = std::move(vulkanSwapchainRV.value);
 
-    auto rs = new RenderSystem(std::move(vulkanInstanceRV.value), std::move(vulkanDeviceRV.value), std::move(vulkanSwapchainRV.value));
+    vk::SemaphoreCreateInfo semaphoreInfo = {};
+
+    if (ci.vulkanDevice->GetDevice().createSemaphore(&semaphoreInfo, nullptr, &ci.frameSemaphores.imageAvailableSemaphore) != vk::Result::eSuccess ||
+        ci.vulkanDevice->GetDevice().createSemaphore(&semaphoreInfo, nullptr, &ci.frameSemaphores.renderFinishedSemaphore) != vk::Result::eSuccess)
+    {
+        printf("Failed to create FrameSemaphores!");
+        return GraphicsResult::Error;
+    }
+
+    auto vulkanRenderPassRV = VulkanRenderPass::CreateRenderPass({ci.vulkanDevice->GetDevice(), ci.vulkanSwapchain->GetInfo().imageFormat});
+    if (vulkanRenderPassRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to create VulkanRenderPass");
+        return vulkanRenderPassRV.result;
+    }
+    ci.vulkanRenderPass = std::move(vulkanRenderPassRV.value);
+
+    GraphicsResult framebuffersResult = ci.vulkanSwapchain->CreateFramebuffersForRenderPass(ci.vulkanRenderPass->GetRenderPass());
+    if (framebuffersResult != GraphicsResult::Ok)
+    {
+        printf("Failed to create Framebuffers");
+        return framebuffersResult;
+    }
+
+    auto rs = new RenderSystem(ci);
     if (!rs->ready)
     {
         return GraphicsResult::Error;
@@ -46,13 +74,14 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     return {GraphicsResult::Ok, std::unique_ptr<RenderSystem>(rs)};
 }
 
-RenderSystem::RenderSystem(std::unique_ptr<VulkanInstance> aInstance, std::unique_ptr<VulkanDevice> aDevice, std::unique_ptr<VulkanSwapchain> aSwapchain)
-    : vulkanInstance(std::move(aInstance)), vulkanDevice(std::move(aDevice)), vulkanSwapchain(std::move(aSwapchain))
+RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
+    : vulkanInstance(std::move(ci.vulkanInstance))
+    , vulkanDevice(std::move(ci.vulkanDevice))
+    , vulkanSwapchain(std::move(ci.vulkanSwapchain))
+    , frameSemaphores(std::move(ci.frameSemaphores))
+    , vulkanRenderPass(std::move(ci.vulkanRenderPass))
 {
-    ready = CreateSemaphores()
-            && CreateRenderPass()
-            && CreateFramebuffers()
-            && CreateCommandPool()
+    ready = CreateCommandPool()
             && CreateAttrBuffers()
             && createUniformBuffer()
             && createDescriptorPool();
@@ -69,61 +98,6 @@ RenderSystem::RenderSystem(std::unique_ptr<VulkanInstance> aInstance, std::uniqu
                     && uploadMeshAttributes(logicalDevice, physicalDevice, graphicsQueue, testMesh)
                     && createDescriptorSet(logicalDevice)
                     && createCommandBuffers(logicalDevice, swapchainInfo, testMesh);
-}
-
-bool RenderSystem::CreateSemaphores() {
-    vk::Device logicalDevice = vulkanDevice->GetDevice();
-    vk::SemaphoreCreateInfo semaphoreInfo = {};
-
-    if (logicalDevice.createSemaphore(&semaphoreInfo, nullptr, &imageAvailableSemaphore) != vk::Result::eSuccess ||
-        logicalDevice.createSemaphore(&semaphoreInfo, nullptr, &renderFinishedSemaphore) != vk::Result::eSuccess)
-    {
-        printf("Failed to create semaphores!");
-        return false;
-    }
-    return true;
-}
-
-bool RenderSystem::CreateRenderPass()
-{
-    vk::AttachmentDescription colorAttachment = {};
-    colorAttachment.setFormat(vulkanSwapchain->GetInfo().imageFormat)
-            .setSamples(vk::SampleCountFlagBits::e1)
-            .setLoadOp(vk::AttachmentLoadOp::eClear)
-            .setStoreOp(vk::AttachmentStoreOp::eStore)
-            .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
-            .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-            .setInitialLayout(vk::ImageLayout::eUndefined)
-            .setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
-
-    vk::AttachmentReference colorAttachmentRef = {0, vk::ImageLayout::eColorAttachmentOptimal};
-
-    vk::SubpassDescription subpass = {};
-    subpass.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
-            .setColorAttachmentCount(1)
-            .setPColorAttachments(&colorAttachmentRef);
-
-    vk::SubpassDependency dependency = { // todo: dont' need dep with one subpass. remove it
-        VK_SUBPASS_EXTERNAL, 0,
-        vk::PipelineStageFlagBits::eColorAttachmentOutput, vk::PipelineStageFlagBits::eColorAttachmentOutput,
-        vk::AccessFlagBits::eColorAttachmentRead, vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite
-        };
-
-    vk::RenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.setAttachmentCount(1)
-            .setPAttachments(&colorAttachment)
-            .setSubpassCount(1)
-            .setPSubpasses(&subpass)
-            .setDependencyCount(1)
-            .setPDependencies(&dependency);
-
-    vk::Result result = vulkanDevice->GetDevice().createRenderPass(&renderPassInfo, nullptr, &renderPass);
-    if (result != vk::Result::eSuccess) {
-        assert(false);
-        printf("Failed to create render pass!");
-        return false;
-    }
-    return true;
 }
 
 bool RenderSystem::CreateDescriptorSetLayout()
@@ -151,37 +125,12 @@ bool RenderSystem::CreateGraphicsPipeline()
 {
     graphicsPipeline.reset();
     graphicsPipeline = std::make_unique<GraphicsPipeline>(
-                GetDevice(), GetSwapchainInfo().extent, renderPass, descriptorSetLayout
+                GetDevice(), GetSwapchainInfo().extent, vulkanRenderPass->GetRenderPass(), descriptorSetLayout
                 );
     if (!graphicsPipeline->Ready())
     {
         printf("Failed to init VulkanPipeline");
         return false;
-    }
-    return true;
-}
-
-bool RenderSystem::CreateFramebuffers() {
-    VulkanSwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();
-    swapchainInfo.framebuffers.resize(swapchainInfo.imageViews.size());
-
-    for (size_t i = 0; i < swapchainInfo.imageViews.size(); i++) {
-        vk::ImageView attachments[] = {
-            swapchainInfo.imageViews[i]
-        };
-
-        vk::FramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.renderPass = renderPass;
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments = attachments;
-        framebufferInfo.width = swapchainInfo.extent.width;
-        framebufferInfo.height = swapchainInfo.extent.height;
-        framebufferInfo.layers = 1;
-
-        if (vulkanDevice->GetDevice().createFramebuffer(&framebufferInfo, nullptr, &swapchainInfo.framebuffers[i]) != vk::Result::eSuccess) {
-            printf("Failed to create framebuffer!");
-            return false;
-        }
     }
     return true;
 }
@@ -338,7 +287,7 @@ bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, Ride::VulkanSw
         commandBuffers[i].begin(&beginInfo);
 
         vk::RenderPassBeginInfo renderPassInfo = {};
-        renderPassInfo.renderPass = renderPass;
+        renderPassInfo.renderPass = vulkanRenderPass->GetRenderPass();
         renderPassInfo.framebuffer = swapchainInfo.framebuffers[i];
         renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
         renderPassInfo.renderArea.extent = swapchainInfo.extent;
@@ -380,23 +329,20 @@ void RenderSystem::CleanupTotalPipeline()
     vk::Device logicalDevice = vulkanDevice->GetDevice();
     logicalDevice.waitIdle();
 
-    if (vulkanSwapchain)
-    {
-        vulkanSwapchain->Cleanup();
-        vulkanSwapchain.reset();
-    }
+    vulkanSwapchain.reset();
 
     logicalDevice.freeCommandBuffers(commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
     graphicsPipeline.reset();
-    logicalDevice.destroyRenderPass(renderPass);
+    vulkanRenderPass.reset();
 }
 
 void RenderSystem::RecreateTotalPipeline()
 {
     CleanupTotalPipeline();
+    ready = false;
 
-    vulkanSwapchain.reset();
+    // todo: remove duplication with CreateRenderSystem
     auto vulkanSwapchainRV = VulkanSwapchain::CreateVulkanSwapchain({
         vulkanDevice->GetDevice(),
         vulkanDevice->GetPhysicalDevice(),
@@ -405,16 +351,27 @@ void RenderSystem::RecreateTotalPipeline()
     });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to REcreate VulkanSwapchain");
-        ready = false;
+        printf("Failed to Recreate VulkanSwapchain");
         return;
     }
     vulkanSwapchain = std::move(vulkanSwapchainRV.value);
 
-    ready = CreateRenderPass()
-            && CreateGraphicsPipeline() // todo: move to primitive
-            && CreateFramebuffers()
-            && createCommandBuffers(GetDevice(), GetSwapchainInfo(), Ride::GetTestMesh());
+    auto vulkanRenderPassRV = VulkanRenderPass::CreateRenderPass({vulkanDevice->GetDevice(), vulkanSwapchain->GetInfo().imageFormat});
+    if (vulkanRenderPassRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to Recreate VulkanRenderPass");
+        return;
+    }
+    vulkanRenderPass = std::move(vulkanRenderPassRV.value);
+
+    GraphicsResult framebuffersResult = vulkanSwapchain->CreateFramebuffersForRenderPass(vulkanRenderPass->GetRenderPass());
+    if (framebuffersResult != GraphicsResult::Ok)
+    {
+        printf("Failed to Recreate Framebuffers");
+        return;
+    }
+    ready = CreateGraphicsPipeline() &&// todo: move to primitive
+            createCommandBuffers(GetDevice(), GetSwapchainInfo(), Ride::GetTestMesh());
 }
 
 void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
@@ -437,7 +394,7 @@ void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
     vk::Result result = logicalDevice.acquireNextImageKHR(
                 swapchainInfo.swapchain,
                 std::numeric_limits<uint64_t>::max(),
-                imageAvailableSemaphore,
+                frameSemaphores.imageAvailableSemaphore,
                 nullptr,
                 &imageIndex
                 );
@@ -446,12 +403,12 @@ void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
         RecreateTotalPipeline();
         return;
     } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
-        assert("Failed to acquire swap chain image!" && false);
+        assert("Failed to acquire swapchain image!" && false);
     }
 
     vk::SubmitInfo submitInfo = {};
 
-    vk::Semaphore waitSemaphores[] = {imageAvailableSemaphore};
+    vk::Semaphore waitSemaphores[] = {frameSemaphores.imageAvailableSemaphore};
     vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
@@ -460,7 +417,7 @@ void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
 
-    vk::Semaphore signalSemaphores[] = {renderFinishedSemaphore};
+    vk::Semaphore signalSemaphores[] = {frameSemaphores.renderFinishedSemaphore};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
@@ -484,7 +441,7 @@ void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
         RecreateTotalPipeline();
     } else if (result != vk::Result::eSuccess) {
-        assert("Failed to present swap chain image!" && false);
+        assert("Failed to present swapchain image!" && false);
     }
 
     presentQueue.waitIdle();
@@ -512,8 +469,8 @@ RenderSystem::~RenderSystem()
     logicalDevice.freeMemory(vertexBufferMemory);
     // end of todo
 
-    logicalDevice.destroySemaphore(renderFinishedSemaphore);
-    logicalDevice.destroySemaphore(imageAvailableSemaphore);
+    logicalDevice.destroySemaphore(frameSemaphores.renderFinishedSemaphore);
+    logicalDevice.destroySemaphore(frameSemaphores.imageAvailableSemaphore);
 
     logicalDevice.destroyCommandPool(commandPool);
 

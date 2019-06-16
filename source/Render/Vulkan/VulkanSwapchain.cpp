@@ -190,12 +190,33 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice, Vulka
     return GraphicsResult::Ok;
 }
 
-VulkanSwapchain::~VulkanSwapchain()
+
+GraphicsResult VulkanSwapchain::CreateFramebuffersForRenderPass(vk::RenderPass vkRenderPass)
 {
-    Cleanup();
+    info.framebuffers.resize(info.imageViews.size());
+
+    for (size_t i = 0; i < info.imageViews.size(); i++) {
+        vk::ImageView attachments[] = {
+            info.imageViews[i]
+        };
+
+        vk::FramebufferCreateInfo framebufferInfo = {};
+        framebufferInfo.renderPass = vkRenderPass;
+        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.width = info.extent.width;
+        framebufferInfo.height = info.extent.height;
+        framebufferInfo.layers = 1;
+
+        if (logicalDevice.createFramebuffer(&framebufferInfo, nullptr, &info.framebuffers[i]) != vk::Result::eSuccess) {
+            printf("Failed to create framebuffer!");
+            return GraphicsResult::Error;
+        }
+    }
+    return GraphicsResult::Ok;
 }
 
-void VulkanSwapchain::Cleanup()
+VulkanSwapchain::~VulkanSwapchain()
 {
     for (size_t i = 0; i < info.framebuffers.size(); i++) {
         logicalDevice.destroyFramebuffer(info.framebuffers[i], nullptr);
@@ -208,3 +229,4 @@ void VulkanSwapchain::Cleanup()
     logicalDevice.destroySwapchainKHR(info.swapchain);
     info = {};
 }
+
