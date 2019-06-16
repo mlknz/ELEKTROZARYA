@@ -81,11 +81,10 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     , frameSemaphores(std::move(ci.frameSemaphores))
     , vulkanRenderPass(std::move(ci.vulkanRenderPass))
 {
-    ready = CreateAttrBuffers()
-            && createUniformBuffer()
-            && createDescriptorPool();
-
     // todo: move out
+    ready = CreateAttrBuffers()
+            && createUniformBuffer();
+
     vk::Device logicalDevice = GetDevice();
     vk::PhysicalDevice physicalDevice = GetPhysicalDevice();
     vk::Queue graphicsQueue = GetGraphicsQueue();
@@ -95,9 +94,11 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     ready = ready && CreateDescriptorSetLayout()
                     && CreateGraphicsPipeline()
                     && uploadMeshAttributes(logicalDevice, physicalDevice, graphicsQueue, vulkanDevice->GetGraphicsCommandPool(), testMesh)
-                    && createDescriptorSet(logicalDevice)
-                    && createCommandBuffers(logicalDevice, vulkanDevice->GetGraphicsCommandPool(),swapchainInfo, testMesh);
+                    && createDescriptorSet(logicalDevice, vulkanDevice->GetDescriptorPool())
+                    && createCommandBuffers(logicalDevice, vulkanDevice->GetGraphicsCommandPool(), swapchainInfo, testMesh);
 }
+
+// todo: move out
 
 bool RenderSystem::CreateDescriptorSetLayout()
 {
@@ -156,25 +157,6 @@ bool RenderSystem::createUniformBuffer()
     return true;
 }
 
-bool RenderSystem::createDescriptorPool()
-{
-    vk::DescriptorPoolSize poolSize = {};
-    poolSize.descriptorCount = 1;
-
-    vk::DescriptorPoolCreateInfo poolInfo = {};
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
-    poolInfo.maxSets = 1;
-
-    if (GetDevice().createDescriptorPool(&poolInfo, nullptr, &descriptorPool) != vk::Result::eSuccess) {
-        printf("Failed to create descriptor pool!");
-        return false;
-    }
-    return true;
-}
-
-// todo: move out
-
 bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice,
                                         vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const Ride::Mesh& mesh)
 {
@@ -224,7 +206,7 @@ bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDe
     return true;
 }
 
-bool RenderSystem::createDescriptorSet(vk::Device logicalDevice) {
+bool RenderSystem::createDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool) {
     vk::DescriptorSetLayout layouts[] = {descriptorSetLayout};
     vk::DescriptorSetAllocateInfo allocInfo = {};
     allocInfo.descriptorPool = descriptorPool;
@@ -442,8 +424,6 @@ RenderSystem::~RenderSystem()
     logicalDevice.waitIdle();
 
     // todo: move out
-    logicalDevice.destroyDescriptorPool(descriptorPool);
-
     logicalDevice.destroyDescriptorSetLayout(descriptorSetLayout);
 
     logicalDevice.destroyBuffer(uniformBuffer);

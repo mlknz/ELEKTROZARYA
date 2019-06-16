@@ -59,15 +59,24 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
         return deviceRV.result;
     }
 
-    return {GraphicsResult::Ok, std::make_unique<VulkanDevice>(instance, physicalDeviceRV.value, deviceRV.value, graphicsCommandPoolRV.value, window, surface) };
+    auto descriptorPoolRV = CreateDescriptorPool(deviceRV.value);
+    if (descriptorPoolRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to create descriptor pool");
+        return deviceRV.result;
+    }
+
+    return {GraphicsResult::Ok, std::make_unique<VulkanDevice>(instance, physicalDeviceRV.value, deviceRV.value, graphicsCommandPoolRV.value, descriptorPoolRV.value, window, surface) };
 }
 
 VulkanDevice::VulkanDevice(vk::Instance aInstance, vk::PhysicalDevice aPhysicalDevice,
-                           vk::Device aDevice, vk::CommandPool aGraphicsCommandPool, SDL_Window* aWindow, VkSurfaceKHR aSurface)
+                           vk::Device aDevice, vk::CommandPool aGraphicsCommandPool, vk::DescriptorPool aDescriptorPool,
+                           SDL_Window* aWindow, VkSurfaceKHR aSurface)
     : instance(aInstance)
       , physicalDevice(aPhysicalDevice)
       , device(aDevice)
       , graphicsCommandPool(aGraphicsCommandPool)
+      , descriptorPool(aDescriptorPool)
       , window(aWindow)
       , surface(aSurface)
 {
@@ -193,9 +202,29 @@ ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(vk::Physica
     return {GraphicsResult::Ok, commandPool};
 }
 
+ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device device)
+{
+    vk::DescriptorPool descriptorPool;
+
+    vk::DescriptorPoolSize poolSize = {};
+    poolSize.descriptorCount = 1;
+
+    vk::DescriptorPoolCreateInfo poolInfo = {};
+    poolInfo.poolSizeCount = 2; // todo: config constants or gather dynamically
+    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.maxSets = 1;
+
+    if (device.createDescriptorPool(&poolInfo, nullptr, &descriptorPool) != vk::Result::eSuccess) {
+        printf("Failed to create descriptor pool!");
+        return GraphicsResult::Error;
+    }
+    return {GraphicsResult::Ok, descriptorPool};
+}
+
 VulkanDevice::~VulkanDevice()
 {
     device.destroyCommandPool(graphicsCommandPool);
+    device.destroyDescriptorPool(descriptorPool);
 
     device.destroy();
     instance.destroySurfaceKHR(surface);

@@ -74,6 +74,7 @@ private:
     FrameSemaphores frameSemaphores;
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass = nullptr;
 
+    // todo: move out
     vk::DescriptorSetLayout descriptorSetLayout;
 
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = nullptr;
@@ -82,11 +83,9 @@ private:
 
     bool CreateAttrBuffers();
     bool createUniformBuffer();
-    bool createDescriptorPool();
 
-    // todo: move out
     bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const Ride::Mesh& mesh);
-    bool createDescriptorSet(vk::Device logicalDevice);
+    bool createDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool);
     bool createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
 
     vk::Buffer vertexBuffer;
@@ -101,7 +100,6 @@ private:
     vk::DeviceMemory uniformBufferMemory;
     uint32_t uniformBufferSize = 200;
 
-    vk::DescriptorPool descriptorPool;
     vk::DescriptorSet descriptorSet;
     // end of todo
 
