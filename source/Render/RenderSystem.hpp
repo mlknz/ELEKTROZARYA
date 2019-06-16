@@ -7,6 +7,7 @@
 #include <Vulkan/VulkanDevice.hpp>
 #include <Vulkan/VulkanSwapchain.hpp>
 #include <Vulkan/VulkanRenderPass.hpp>
+#include <Vulkan/VulkanDeviceMemoryManager.hpp>
 #include <Vulkan/GraphicsPipeline.hpp>
 #include <GraphicsResult.hpp>
 
@@ -37,6 +38,7 @@ struct RenderSystemCreateInfo
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain;
     FrameSemaphores frameSemaphores;
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass;
+    std::unique_ptr<VulkanDeviceMemoryManager> vulkanDeviceMemoryManager;
 };
 
 class RenderSystem
@@ -73,6 +75,7 @@ private:
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain = nullptr;
     FrameSemaphores frameSemaphores;
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass = nullptr;
+    std::unique_ptr<VulkanDeviceMemoryManager> vulkanDeviceMemoryManager = nullptr;
 
     // todo: move out
     vk::DescriptorSetLayout descriptorSetLayout;
@@ -81,24 +84,9 @@ private:
 
     std::vector<vk::CommandBuffer> commandBuffers;
 
-    bool CreateAttrBuffers();
-    bool createUniformBuffer();
-
     bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const Ride::Mesh& mesh);
     bool createDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool);
     bool createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
-
-    vk::Buffer vertexBuffer;
-    vk::DeviceMemory vertexBufferMemory;
-    uint32_t vertexBufferSize = 1000;
-
-    vk::Buffer indexBuffer;
-    vk::DeviceMemory indexBufferMemory;
-    uint32_t indexBufferSize = 200;
-
-    vk::Buffer uniformBuffer;
-    vk::DeviceMemory uniformBufferMemory;
-    uint32_t uniformBufferSize = 200;
 
     vk::DescriptorSet descriptorSet;
     // end of todo

@@ -14,7 +14,7 @@ uint32_t findMemoryType(vk::PhysicalDevice physicalDevice, uint32_t typeFilter, 
         }
     }
 
-    assert(false && "failed to find suitable memory type!");
+    assert("Failed to find suitable memory type!" && false);
     return 0;
 }
 

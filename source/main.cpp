@@ -12,7 +12,8 @@
 #include "Scene/Scene.hpp"
 
 // todo:
-// USE ResultValue<result>, rearrange code
+// Untie scene from render:
+// PipelineState, DescriptorSets, Uniforms, staging buffers, cmdBuf
 
 
 int main() {

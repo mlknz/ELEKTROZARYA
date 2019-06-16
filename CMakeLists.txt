@@ -34,6 +34,8 @@ SET(SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanSwapchain.hpp
     ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanRenderPass.cpp
 	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanRenderPass.hpp
+    ${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanDeviceMemoryManager.cpp
+	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanDeviceMemoryManager.hpp
 	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanBuffer.cpp
 	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/VulkanBuffer.hpp
 	${PROJECT_SOURCE_DIR}/source/Render/Vulkan/GraphicsPipeline.cpp

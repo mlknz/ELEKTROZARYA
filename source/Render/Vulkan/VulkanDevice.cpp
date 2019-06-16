@@ -206,12 +206,16 @@ ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device de
 {
     vk::DescriptorPool descriptorPool;
 
-    vk::DescriptorPoolSize poolSize = {};
-    poolSize.descriptorCount = 1;
+    std::vector<vk::DescriptorPoolSize> poolSizes(1); // todo: config constants or gather dynamically
+    for (auto& poolSize : poolSizes)
+    {
+        poolSize.descriptorCount = 1;
+        poolSize.setType(vk::DescriptorType::eUniformBuffer);
+    }
 
     vk::DescriptorPoolCreateInfo poolInfo = {};
-    poolInfo.poolSizeCount = 2; // todo: config constants or gather dynamically
-    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.poolSizeCount = poolSizes.size();
+    poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = 1;
 
     if (device.createDescriptorPool(&poolInfo, nullptr, &descriptorPool) != vk::Result::eSuccess) {
