@@ -16,7 +16,7 @@ public:
     VulkanDevice() = delete;
     VulkanDevice(const VulkanDevice&) = delete;
 
-    VulkanDevice(vk::Instance, vk::PhysicalDevice, vk::Device, SDL_Window*, VkSurfaceKHR);
+    VulkanDevice(vk::Instance, vk::PhysicalDevice, vk::Device, vk::CommandPool, SDL_Window*, VkSurfaceKHR);
     ~VulkanDevice();
 
     vk::Device GetDevice() { return device; }
@@ -26,6 +26,7 @@ public:
 
     vk::Queue GetGraphicsQueue() { return graphicsQueue; }
     vk::Queue GetPresentQueue() { return presentQueue; }
+    vk::CommandPool GetGraphicsCommandPool() { return graphicsCommandPool; }
 
     static ResultValue<std::unique_ptr<VulkanDevice>> CreateVulkanDevice(vk::Instance instance);
 
@@ -36,6 +37,7 @@ private:
     static bool CheckDeviceExtensionSupport(vk::PhysicalDevice);
 
     static ResultValue<vk::Device> CreateDevice(vk::PhysicalDevice, VkSurfaceKHR);
+    static ResultValue<vk::CommandPool> CreateGraphicsCommandPool(vk::PhysicalDevice, vk::Device device, VkSurfaceKHR);
 
     vk::Instance instance;
     vk::PhysicalDevice physicalDevice;
@@ -45,6 +47,7 @@ private:
     VkSurfaceKHR surface;
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
+    vk::CommandPool graphicsCommandPool;
 };
 
 }

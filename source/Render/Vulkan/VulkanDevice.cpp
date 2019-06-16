@@ -52,14 +52,22 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
         return deviceRV.result;
     }
 
-    return {GraphicsResult::Ok, std::make_unique<VulkanDevice>(instance, physicalDeviceRV.value, deviceRV.value, window, surface) };
+    auto graphicsCommandPoolRV = CreateGraphicsCommandPool(physicalDeviceRV.value, deviceRV.value, surface);
+    if (graphicsCommandPoolRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to create graphics command pool");
+        return deviceRV.result;
+    }
+
+    return {GraphicsResult::Ok, std::make_unique<VulkanDevice>(instance, physicalDeviceRV.value, deviceRV.value, graphicsCommandPoolRV.value, window, surface) };
 }
 
 VulkanDevice::VulkanDevice(vk::Instance aInstance, vk::PhysicalDevice aPhysicalDevice,
-                           vk::Device aDevice, SDL_Window* aWindow, VkSurfaceKHR aSurface)
+                           vk::Device aDevice, vk::CommandPool aGraphicsCommandPool, SDL_Window* aWindow, VkSurfaceKHR aSurface)
     : instance(aInstance)
       , physicalDevice(aPhysicalDevice)
       , device(aDevice)
+      , graphicsCommandPool(aGraphicsCommandPool)
       , window(aWindow)
       , surface(aSurface)
 {
@@ -170,8 +178,25 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
     return {GraphicsResult::Ok, device};
 }
 
+ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(vk::PhysicalDevice physicalDevice, vk::Device device, VkSurfaceKHR surface)
+{
+    vk::CommandPool commandPool;
+    Ride::QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice, surface);
+
+    vk::CommandPoolCreateInfo poolInfo = {};
+    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
+
+    if (device.createCommandPool(&poolInfo, nullptr, &commandPool) != vk::Result::eSuccess) {
+        printf("Failed to create graphics command pool!");
+        return GraphicsResult::Error;
+    }
+    return {GraphicsResult::Ok, commandPool};
+}
+
 VulkanDevice::~VulkanDevice()
 {
+    device.destroyCommandPool(graphicsCommandPool);
+
     device.destroy();
     instance.destroySurfaceKHR(surface);
     SDL_DestroyWindow(window);

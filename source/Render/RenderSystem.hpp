@@ -65,11 +65,8 @@ private:
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
 
-    bool CreateCommandPool();
-
     bool CreateDescriptorSetLayout();
     bool CreateGraphicsPipeline();
-
 
     std::unique_ptr<VulkanInstance> vulkanInstance = nullptr;
     std::unique_ptr<VulkanDevice> vulkanDevice = nullptr;
@@ -81,7 +78,6 @@ private:
 
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = nullptr;
 
-    vk::CommandPool commandPool;
     std::vector<vk::CommandBuffer> commandBuffers;
 
     bool CreateAttrBuffers();
@@ -89,9 +85,9 @@ private:
     bool createDescriptorPool();
 
     // todo: move out
-    bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, const Ride::Mesh& mesh);
+    bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const Ride::Mesh& mesh);
     bool createDescriptorSet(vk::Device logicalDevice);
-    bool createCommandBuffers(vk::Device logicalDevice, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
+    bool createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
 
     vk::Buffer vertexBuffer;
     vk::DeviceMemory vertexBufferMemory;

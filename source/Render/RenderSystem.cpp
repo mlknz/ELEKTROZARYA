@@ -81,8 +81,7 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     , frameSemaphores(std::move(ci.frameSemaphores))
     , vulkanRenderPass(std::move(ci.vulkanRenderPass))
 {
-    ready = CreateCommandPool()
-            && CreateAttrBuffers()
+    ready = CreateAttrBuffers()
             && createUniformBuffer()
             && createDescriptorPool();
 
@@ -95,9 +94,9 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     Mesh testMesh = Ride::GetTestMesh();
     ready = ready && CreateDescriptorSetLayout()
                     && CreateGraphicsPipeline()
-                    && uploadMeshAttributes(logicalDevice, physicalDevice, graphicsQueue, testMesh)
+                    && uploadMeshAttributes(logicalDevice, physicalDevice, graphicsQueue, vulkanDevice->GetGraphicsCommandPool(), testMesh)
                     && createDescriptorSet(logicalDevice)
-                    && createCommandBuffers(logicalDevice, swapchainInfo, testMesh);
+                    && createCommandBuffers(logicalDevice, vulkanDevice->GetGraphicsCommandPool(),swapchainInfo, testMesh);
 }
 
 bool RenderSystem::CreateDescriptorSetLayout()
@@ -130,19 +129,6 @@ bool RenderSystem::CreateGraphicsPipeline()
     if (!graphicsPipeline->Ready())
     {
         printf("Failed to init VulkanPipeline");
-        return false;
-    }
-    return true;
-}
-
-bool RenderSystem::CreateCommandPool() {
-    Ride::QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(vulkanDevice->GetPhysicalDevice(), vulkanDevice->GetSurface());
-
-    vk::CommandPoolCreateInfo poolInfo = {};
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
-
-    if (vulkanDevice->GetDevice().createCommandPool(&poolInfo, nullptr, &commandPool) != vk::Result::eSuccess) {
-        printf("Failed to create graphics command pool!");
         return false;
     }
     return true;
@@ -189,7 +175,8 @@ bool RenderSystem::createDescriptorPool()
 
 // todo: move out
 
-bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, const Ride::Mesh& mesh)
+bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice,
+                                        vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const Ride::Mesh& mesh)
 {
     // vert
     {
@@ -208,7 +195,7 @@ bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDe
     memcpy(data, mesh.vertices.data(), (size_t) vertexBufferSize);
     logicalDevice.unmapMemory(stagingBufferMemory);
 
-    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, vertexBuffer, vertexBufferSize);
+    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, graphicsCommandPool, stagingBuffer, vertexBuffer, vertexBufferSize);
 
     logicalDevice.destroyBuffer(stagingBuffer);
     logicalDevice.freeMemory(stagingBufferMemory);
@@ -229,7 +216,7 @@ bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDe
     memcpy(data, mesh.indices.data(), (size_t) indexBufferSize);
     logicalDevice.unmapMemory(stagingBufferMemory);
 
-    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, indexBuffer, indexBufferSize);
+    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, graphicsCommandPool, stagingBuffer, indexBuffer, indexBufferSize);
 
     logicalDevice.destroyBuffer(stagingBuffer);
     logicalDevice.freeMemory(stagingBufferMemory);
@@ -266,11 +253,11 @@ bool RenderSystem::createDescriptorSet(vk::Device logicalDevice) {
     return true;
 }
 
-bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh) {
+bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh) {
     commandBuffers.resize(swapchainInfo.framebuffers.size());
 
     vk::CommandBufferAllocateInfo allocInfo = {};
-    allocInfo.commandPool = commandPool;
+    allocInfo.commandPool = graphicsCommandPool;
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
     allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
 
@@ -331,7 +318,7 @@ void RenderSystem::CleanupTotalPipeline()
 
     vulkanSwapchain.reset();
 
-    logicalDevice.freeCommandBuffers(commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    logicalDevice.freeCommandBuffers(vulkanDevice->GetGraphicsCommandPool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
     graphicsPipeline.reset();
     vulkanRenderPass.reset();
@@ -371,7 +358,7 @@ void RenderSystem::RecreateTotalPipeline()
         return;
     }
     ready = CreateGraphicsPipeline() &&// todo: move to primitive
-            createCommandBuffers(GetDevice(), GetSwapchainInfo(), Ride::GetTestMesh());
+            createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), Ride::GetTestMesh());
 }
 
 void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
@@ -471,8 +458,6 @@ RenderSystem::~RenderSystem()
 
     logicalDevice.destroySemaphore(frameSemaphores.renderFinishedSemaphore);
     logicalDevice.destroySemaphore(frameSemaphores.imageAvailableSemaphore);
-
-    logicalDevice.destroyCommandPool(commandPool);
 
     vulkanDevice.reset();
     vulkanInstance.reset();
