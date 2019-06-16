@@ -3,11 +3,20 @@
 #include <vector>
 #include <SDL2/SDL.h>
 #include <Vulkan/Vulkan.hpp>
+#include <GraphicsResult.hpp>
 
 namespace Ride
 {
 
-struct SwapchainInfo
+struct VulkanSwapchainCreateInfo
+{
+    vk::Device logicalDevice;
+    vk::PhysicalDevice physicalDevice;
+    vk::SurfaceKHR surface;
+    SDL_Window* window;
+};
+
+struct VulkanSwapchainInfo
 {
     vk::SwapchainKHR swapchain;
     std::vector<vk::Image> images;
@@ -26,33 +35,33 @@ struct SwapChainSupportDetails {
 class VulkanSwapchain
 {
 public:
-    static SwapChainSupportDetails QuerySwapChainSupport(vk::PhysicalDevice, vk::SurfaceKHR);
-
-    VulkanSwapchain(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface, SDL_Window* window);
+    VulkanSwapchain() = delete;
+    VulkanSwapchain(const VulkanSwapchain&) = delete;
+    VulkanSwapchain(const VulkanSwapchainCreateInfo& ci, VulkanSwapchainInfo&& info);
     ~VulkanSwapchain();
 
-    SwapchainInfo& GetInfo() { return info; }
-
-    bool Ready() const { return ready; }
+    VulkanSwapchainInfo& GetInfo() { return info; }
 
     void Cleanup();
 
+    static ResultValue<std::unique_ptr<VulkanSwapchain>> CreateVulkanSwapchain(const VulkanSwapchainCreateInfo& ci);
+    static ResultValue<SwapChainSupportDetails> QuerySwapchainSupport(vk::PhysicalDevice, vk::SurfaceKHR);
+
 private:
-    bool CreateSwapchain();
-    bool CreateImageViews();
+    static ResultValue<VulkanSwapchainInfo> CreateSwapchain(const VulkanSwapchainCreateInfo& ci);
 
-    vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
-    vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
-    vk::Extent2D ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities);
+    static vk::SurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats);
+    static vk::PresentModeKHR ChooseSwapPresentMode(const std::vector<vk::PresentModeKHR>& availablePresentModes);
+    static vk::Extent2D ChooseSwapExtent(SDL_Window* window, const vk::SurfaceCapabilitiesKHR& capabilities);
 
-    SwapchainInfo info;
+    static GraphicsResult CreateImageViews(vk::Device logicalDevice, VulkanSwapchainInfo& info);
+
+    VulkanSwapchainInfo info;
 
     SDL_Window* window = nullptr;
     vk::SurfaceKHR surface;
     vk::PhysicalDevice physicalDevice;
     vk::Device logicalDevice;
-
-    bool ready = false;
 };
 
 }

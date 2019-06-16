@@ -27,7 +27,7 @@ class RenderSystem
 {
 public:
     RenderSystem() = delete;
-    RenderSystem(std::unique_ptr<VulkanInstance>, std::unique_ptr<VulkanDevice>);
+    RenderSystem(std::unique_ptr<VulkanInstance>, std::unique_ptr<VulkanDevice>, std::unique_ptr<VulkanSwapchain>);
     ~RenderSystem();
 
     void Draw(const std::shared_ptr<Scene>& scene);
@@ -36,7 +36,7 @@ public:
     vk::PhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }
     vk::SurfaceKHR GetSurface() { return vulkanDevice->GetSurface(); }
     vk::Queue GetGraphicsQueue() { return vulkanDevice->GetGraphicsQueue(); }
-    SwapchainInfo& GetSwapchainInfo() { return vulkanSwapchain->GetInfo(); }
+    VulkanSwapchainInfo& GetSwapchainInfo() { return vulkanSwapchain->GetInfo(); }
 
     uint32_t GetScreenWidth() const { return vulkanSwapchain->GetInfo().extent.width; }
     uint32_t GetScreenHeight() const { return vulkanSwapchain->GetInfo().extent.height; }
@@ -49,7 +49,6 @@ private:
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
 
-    bool CreateSwapchain();
     bool CreateSemaphores();
     bool CreateRenderPass();
     bool CreateDescriptorSetLayout();
@@ -76,7 +75,7 @@ private:
     // todo: move out
     bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, const Ride::Mesh& mesh);
     bool createDescriptorSet(vk::Device logicalDevice);
-    bool createCommandBuffers(vk::Device logicalDevice, Ride::SwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
+    bool createCommandBuffers(vk::Device logicalDevice, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
 
     vk::Buffer vertexBuffer;
     vk::DeviceMemory vertexBufferMemory;

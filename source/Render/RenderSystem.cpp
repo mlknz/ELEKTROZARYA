@@ -14,18 +14,30 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     auto vulkanInstanceRV = VulkanInstance::CreateVulkanInstance();
     if (vulkanInstanceRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to init VulkanInstance");
+        printf("Failed to create VulkanInstance");
         return vulkanInstanceRV.result;
     }
 
     auto vulkanDeviceRV = VulkanDevice::CreateVulkanDevice(vulkanInstanceRV.value->GetInstance());
     if (vulkanDeviceRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to init VulkanDevice");
+        printf("Failed to create VulkanDevice");
         return vulkanDeviceRV.result;
     }
 
-    auto rs = new RenderSystem(std::move(vulkanInstanceRV.value), std::move(vulkanDeviceRV.value));
+    auto vulkanSwapchainRV = VulkanSwapchain::CreateVulkanSwapchain({
+        vulkanDeviceRV.value->GetDevice(),
+        vulkanDeviceRV.value->GetPhysicalDevice(),
+        vulkanDeviceRV.value->GetSurface(),
+        vulkanDeviceRV.value->GetWindow()
+    });
+    if (vulkanSwapchainRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to create VulkanSwapchain");
+        return vulkanSwapchainRV.result;
+    }
+
+    auto rs = new RenderSystem(std::move(vulkanInstanceRV.value), std::move(vulkanDeviceRV.value), std::move(vulkanSwapchainRV.value));
     if (!rs->ready)
     {
         return GraphicsResult::Error;
@@ -34,11 +46,10 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     return {GraphicsResult::Ok, std::unique_ptr<RenderSystem>(rs)};
 }
 
-RenderSystem::RenderSystem(std::unique_ptr<VulkanInstance> aInstance, std::unique_ptr<VulkanDevice> aDevice)
-    : vulkanInstance(std::move(aInstance)), vulkanDevice(std::move(aDevice))
+RenderSystem::RenderSystem(std::unique_ptr<VulkanInstance> aInstance, std::unique_ptr<VulkanDevice> aDevice, std::unique_ptr<VulkanSwapchain> aSwapchain)
+    : vulkanInstance(std::move(aInstance)), vulkanDevice(std::move(aDevice)), vulkanSwapchain(std::move(aSwapchain))
 {
-    ready = CreateSwapchain()
-            && CreateSemaphores()
+    ready = CreateSemaphores()
             && CreateRenderPass()
             && CreateFramebuffers()
             && CreateCommandPool()
@@ -50,7 +61,7 @@ RenderSystem::RenderSystem(std::unique_ptr<VulkanInstance> aInstance, std::uniqu
     vk::Device logicalDevice = GetDevice();
     vk::PhysicalDevice physicalDevice = GetPhysicalDevice();
     vk::Queue graphicsQueue = GetGraphicsQueue();
-    SwapchainInfo& swapchainInfo = GetSwapchainInfo();
+    VulkanSwapchainInfo& swapchainInfo = GetSwapchainInfo();
 
     Mesh testMesh = Ride::GetTestMesh();
     ready = ready && CreateDescriptorSetLayout()
@@ -58,23 +69,6 @@ RenderSystem::RenderSystem(std::unique_ptr<VulkanInstance> aInstance, std::uniqu
                     && uploadMeshAttributes(logicalDevice, physicalDevice, graphicsQueue, testMesh)
                     && createDescriptorSet(logicalDevice)
                     && createCommandBuffers(logicalDevice, swapchainInfo, testMesh);
-}
-
-bool RenderSystem::CreateSwapchain()
-{
-    vulkanSwapchain.reset();
-    vulkanSwapchain = std::make_unique<VulkanSwapchain>(
-                vulkanDevice->GetDevice(),
-                vulkanDevice->GetPhysicalDevice(),
-                vulkanDevice->GetSurface(),
-                vulkanDevice->GetWindow()
-                );
-    if (!vulkanSwapchain->Ready())
-    {
-        assert(false && "Failed to init VulkanSwapchain");
-        return false;
-    }
-    return true;
 }
 
 bool RenderSystem::CreateSemaphores() {
@@ -168,7 +162,7 @@ bool RenderSystem::CreateGraphicsPipeline()
 }
 
 bool RenderSystem::CreateFramebuffers() {
-    SwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();
+    VulkanSwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();
     swapchainInfo.framebuffers.resize(swapchainInfo.imageViews.size());
 
     for (size_t i = 0; i < swapchainInfo.imageViews.size(); i++) {
@@ -323,7 +317,7 @@ bool RenderSystem::createDescriptorSet(vk::Device logicalDevice) {
     return true;
 }
 
-bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, Ride::SwapchainInfo& swapchainInfo, const Ride::Mesh& mesh) {
+bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh) {
     commandBuffers.resize(swapchainInfo.framebuffers.size());
 
     vk::CommandBufferAllocateInfo allocInfo = {};
@@ -402,8 +396,22 @@ void RenderSystem::RecreateTotalPipeline()
 {
     CleanupTotalPipeline();
 
-    ready = CreateSwapchain()
-            && CreateRenderPass()
+    vulkanSwapchain.reset();
+    auto vulkanSwapchainRV = VulkanSwapchain::CreateVulkanSwapchain({
+        vulkanDevice->GetDevice(),
+        vulkanDevice->GetPhysicalDevice(),
+        vulkanDevice->GetSurface(),
+        vulkanDevice->GetWindow()
+    });
+    if (vulkanSwapchainRV.result != GraphicsResult::Ok)
+    {
+        printf("Failed to REcreate VulkanSwapchain");
+        ready = false;
+        return;
+    }
+    vulkanSwapchain = std::move(vulkanSwapchainRV.value);
+
+    ready = CreateRenderPass()
             && CreateGraphicsPipeline() // todo: move to primitive
             && CreateFramebuffers()
             && createCommandBuffers(GetDevice(), GetSwapchainInfo(), Ride::GetTestMesh());
@@ -421,7 +429,7 @@ void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
 void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
 {
     vk::Device logicalDevice = vulkanDevice->GetDevice();
-    const SwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();
+    const VulkanSwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();
     vk::Queue graphicsQueue = vulkanDevice->GetGraphicsQueue();
     vk::Queue presentQueue = vulkanDevice->GetPresentQueue();
 

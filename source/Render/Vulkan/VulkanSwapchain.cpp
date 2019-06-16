@@ -6,59 +6,77 @@
 
 using namespace Ride;
 
-SwapChainSupportDetails VulkanSwapchain::QuerySwapChainSupport(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
+VulkanSwapchain::VulkanSwapchain(const VulkanSwapchainCreateInfo& ci, VulkanSwapchainInfo&& info)
+    : logicalDevice(ci.logicalDevice)
+    , physicalDevice(ci.physicalDevice)
+    , surface(ci.surface)
+    , window(ci.window)
+    , info(std::move(info))
+{
+}
+
+ResultValue<SwapChainSupportDetails> VulkanSwapchain::QuerySwapchainSupport(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
 
     SwapChainSupportDetails details;
     device.getSurfaceCapabilitiesKHR(surface, &details.capabilities);
 
     auto formatsRV = device.getSurfaceFormatsKHR(surface);
-    if (formatsRV.result == vk::Result::eSuccess)
-    {
-        details.formats = formatsRV.value;
-    }
-    else
+    if (formatsRV.result != vk::Result::eSuccess)
     {
         printf("device.getSurfaceFormatsKHR failed");
+        return {GraphicsResult::Error, details};
     }
+
+    details.formats = formatsRV.value;
 
     auto presentModesRV = device.getSurfacePresentModesKHR(surface);
-    if (presentModesRV.result == vk::Result::eSuccess)
-    {
-        details.presentModes = presentModesRV.value;
-    }
-    else
+    if (presentModesRV.result != vk::Result::eSuccess)
     {
         printf("device.getSurfacePresentModesKHR failed");
+        return {GraphicsResult::Error, details};
+    }
+    details.presentModes = presentModesRV.value;
+
+    return {GraphicsResult::Ok, details};
+}
+
+ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapchain(const VulkanSwapchainCreateInfo& ci)
+{
+    ResultValue<VulkanSwapchainInfo> vulkanSwapchainInfo = CreateSwapchain(ci);
+    if (vulkanSwapchainInfo.result != GraphicsResult::Ok)
+    {
+        return vulkanSwapchainInfo.result;
+    }
+    GraphicsResult imageViewsResult = CreateImageViews(ci.logicalDevice, vulkanSwapchainInfo.value);
+    if (imageViewsResult != GraphicsResult::Ok)
+    {
+        return imageViewsResult;
     }
 
-    return details;
+    return {GraphicsResult::Ok, std::make_unique<VulkanSwapchain>(ci, std::move(vulkanSwapchainInfo.value))};
 }
 
-VulkanSwapchain::VulkanSwapchain(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface, SDL_Window* window)
-    : logicalDevice(logicalDevice)
-    , physicalDevice(physicalDevice)
-    , surface(surface)
-    , window(window)
+ResultValue<VulkanSwapchainInfo> VulkanSwapchain::CreateSwapchain(const VulkanSwapchainCreateInfo& ci)
 {
-    ready = CreateSwapchain() && CreateImageViews();
-}
+    VulkanSwapchainInfo info = {};
+    ResultValue<SwapChainSupportDetails> swapchainSupportResult = QuerySwapchainSupport(ci.physicalDevice, ci.surface);
+    if (swapchainSupportResult.result != GraphicsResult::Ok)
+    {
+        return swapchainSupportResult.result;
+    }
+    SwapChainSupportDetails swapchainSupport = std::move(swapchainSupportResult.value);
 
-bool VulkanSwapchain::CreateSwapchain()
-{
-    info = {};
-    SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport(physicalDevice, surface);
+    vk::SurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapchainSupport.formats);
+    vk::PresentModeKHR presentMode = ChooseSwapPresentMode(swapchainSupport.presentModes);
+    vk::Extent2D extent = ChooseSwapExtent(ci.window, swapchainSupport.capabilities);
 
-    vk::SurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupport.formats);
-    vk::PresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.presentModes);
-    vk::Extent2D extent = ChooseSwapExtent(swapChainSupport.capabilities);
-
-    uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
-        imageCount = swapChainSupport.capabilities.maxImageCount;
+    uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
+    if (swapchainSupport.capabilities.maxImageCount > 0 && imageCount > swapchainSupport.capabilities.maxImageCount) {
+        imageCount = swapchainSupport.capabilities.maxImageCount;
     }
 
     vk::SwapchainCreateInfoKHR createInfo = {};
-    createInfo.surface = surface;
+    createInfo.surface = ci.surface;
 
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
@@ -67,7 +85,7 @@ bool VulkanSwapchain::CreateSwapchain()
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
 
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
+    QueueFamilyIndices indices = FindQueueFamilies(ci.physicalDevice, ci.surface);
     uint32_t queueFamilyIndices[] = {(uint32_t) indices.graphicsFamily, (uint32_t) indices.presentFamily};
 
     if (indices.graphicsFamily != indices.presentFamily) {
@@ -78,50 +96,24 @@ bool VulkanSwapchain::CreateSwapchain()
         createInfo.imageSharingMode = vk::SharingMode::eExclusive;
     }
 
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
+    createInfo.preTransform = swapchainSupport.capabilities.currentTransform;
     createInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
 
-    if (logicalDevice.createSwapchainKHR(&createInfo, nullptr, &info.swapchain) != vk::Result::eSuccess) {
-        printf("failed to create swap chain!");
-        return false;
+    if (ci.logicalDevice.createSwapchainKHR(&createInfo, nullptr, &info.swapchain) != vk::Result::eSuccess) {
+        printf("Failed to create swapchain!");
+        return GraphicsResult::Error;
     }
 
-    vkGetSwapchainImagesKHR(logicalDevice, info.swapchain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(ci.logicalDevice, info.swapchain, &imageCount, nullptr);
     info.images.resize(imageCount);
-    logicalDevice.getSwapchainImagesKHR(info.swapchain, &imageCount, info.images.data());
+    ci.logicalDevice.getSwapchainImagesKHR(info.swapchain, &imageCount, info.images.data());
 
     info.imageFormat = surfaceFormat.format;
     info.extent = extent;
 
-    return true;
-}
-
-bool VulkanSwapchain::CreateImageViews() {
-    info.imageViews.resize(info.images.size());
-
-    for (size_t i = 0; i < info.images.size(); i++) {
-        vk::ImageViewCreateInfo createInfo = {};
-        createInfo.image = info.images[i];
-        createInfo.viewType = vk::ImageViewType::e2D;
-        createInfo.format = info.imageFormat;
-        createInfo.components.r = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.g = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.b = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.a = vk::ComponentSwizzle::eIdentity;
-        createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
-        if (logicalDevice.createImageView(&createInfo, nullptr, &info.imageViews[i]) != vk::Result::eSuccess) {
-            printf("failed to create image views!");
-            return false;
-        }
-    }
-    return true;
+    return {GraphicsResult::Ok, info};
 }
 
 vk::SurfaceFormatKHR VulkanSwapchain::ChooseSwapSurfaceFormat(const std::vector<vk::SurfaceFormatKHR>& availableFormats) {
@@ -152,23 +144,50 @@ vk::PresentModeKHR VulkanSwapchain::ChooseSwapPresentMode(const std::vector<vk::
     return bestMode;
 }
 
-vk::Extent2D VulkanSwapchain::ChooseSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities) {
-    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+vk::Extent2D VulkanSwapchain::ChooseSwapExtent(SDL_Window* window, const vk::SurfaceCapabilitiesKHR& capabilities) {
+    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+    {
         return capabilities.currentExtent;
-    } else {
-        int width, height;
-        SDL_Vulkan_GetDrawableSize(window, &width, &height);
-
-        vk::Extent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)
-        };
-
-        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-        actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
-
-        return actualExtent;
     }
+
+    int width, height;
+    SDL_Vulkan_GetDrawableSize(window, &width, &height);
+
+    vk::Extent2D actualExtent = {
+        static_cast<uint32_t>(width),
+        static_cast<uint32_t>(height)
+    };
+
+    actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+    actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+
+    return actualExtent;
+}
+
+GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice, VulkanSwapchainInfo& info) {
+    info.imageViews.resize(info.images.size());
+
+    for (size_t i = 0; i < info.images.size(); i++) {
+        vk::ImageViewCreateInfo createInfo = {};
+        createInfo.image = info.images[i];
+        createInfo.viewType = vk::ImageViewType::e2D;
+        createInfo.format = info.imageFormat;
+        createInfo.components.r = vk::ComponentSwizzle::eIdentity;
+        createInfo.components.g = vk::ComponentSwizzle::eIdentity;
+        createInfo.components.b = vk::ComponentSwizzle::eIdentity;
+        createInfo.components.a = vk::ComponentSwizzle::eIdentity;
+        createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
+        createInfo.subresourceRange.baseMipLevel = 0;
+        createInfo.subresourceRange.levelCount = 1;
+        createInfo.subresourceRange.baseArrayLayer = 0;
+        createInfo.subresourceRange.layerCount = 1;
+
+        if (logicalDevice.createImageView(&createInfo, nullptr, &info.imageViews[i]) != vk::Result::eSuccess) {
+            printf("Failed to create image views!");
+            return GraphicsResult::Error;
+        }
+    }
+    return GraphicsResult::Ok;
 }
 
 VulkanSwapchain::~VulkanSwapchain()

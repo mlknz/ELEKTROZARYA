@@ -93,8 +93,10 @@ bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, VkSurfaceKHR surf
 
     bool swapChainAdequate = false;
     if (extensionsSupported) {
-        SwapChainSupportDetails swapChainSupport = VulkanSwapchain::QuerySwapChainSupport(device, surface);
-        swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+        auto swapChainSupport = VulkanSwapchain::QuerySwapchainSupport(device, surface);
+        swapChainAdequate = swapChainSupport.result == GraphicsResult::Ok
+                && !swapChainSupport.value.formats.empty()
+                && !swapChainSupport.value.presentModes.empty();
     }
 
     return indices.isComplete() && extensionsSupported && swapChainAdequate;

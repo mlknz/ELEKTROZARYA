@@ -7,7 +7,8 @@
 #include <Vulkan/Vulkan.hpp>
 #include <GraphicsResult.hpp>
 
-namespace Ride {
+namespace Ride
+{
 
 class VulkanDevice
 {
