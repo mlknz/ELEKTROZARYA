@@ -1,8 +1,8 @@
 #include "VulkanSwapchain.hpp"
 
 #include <algorithm>
-#include <SDL2/SDL_vulkan.h>
-#include "source/Render/Vulkan/Utils.hpp"
+#include <SDL_vulkan.h>
+#include "Render/Vulkan/Utils.hpp"
 
 using namespace Ride;
 

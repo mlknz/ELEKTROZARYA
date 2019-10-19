@@ -3,8 +3,8 @@
 #include <Vulkan/Utils.hpp>
 #include <Vulkan/VulkanBuffer.hpp>
 
-#include "source/FileUtils.hpp"
-#include "source/Scene/Scene.hpp"
+#include <FileUtils.hpp>
+#include <Scene/Scene.hpp>
 
 #include <algorithm>
 #include <cassert>

@@ -16,7 +16,7 @@
 // PipelineState, DescriptorSets, Uniforms, staging buffers, cmdBuf
 
 
-int main() {
+int main(int, char* []) {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
     auto renderSystemRV = Ride::RenderSystem::Create();

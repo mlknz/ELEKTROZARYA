@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#include <Vulkan/Vulkan.hpp>
+#include <Vulkan.hpp>
 #include <GraphicsResult.hpp>
 
 namespace Ride {

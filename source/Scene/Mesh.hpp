@@ -3,15 +3,7 @@
 #include <glm/glm.hpp>
 #include <array>
 #include <vector>
-#include <Vulkan/Vulkan.hpp>
-
-/*
-// assimp
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <assimp/cimport.h>
-*/
+#include "Vulkan.hpp"
 
 namespace Ride {
 

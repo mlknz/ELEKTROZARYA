@@ -1,8 +1,8 @@
 #include "GraphicsPipeline.hpp"
 
 #include <cassert>
-#include "source/FileUtils.hpp"
-#include "source/Scene/Mesh.hpp"
+#include "FileUtils.hpp"
+#include "Scene/Mesh.hpp"
 
 namespace Ride {
 

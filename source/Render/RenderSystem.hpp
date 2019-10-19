@@ -11,7 +11,7 @@
 #include <Vulkan/GraphicsPipeline.hpp>
 #include <GraphicsResult.hpp>
 
-#include "source/Scene/Mesh.hpp"
+#include "Scene/Mesh.hpp"
 
 namespace Ride {
     class Scene;

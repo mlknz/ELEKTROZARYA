@@ -1,7 +1,7 @@
 #pragma once
 
-#include "source/Scene/Mesh.hpp"
 #include <vector>
+#include "Mesh.hpp"
 
 namespace Ride {
 

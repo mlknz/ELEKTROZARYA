@@ -3,10 +3,10 @@
 #include <set>
 #include <string>
 
-#include <SDL2/SDL_vulkan.h>
+#include <SDL_vulkan.h>
 
-#include "source/Render/Vulkan/Utils.hpp"
-#include "source/Render/Vulkan/VulkanSwapchain.hpp"
+#include "Render/Vulkan/Utils.hpp"
+#include "Render/Vulkan/VulkanSwapchain.hpp"
 
 using namespace Ride;
 
