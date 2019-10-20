@@ -3,7 +3,6 @@ project(vulkan-ride)
 
 set(SDL2_DIR C:/libs/SDL2) #requires sdl2-config.cmake in your SDL2 directory
 find_package(SDL2 REQUIRED)
-find_package(PkgConfig REQUIRED)
 find_package(Vulkan REQUIRED)
 
 set(SOURCES ${PROJECT_SOURCE_DIR}/source)
