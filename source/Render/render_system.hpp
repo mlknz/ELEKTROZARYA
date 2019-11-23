@@ -2,20 +2,14 @@
 
 #include <iostream>
 #include <memory>
-
-#include <Vulkan/VulkanInstance.hpp>
-#include <Vulkan/VulkanDevice.hpp>
-#include <Vulkan/VulkanSwapchain.hpp>
-#include <Vulkan/VulkanRenderPass.hpp>
-#include <Vulkan/VulkanDeviceMemoryManager.hpp>
-#include <Vulkan/GraphicsPipeline.hpp>
-#include <GraphicsResult.hpp>
-
-#include "Scene/Mesh.hpp"
-
-namespace Ride {
-    class Scene;
-}
+#include <core/scene/mesh.hpp>
+#include <graphics_result.hpp>
+#include <vulkan/vulkan_instance.hpp>
+#include <vulkan/vulkan_device.hpp>
+#include <vulkan/vulkan_swapchain.hpp>
+#include <vulkan/vulkan_render_pass.hpp>
+#include <vulkan/vulkan_device_memory_manager.hpp>
+#include <vulkan/vulkan_graphics_pipeline.hpp>
 
 struct UniformBufferObject {
     glm::mat4 model;
@@ -24,6 +18,8 @@ struct UniformBufferObject {
 };
 
 namespace Ride {
+
+class Scene;
 
 struct FrameSemaphores
 {

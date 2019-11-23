@@ -1,12 +1,10 @@
-#include "VulkanDevice.hpp"
-
-#include <set>
-#include <string>
+#include "vulkan_device.hpp"
 
 #include <SDL_vulkan.h>
-
-#include "Render/Vulkan/Utils.hpp"
-#include "Render/Vulkan/VulkanSwapchain.hpp"
+#include <set>
+#include <string>
+#include <render/vulkan/utils.hpp>
+#include <render/vulkan/vulkan_swapchain.hpp>
 
 using namespace Ride;
 

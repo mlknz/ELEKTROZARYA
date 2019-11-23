@@ -1,8 +1,8 @@
-#include "GraphicsPipeline.hpp"
+#include "vulkan_graphics_pipeline.hpp"
 
 #include <cassert>
-#include "FileUtils.hpp"
-#include "Scene/Mesh.hpp"
+#include <core/file_utils.hpp>
+#include <core/scene/mesh.hpp>
 
 namespace Ride {
 

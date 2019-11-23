@@ -8,13 +8,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Render/RenderSystem.hpp"
-#include "Scene/Scene.hpp"
-
-// todo:
-// Untie scene from render:
-// PipelineState, DescriptorSets, Uniforms, staging buffers, cmdBuf
-
+#include "render/render_system.hpp"
+#include "core/view.hpp"
+#include "core/scene/scene.hpp"
 
 int main(int, char* [])
 {

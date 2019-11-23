@@ -1,11 +1,10 @@
 #pragma once
 
+#include <SDL.h>
 #include <iostream>
 #include <vector>
-
-#include <SDL.h>
-#include "Vulkan.hpp"
-#include "GraphicsResult.hpp"
+#include <vulkan_include.hpp>
+#include <graphics_result.hpp>
 
 namespace Ride
 {

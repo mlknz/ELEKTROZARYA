@@ -1,7 +1,6 @@
-#include "VulkanDeviceMemoryManager.hpp"
+#include "vulkan_device_memory_manager.hpp"
 
-#include <Vulkan/VulkanBuffer.hpp>
-
+#include <render/vulkan/vulkan_buffer.hpp>
 
 using namespace Ride;
 

@@ -1,13 +1,11 @@
-#include "RenderSystem.hpp"
-
-#include <Vulkan/Utils.hpp>
-#include <Vulkan/VulkanBuffer.hpp>
-
-#include <FileUtils.hpp>
-#include <Scene/Scene.hpp>
+#include "render_system.hpp"
 
 #include <algorithm>
 #include <cassert>
+#include <core/file_utils.hpp>
+#include <core/scene/scene.hpp>
+#include <vulkan/utils.hpp>
+#include <vulkan/vulkan_buffer.hpp>
 
 namespace Ride{
 

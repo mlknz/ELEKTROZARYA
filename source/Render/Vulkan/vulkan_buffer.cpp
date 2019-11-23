@@ -1,4 +1,4 @@
-#include "VulkanBuffer.hpp"
+#include "vulkan_buffer.hpp"
 
 #include <stdio.h>
 #include <cassert>

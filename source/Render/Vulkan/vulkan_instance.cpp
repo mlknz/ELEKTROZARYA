@@ -1,8 +1,8 @@
-#include "VulkanInstance.hpp"
+#include "vulkan_instance.hpp"
 
 #include <cstring>
 
-#include "Render/Vulkan/Utils.hpp"
+#include <render/vulkan/utils.hpp>
 
 using namespace Ride;
 
