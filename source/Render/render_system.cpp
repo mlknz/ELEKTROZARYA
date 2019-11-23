@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 #include <core/file_utils.hpp>
+#include <core/view.hpp>
 #include <core/scene/scene.hpp>
 #include <vulkan/utils.hpp>
 #include <vulkan/vulkan_buffer.hpp>
@@ -338,7 +339,7 @@ void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
     logicalDevice.unmapMemory(vulkanDeviceMemoryManager->GetUniformBufferMemory());
 }
 
-void RenderSystem::Draw(const std::shared_ptr<Scene>& scene)
+void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera)
 {
     vk::Device logicalDevice = vulkanDevice->GetDevice();
     const VulkanSwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();

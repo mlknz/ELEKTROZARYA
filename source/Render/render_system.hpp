@@ -19,7 +19,8 @@ struct UniformBufferObject {
 
 namespace Ride {
 
-class Scene;
+class View;
+class Camera;
 
 struct FrameSemaphores
 {
@@ -44,7 +45,7 @@ public:
     RenderSystem(RenderSystemCreateInfo& ci);
     ~RenderSystem();
 
-    void Draw(const std::shared_ptr<Scene>& scene);
+    void Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera);
 
     vk::Device GetDevice() { return vulkanDevice->GetDevice(); }
     vk::PhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }

@@ -47,6 +47,11 @@ set(SOURCE_FILES
     ${SOURCES}/core/scene/scene.hpp
     ${SOURCES}/core/view.cpp
     ${SOURCES}/core/view.hpp
+    ${SOURCES}/core/camera/camera.cpp
+    ${SOURCES}/core/camera/camera.hpp
+
+    ${SOURCES}/gameplay/gameplay.cpp
+    ${SOURCES}/gameplay/gameplay.hpp
 )
 
 add_executable(vulkan-ride ${SOURCE_FILES})
