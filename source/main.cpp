@@ -9,6 +9,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <core/view.hpp>
+#include <core/input/input.hpp>
 #include <render/render_system.hpp>
 #include <gameplay/gameplay.hpp>
 
@@ -42,10 +43,7 @@ int main(int, char* [])
             {
                 run = false;
             }
-            if (evt.type == SDL_KEYDOWN)
-            {
-                printf("Keydown\n");
-            }
+            gameplay->GetInput()->ProcessSDLEvent(evt);
         }
 
         std::chrono::time_point currentTime = std::chrono::high_resolution_clock::now();

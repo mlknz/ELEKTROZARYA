@@ -49,6 +49,8 @@ set(SOURCE_FILES
     ${SOURCES}/core/view.hpp
     ${SOURCES}/core/camera/camera.cpp
     ${SOURCES}/core/camera/camera.hpp
+    ${SOURCES}/core/input/input.cpp
+    ${SOURCES}/core/input/input.hpp
 
     ${SOURCES}/gameplay/gameplay.cpp
     ${SOURCES}/gameplay/gameplay.hpp
