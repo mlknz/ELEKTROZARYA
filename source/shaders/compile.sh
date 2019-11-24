@@ -1,2 +1,2 @@
-/home/mlkn/VulkanSDK/1.0.61.1/x86_64/bin/glslangValidator -V shader.vert
-/home/mlkn/VulkanSDK/1.0.61.1/x86_64/bin/glslangValidator -V shader.frag
+C:/VulkanSDK/1.1.121.2/Bin/glslc.exe shader.vert -o vert.spv
+C:/VulkanSDK/1.1.121.2/Bin/glslc.exe shader.frag -o frag.spv

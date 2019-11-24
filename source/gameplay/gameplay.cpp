@@ -12,7 +12,13 @@ Gameplay::Gameplay(std::unique_ptr<View>&& aView) : view(std::move(aView))
     camera = std::make_unique<Camera>();
 }
 
-Gameplay::~Gameplay() {}
+void Gameplay::SetViewportExtent(uint32_t width, uint32_t height)
+{
+    if (camera)
+    {
+        camera->SetViewportExtent(width, height);
+    }
+}
 
 void Gameplay::Update(double curTime, double deltaTime)
 {

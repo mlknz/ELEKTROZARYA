@@ -25,7 +25,6 @@ int main(int, char* [])
     std::unique_ptr<Ride::RenderSystem> renderSystem = std::move(renderSystemRV.value);
 
     auto view = std::make_unique<Ride::View>();
-
     auto gameplay = std::make_unique<Ride::Gameplay>(std::move(view));
 
     std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
@@ -49,9 +48,6 @@ int main(int, char* [])
             }
         }
 
-        const float screenWidth = static_cast<float>(renderSystem->GetScreenWidth());
-        const float screenHeight = static_cast<float>(renderSystem->GetScreenHeight());
-
         std::chrono::time_point currentTime = std::chrono::high_resolution_clock::now();
 
         prevTime = curTime;
@@ -61,15 +57,11 @@ int main(int, char* [])
             deltaTime = curTime - prevTime;
         }
 
-        UniformBufferObject ubo = {};
-        ubo.model = glm::mat4(1.0f); // glm::rotate(glm::mat4(1.0f), static_cast<float>(curTime) * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        ubo.proj = glm::perspective(glm::radians(45.0f), screenWidth / screenHeight, 0.1f, 10.0f);
-        ubo.proj[1][1] *= -1;
+        const auto& viewportExtent = renderSystem->GetViewportExtent();
 
+        gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
         gameplay->Update(curTime, deltaTime);
 
-        renderSystem->UpdateUBO(ubo);
         renderSystem->Draw(gameplay->GetView(), gameplay->GetActiveCamera());
     }
 

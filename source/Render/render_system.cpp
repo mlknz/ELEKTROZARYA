@@ -10,6 +10,13 @@
 
 namespace Ride{
 
+struct GlobalUBO
+{
+    glm::mat4 viewMatrix;
+    glm::mat4 projectionMatrix;
+    glm::mat4 viewProjectionMatrix;
+};
+
 ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
 {
     RenderSystemCreateInfo ci;
@@ -160,7 +167,7 @@ bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDe
     void* data;
 
     logicalDevice.mapMemory(stagingBufferMemory, 0, vertexBufferSize, vk::MemoryMapFlags(), &data);
-    memcpy(data, mesh.vertices.data(), (size_t) vertexBufferSize);
+    memcpy(data, mesh.vertices.data(), static_cast<size_t>(vertexBufferSize));
     logicalDevice.unmapMemory(stagingBufferMemory);
 
     VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, graphicsCommandPool, stagingBuffer, vulkanDeviceMemoryManager->GetVertexBuffer(), vertexBufferSize);
@@ -181,7 +188,7 @@ bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDe
 
     void* data;
     logicalDevice.mapMemory(stagingBufferMemory, 0, indexBufferSize, vk::MemoryMapFlags(), &data);
-    memcpy(data, mesh.indices.data(), (size_t) indexBufferSize);
+    memcpy(data, mesh.indices.data(), static_cast<size_t>(indexBufferSize));
     logicalDevice.unmapMemory(stagingBufferMemory);
 
     VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, graphicsCommandPool, stagingBuffer, vulkanDeviceMemoryManager->GetIndexBuffer(), indexBufferSize);
@@ -207,7 +214,7 @@ bool RenderSystem::createDescriptorSet(vk::Device logicalDevice, vk::DescriptorP
     vk::DescriptorBufferInfo bufferInfo = {};
     bufferInfo.buffer = vulkanDeviceMemoryManager->GetUniformBuffer();
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
+    bufferInfo.range = sizeof(GlobalUBO);
 
     vk::WriteDescriptorSet descriptorWrite = {};
     descriptorWrite.dstSet = descriptorSet;
@@ -227,7 +234,7 @@ bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, vk::CommandPoo
     vk::CommandBufferAllocateInfo allocInfo = {};
     allocInfo.commandPool = graphicsCommandPool;
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocInfo.commandBufferCount = (uint32_t) commandBuffers.size();
+    allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
     if (logicalDevice.allocateCommandBuffers(&allocInfo, commandBuffers.data()) != vk::Result::eSuccess) {
         printf("failed to allocate command buffers!");
@@ -329,11 +336,19 @@ void RenderSystem::RecreateTotalPipeline()
             createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), Ride::GetTestMesh());
 }
 
-void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
+
+
+void RenderSystem::UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera)
 {
-    // todo: rewrite
-    void* data;
     vk::Device logicalDevice = vulkanDevice->GetDevice();
+
+    void* data;
+    GlobalUBO ubo = {
+        camera->GetViewMatrix(),
+        camera->GetProjectionMatrix(),
+        camera->GetViewProjectionMatrix()
+    };
+
     logicalDevice.mapMemory(vulkanDeviceMemoryManager->GetUniformBufferMemory(), 0, sizeof(ubo), vk::MemoryMapFlags(), &data);
     memcpy(data, &ubo, sizeof(ubo));
     logicalDevice.unmapMemory(vulkanDeviceMemoryManager->GetUniformBufferMemory());
@@ -341,7 +356,10 @@ void RenderSystem::UpdateUBO(const UniformBufferObject& ubo)
 
 void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera)
 {
+    UpdateGlobalUniforms(camera);
+
     vk::Device logicalDevice = vulkanDevice->GetDevice();
+
     const VulkanSwapchainInfo& swapchainInfo = vulkanSwapchain->GetInfo();
     vk::Queue graphicsQueue = vulkanDevice->GetGraphicsQueue();
     vk::Queue presentQueue = vulkanDevice->GetPresentQueue();

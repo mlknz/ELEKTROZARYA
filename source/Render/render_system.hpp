@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <core/scene/mesh.hpp>
+#include <core/camera/camera.hpp>
 #include <graphics_result.hpp>
 #include <vulkan/vulkan_instance.hpp>
 #include <vulkan/vulkan_device.hpp>
@@ -11,17 +12,9 @@
 #include <vulkan/vulkan_device_memory_manager.hpp>
 #include <vulkan/vulkan_graphics_pipeline.hpp>
 
-struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
-};
-
 namespace Ride {
 
 class View;
-class Camera;
-
 struct FrameSemaphores
 {
     vk::Semaphore imageAvailableSemaphore;
@@ -53,14 +46,13 @@ public:
     vk::Queue GetGraphicsQueue() { return vulkanDevice->GetGraphicsQueue(); }
     VulkanSwapchainInfo& GetSwapchainInfo() { return vulkanSwapchain->GetInfo(); }
 
-    uint32_t GetScreenWidth() const { return vulkanSwapchain->GetInfo().extent.width; }
-    uint32_t GetScreenHeight() const { return vulkanSwapchain->GetInfo().extent.height; }
-
-    void UpdateUBO(const UniformBufferObject&);
+    const vk::Extent2D& GetViewportExtent() const { return vulkanSwapchain->GetInfo().extent; }
 
     static ResultValue<std::unique_ptr<RenderSystem>> Create();
 
 private:
+    void UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera);
+
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
 
