@@ -1,7 +1,7 @@
 #pragma once
 
-#include <graphics_result.hpp>
-#include <vulkan_include.hpp>
+#include "render/graphics_result.hpp"
+#include "render/vulkan_include.hpp"
 
 namespace Ride
 {

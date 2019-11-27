@@ -2,15 +2,15 @@
 
 #include <iostream>
 #include <memory>
-#include <core/scene/mesh.hpp>
-#include <core/camera/camera.hpp>
-#include <graphics_result.hpp>
-#include <vulkan/vulkan_instance.hpp>
-#include <vulkan/vulkan_device.hpp>
-#include <vulkan/vulkan_swapchain.hpp>
-#include <vulkan/vulkan_render_pass.hpp>
-#include <vulkan/vulkan_device_memory_manager.hpp>
-#include <vulkan/vulkan_graphics_pipeline.hpp>
+#include "core/scene/mesh.hpp"
+#include "core/camera/camera.hpp"
+#include "render/graphics_result.hpp"
+#include "render/vulkan/vulkan_instance.hpp"
+#include "render/vulkan/vulkan_device.hpp"
+#include "render/vulkan/vulkan_swapchain.hpp"
+#include "render/vulkan/vulkan_render_pass.hpp"
+#include "render/vulkan/vulkan_device_memory_manager.hpp"
+#include "render/vulkan/vulkan_graphics_pipeline.hpp"
 
 namespace Ride {
 

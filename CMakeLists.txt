@@ -10,7 +10,6 @@ find_package(Vulkan REQUIRED)
 
 include_directories(
     ${SOURCES}
-    ${SOURCES}/render
     ${SDL2_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIRS}
     external

@@ -1,17 +1,17 @@
 #include <iostream>
 #include <chrono>
 
-#include <SDL.h>
-#include <SDL_syswm.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <core/view.hpp>
-#include <core/input/input.hpp>
-#include <render/render_system.hpp>
-#include <gameplay/gameplay.hpp>
+#include <SDL.h>
+#include <SDL_syswm.h>
+
+#include "core/view.hpp"
+#include "core/input/input.hpp"
+#include "render/render_system.hpp"
+#include "gameplay/gameplay.hpp"
 
 int main(int, char* [])
 {

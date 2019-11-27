@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-#include <core/scene/mesh.hpp>
+#include "core/scene/mesh.hpp"
 
 namespace Ride {
 
@@ -13,7 +13,6 @@ public:
     }
     int sceneId = 0;
     std::vector<Mesh> meshes;
-
 };
 
 }

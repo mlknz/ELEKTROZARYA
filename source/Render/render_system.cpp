@@ -2,11 +2,11 @@
 
 #include <algorithm>
 #include <cassert>
-#include <core/file_utils.hpp>
-#include <core/view.hpp>
-#include <core/scene/scene.hpp>
-#include <vulkan/utils.hpp>
-#include <vulkan/vulkan_buffer.hpp>
+#include "core/file_utils.hpp"
+#include "core/view.hpp"
+#include "core/scene/scene.hpp"
+#include "render/vulkan/utils.hpp"
+#include "render/vulkan/vulkan_buffer.hpp"
 
 namespace Ride{
 
@@ -81,13 +81,13 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     }
     ci.vulkanDeviceMemoryManager = std::move(vulkanDeviceMemoryRV.value);
 
-    auto rs = new RenderSystem(ci);
+    auto rs = std::make_unique<RenderSystem>(ci);
     if (!rs->ready)
     {
         return GraphicsResult::Error;
     }
 
-    return {GraphicsResult::Ok, std::unique_ptr<RenderSystem>(rs)};
+    return {GraphicsResult::Ok, std::move(rs)};
 }
 
 RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)

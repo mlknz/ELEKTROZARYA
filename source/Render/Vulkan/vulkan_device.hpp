@@ -3,8 +3,8 @@
 #include <SDL.h>
 #include <iostream>
 #include <vector>
-#include <vulkan_include.hpp>
-#include <graphics_result.hpp>
+#include "render/vulkan_include.hpp"
+#include "render/graphics_result.hpp"
 
 namespace Ride
 {
