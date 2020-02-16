@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <memory>
+#include <optional>
 #include "core/scene/mesh.hpp"
 #include "core/camera/camera.hpp"
 #include "render/graphics_result.hpp"
@@ -26,9 +27,12 @@ struct RenderSystemCreateInfo
     std::unique_ptr<VulkanInstance> vulkanInstance;
     std::unique_ptr<VulkanDevice> vulkanDevice;
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain;
-    FrameSemaphores frameSemaphores;
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass;
     std::unique_ptr<VulkanDeviceMemoryManager> vulkanDeviceMemoryManager;
+
+    FrameSemaphores frameSemaphores;
+    vk::DescriptorSetLayout descriptorSetLayout;
+    std::unique_ptr<GraphicsPipeline> graphicsPipeline;
 };
 
 class RenderSystem
@@ -37,6 +41,8 @@ public:
     RenderSystem() = delete;
     RenderSystem(RenderSystemCreateInfo& ci);
     ~RenderSystem();
+
+    static ResultValue<std::unique_ptr<RenderSystem>> Create();
 
     void Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera);
 
@@ -48,16 +54,13 @@ public:
 
     const vk::Extent2D& GetViewportExtent() const { return vulkanSwapchain->GetInfo().extent; }
 
-    static ResultValue<std::unique_ptr<RenderSystem>> Create();
-
 private:
+    static std::optional<vk::DescriptorSetLayout> CreateDescriptorSetLayout(vk::Device vkDevice);
+
     void UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera);
 
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
-
-    bool CreateDescriptorSetLayout();
-    bool CreateGraphicsPipeline();
 
     std::unique_ptr<VulkanInstance> vulkanInstance = nullptr;
     std::unique_ptr<VulkanDevice> vulkanDevice = nullptr;
@@ -66,21 +69,20 @@ private:
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass = nullptr;
     std::unique_ptr<VulkanDeviceMemoryManager> vulkanDeviceMemoryManager = nullptr;
 
-    // todo: move out
     vk::DescriptorSetLayout descriptorSetLayout;
-
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = nullptr;
 
+
+    // todo: move out
+    vk::DescriptorSet descriptorSet;
     std::vector<vk::CommandBuffer> commandBuffers;
 
     bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const ez::Mesh& mesh);
     bool createDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool);
     bool createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, ez::VulkanSwapchainInfo& swapchainInfo, const ez::Mesh& mesh);
 
-    vk::DescriptorSet descriptorSet;
-    // end of todo
 
-    bool ready = false;
+    // end of todo
 };
 
 }

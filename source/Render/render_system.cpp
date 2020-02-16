@@ -81,13 +81,25 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     }
     ci.vulkanDeviceMemoryManager = std::move(vulkanDeviceMemoryRV.value);
 
-    auto rs = std::make_unique<RenderSystem>(ci);
-    if (!rs->ready)
+    auto dsLayoutPtr = CreateDescriptorSetLayout(ci.vulkanDevice->GetDevice());
+    if (!dsLayoutPtr.has_value())
     {
+        printf("Failed to create default vk::DescriptorSetLayout");
+        return GraphicsResult::Error;
+    }
+    ci.descriptorSetLayout = *dsLayoutPtr;
+
+    ci.graphicsPipeline = std::make_unique<GraphicsPipeline>(
+                ci.vulkanDevice->GetDevice(), ci.vulkanSwapchain->GetInfo().extent, ci.vulkanRenderPass->GetRenderPass(), ci.descriptorSetLayout
+                );
+
+    if (!ci.graphicsPipeline->Ready())
+    {
+        printf("Failed to create default GraphicsPipeline");
         return GraphicsResult::Error;
     }
 
-    return {GraphicsResult::Ok, std::move(rs)};
+    return {GraphicsResult::Ok, std::make_unique<RenderSystem>(ci)};
 }
 
 RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
@@ -97,21 +109,17 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     , frameSemaphores(std::move(ci.frameSemaphores))
     , vulkanRenderPass(std::move(ci.vulkanRenderPass))
     , vulkanDeviceMemoryManager(std::move(ci.vulkanDeviceMemoryManager))
+    , descriptorSetLayout(std::move(ci.descriptorSetLayout))
+    , graphicsPipeline(std::move(ci.graphicsPipeline))
 {
     // todo: move out
-
-    Mesh testMesh = ez::GetTestMesh();
-
-    ready = CreateDescriptorSetLayout()
-            && CreateGraphicsPipeline()
-            && uploadMeshAttributes(GetDevice(), GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool(), testMesh)
-            && createDescriptorSet(GetDevice(), vulkanDevice->GetDescriptorPool())
-            && createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), testMesh);
+    auto testMesh = GetTestMesh();
+    uploadMeshAttributes(GetDevice(), GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool(), testMesh)
+    && createDescriptorSet(GetDevice(), vulkanDevice->GetDescriptorPool())
+    && createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), testMesh);
 }
 
-// todo: move out
-
-bool RenderSystem::CreateDescriptorSetLayout()
+std::optional<vk::DescriptorSetLayout> RenderSystem::CreateDescriptorSetLayout(vk::Device vkDevice)
 {
     vk::DescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
@@ -124,26 +132,13 @@ bool RenderSystem::CreateDescriptorSetLayout()
     layoutInfo.bindingCount = 1;
     layoutInfo.pBindings = &uboLayoutBinding;
 
-    vk::Result result = vulkanDevice->GetDevice().createDescriptorSetLayout(&layoutInfo, nullptr, &descriptorSetLayout);
+    vk::DescriptorSetLayout dsLayout;
+    vk::Result result = vkDevice.createDescriptorSetLayout(&layoutInfo, nullptr, &dsLayout);
     if (result != vk::Result::eSuccess) {
         printf("Failed to create descriptor set layout!");
-        return false;
+        return {};
     }
-    return true;
-}
-
-bool RenderSystem::CreateGraphicsPipeline()
-{
-    graphicsPipeline.reset();
-    graphicsPipeline = std::make_unique<GraphicsPipeline>(
-                GetDevice(), GetSwapchainInfo().extent, vulkanRenderPass->GetRenderPass(), descriptorSetLayout
-                );
-    if (!graphicsPipeline->Ready())
-    {
-        printf("Failed to init VulkanPipeline");
-        return false;
-    }
-    return true;
+    return dsLayout;
 }
 
 bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice,
@@ -298,7 +293,6 @@ void RenderSystem::CleanupTotalPipeline()
 void RenderSystem::RecreateTotalPipeline()
 {
     CleanupTotalPipeline();
-    ready = false;
 
     // todo: remove duplication with CreateRenderSystem
     auto vulkanSwapchainRV = VulkanSwapchain::CreateVulkanSwapchain({
@@ -328,8 +322,17 @@ void RenderSystem::RecreateTotalPipeline()
         printf("Failed to Recreate Framebuffers");
         return;
     }
-    ready = CreateGraphicsPipeline() &&// todo: move to primitive
-            createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), ez::GetTestMesh());
+    graphicsPipeline.reset();
+    graphicsPipeline = std::make_unique<GraphicsPipeline>(
+                GetDevice(), GetSwapchainInfo().extent, vulkanRenderPass->GetRenderPass(), descriptorSetLayout
+                );
+    if (!graphicsPipeline->Ready())
+    {
+        printf("Failed to recreate GraphicsPipeline");
+        assert(false); // todo: fallback
+    }
+    // todo: move to primitive
+    createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), ez::GetTestMesh());
 }
 
 
