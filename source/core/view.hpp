@@ -2,7 +2,7 @@
 
 #include "core/scene/scene.hpp"
 
-namespace Ride
+namespace ez
 {
 class View
 {

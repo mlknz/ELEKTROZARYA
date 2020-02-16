@@ -4,7 +4,7 @@
 #include <SDL_events.h>
 #include <SDL_keycode.h>
 
-namespace Ride
+namespace ez
 {
 
 class Input

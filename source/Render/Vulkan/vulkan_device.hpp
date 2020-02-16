@@ -6,7 +6,7 @@
 #include "render/vulkan_include.hpp"
 #include "render/graphics_result.hpp"
 
-namespace Ride
+namespace ez
 {
 
 class VulkanDevice

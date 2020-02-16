@@ -4,7 +4,7 @@
 #include "core/file_utils.hpp"
 #include "core/scene/mesh.hpp"
 
-namespace Ride {
+namespace ez {
 
 GraphicsPipeline::GraphicsPipeline(vk::Device aLogicalDevice, vk::Extent2D swapchainExtent,
                                    vk::RenderPass renderPass, vk::DescriptorSetLayout descriptorSetLayout)
@@ -55,8 +55,8 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
 
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
 
-    auto bindingDescription = Ride::Vertex::getBindingDescription();
-    auto attributeDescriptions = Ride::Vertex::getAttributeDescriptions();
+    auto bindingDescription = ez::Vertex::getBindingDescription();
+    auto attributeDescriptions = ez::Vertex::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());

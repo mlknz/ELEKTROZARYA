@@ -1,6 +1,6 @@
 #include "vulkan_render_pass.hpp"
 
-using namespace Ride;
+using namespace ez;
 
 ResultValue<std::unique_ptr<VulkanRenderPass>> VulkanRenderPass::CreateRenderPass(VulkanRenderPassCreateInfo ci)
 {

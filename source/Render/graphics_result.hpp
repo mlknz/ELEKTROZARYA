@@ -3,7 +3,7 @@
 #include <utility>
 #include "render/vulkan_include.hpp"
 
-namespace Ride
+namespace ez
 {
     enum class GraphicsResult
     {

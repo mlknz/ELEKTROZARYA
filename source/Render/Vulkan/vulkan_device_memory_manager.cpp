@@ -2,7 +2,7 @@
 
 #include "render/vulkan/vulkan_buffer.hpp"
 
-using namespace Ride;
+using namespace ez;
 
 ResultValue<std::unique_ptr<VulkanDeviceMemoryManager>> VulkanDeviceMemoryManager::CreateVulkanDeviceMemoryManager(vk::Device aLogicalDevice, vk::PhysicalDevice aPhysicalDevice)
 {

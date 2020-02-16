@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-namespace Ride {
+namespace ez {
 
 class Camera
 {

@@ -8,7 +8,7 @@
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
 
-namespace Ride{
+namespace ez{
 
 struct GlobalUBO
 {
@@ -100,17 +100,13 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
 {
     // todo: move out
 
-    vk::Device logicalDevice = GetDevice();
-    vk::PhysicalDevice physicalDevice = GetPhysicalDevice();
-    vk::Queue graphicsQueue = GetGraphicsQueue();
-    VulkanSwapchainInfo& swapchainInfo = GetSwapchainInfo();
+    Mesh testMesh = ez::GetTestMesh();
 
-    Mesh testMesh = Ride::GetTestMesh();
     ready = CreateDescriptorSetLayout()
             && CreateGraphicsPipeline()
-            && uploadMeshAttributes(logicalDevice, physicalDevice, graphicsQueue, vulkanDevice->GetGraphicsCommandPool(), testMesh)
-            && createDescriptorSet(logicalDevice, vulkanDevice->GetDescriptorPool())
-            && createCommandBuffers(logicalDevice, vulkanDevice->GetGraphicsCommandPool(), swapchainInfo, testMesh);
+            && uploadMeshAttributes(GetDevice(), GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool(), testMesh)
+            && createDescriptorSet(GetDevice(), vulkanDevice->GetDescriptorPool())
+            && createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), testMesh);
 }
 
 // todo: move out
@@ -151,7 +147,7 @@ bool RenderSystem::CreateGraphicsPipeline()
 }
 
 bool RenderSystem::uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice,
-                                        vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const Ride::Mesh& mesh)
+                                        vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const ez::Mesh& mesh)
 {
     // vert
     {
@@ -228,7 +224,7 @@ bool RenderSystem::createDescriptorSet(vk::Device logicalDevice, vk::DescriptorP
     return true;
 }
 
-bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh) {
+bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, ez::VulkanSwapchainInfo& swapchainInfo, const ez::Mesh& mesh) {
     commandBuffers.resize(swapchainInfo.framebuffers.size());
 
     vk::CommandBufferAllocateInfo allocInfo = {};
@@ -333,7 +329,7 @@ void RenderSystem::RecreateTotalPipeline()
         return;
     }
     ready = CreateGraphicsPipeline() &&// todo: move to primitive
-            createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), Ride::GetTestMesh());
+            createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), ez::GetTestMesh());
 }
 
 

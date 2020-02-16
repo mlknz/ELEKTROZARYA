@@ -4,7 +4,7 @@
 #include "core/camera/camera.hpp"
 #include "core/input/input.hpp"
 
-namespace Ride {
+namespace ez {
 
 Gameplay::Gameplay(std::unique_ptr<View>&& aView) : view(std::move(aView))
 {

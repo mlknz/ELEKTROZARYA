@@ -1,6 +1,6 @@
 #include "view.hpp"
 
-namespace Ride {
+namespace ez {
 
 void View::SwitchToDefaultScene()
 {

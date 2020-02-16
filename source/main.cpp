@@ -17,16 +17,16 @@ int main(int, char* [])
 {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
-    auto renderSystemRV = Ride::RenderSystem::Create();
-    if (renderSystemRV.result != Ride::GraphicsResult::Ok)
+    auto renderSystemRV = ez::RenderSystem::Create();
+    if (renderSystemRV.result != ez::GraphicsResult::Ok)
     {
         printf("Failed to create RenderSystem");
         return EXIT_FAILURE;
     }
-    std::unique_ptr<Ride::RenderSystem> renderSystem = std::move(renderSystemRV.value);
+    std::unique_ptr<ez::RenderSystem> renderSystem = std::move(renderSystemRV.value);
 
-    auto view = std::make_unique<Ride::View>();
-    auto gameplay = std::make_unique<Ride::Gameplay>(std::move(view));
+    auto view = std::make_unique<ez::View>();
+    auto gameplay = std::make_unique<ez::Gameplay>(std::move(view));
 
     std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
     double prevTime = -1.0;
@@ -55,7 +55,7 @@ int main(int, char* [])
             deltaTime = curTime - prevTime;
         }
 
-        const auto& viewportExtent = renderSystem->GetViewportExtent();
+        const vk::Extent2D& viewportExtent = renderSystem->GetViewportExtent();
 
         gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
         gameplay->Update(curTime, deltaTime);

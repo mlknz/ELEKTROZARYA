@@ -6,7 +6,7 @@
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_swapchain.hpp"
 
-using namespace Ride;
+using namespace ez;
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
@@ -18,7 +18,7 @@ const std::vector<const char*> requiredDeviceExtensions = {
 ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::Instance instance)
 {
     SDL_Window* window = SDL_CreateWindow(
-        "Vulkan Ride",
+        "ELEKTROZARYA",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WIDTH, HEIGHT,
         SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
@@ -188,7 +188,7 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
 ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(vk::PhysicalDevice physicalDevice, vk::Device device, VkSurfaceKHR surface)
 {
     vk::CommandPool commandPool;
-    Ride::QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice, surface);
+    ez::QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice, surface);
 
     vk::CommandPoolCreateInfo poolInfo = {};
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;

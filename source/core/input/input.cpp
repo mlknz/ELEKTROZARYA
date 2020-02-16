@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace Ride
+namespace ez
 {
     void Input::ProcessSDLEvent(const SDL_Event& event)
     {

@@ -3,7 +3,7 @@
 #include "render/graphics_result.hpp"
 #include "render/vulkan_include.hpp"
 
-namespace Ride
+namespace ez
 {
 struct VulkanRenderPassCreateInfo
 {

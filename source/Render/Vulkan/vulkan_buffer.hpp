@@ -2,7 +2,7 @@
 
 #include "render/vulkan_include.hpp"
 
-namespace Ride
+namespace ez
 {
 class VulkanBuffer
 {

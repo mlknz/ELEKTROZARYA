@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace Ride {
+namespace ez {
 
 class Camera;
 class View;

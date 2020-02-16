@@ -5,9 +5,9 @@
 #define GLM_ENABLE_EXPERIMENTAL 1
 #include <glm/gtx/norm.hpp>
 
-namespace Ride
+namespace ez
 {
-const float kZeroVectorLength2 = 0.000000001f;
+const float kSmallFloat = 0.000000001f;
 
 Camera::Camera()
 {
@@ -33,7 +33,7 @@ void Camera::SetViewportExtent(uint32_t width, uint32_t height)
 
 void Camera::MovePreserveDirection(const glm::vec3& offset)
 {
-    if (glm::length2(offset) < kZeroVectorLength2)
+    if (glm::length2(offset) < kSmallFloat)
     {
         return;
     }

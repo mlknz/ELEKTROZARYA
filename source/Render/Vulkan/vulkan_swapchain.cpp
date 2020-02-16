@@ -4,7 +4,7 @@
 #include <SDL_vulkan.h>
 #include "render/vulkan/utils.hpp"
 
-using namespace Ride;
+using namespace ez;
 
 VulkanSwapchain::VulkanSwapchain(const VulkanSwapchainCreateInfo& ci, VulkanSwapchainInfo&& info)
     : logicalDevice(ci.logicalDevice)

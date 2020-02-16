@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16.0)
-project(vulkan-ride)
+project(ELEKTROZARYA)
 
 set(SDL2_DIR C:/libs/SDL2) #requires sdl2-config.cmake in your SDL2 directory
 set(SOURCES ${PROJECT_SOURCE_DIR}/source)
@@ -55,13 +55,13 @@ set(SOURCE_FILES
     ${SOURCES}/gameplay/gameplay.hpp
 )
 
-add_executable(vulkan-ride ${SOURCE_FILES})
+add_executable(ELEKTROZARYA ${SOURCE_FILES})
 
-target_compile_definitions(vulkan-ride PRIVATE VK_USE_PLATFORM_WIN32_KHR=1 GLM_FORCE_RADIANS=1)
-target_link_libraries(vulkan-ride
+target_compile_definitions(ELEKTROZARYA PRIVATE VK_USE_PLATFORM_WIN32_KHR=1 GLM_FORCE_RADIANS=1)
+target_link_libraries(ELEKTROZARYA
     # Vulkan_LIBRARIES returns .dll on windows which is incompatible with llvm linker
     ${Vulkan_INCLUDE_DIRS}/../Lib/vulkan-1.lib
     ${SDL2_LIBRARIES}
 )
 
-set_property(TARGET vulkan-ride PROPERTY CXX_STANDARD 17)
+set_property(TARGET ELEKTROZARYA PROPERTY CXX_STANDARD 17)

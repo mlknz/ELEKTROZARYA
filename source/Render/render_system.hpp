@@ -12,7 +12,7 @@
 #include "render/vulkan/vulkan_device_memory_manager.hpp"
 #include "render/vulkan/vulkan_graphics_pipeline.hpp"
 
-namespace Ride {
+namespace ez {
 
 class View;
 struct FrameSemaphores
@@ -73,9 +73,9 @@ private:
 
     std::vector<vk::CommandBuffer> commandBuffers;
 
-    bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const Ride::Mesh& mesh);
+    bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const ez::Mesh& mesh);
     bool createDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool);
-    bool createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, Ride::VulkanSwapchainInfo& swapchainInfo, const Ride::Mesh& mesh);
+    bool createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, ez::VulkanSwapchainInfo& swapchainInfo, const ez::Mesh& mesh);
 
     vk::DescriptorSet descriptorSet;
     // end of todo

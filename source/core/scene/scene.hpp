@@ -3,13 +3,13 @@
 #include <vector>
 #include "core/scene/mesh.hpp"
 
-namespace Ride {
+namespace ez {
 
 class Scene
 {
 public:
     Scene() {
-        meshes = {GetTestMesh()};
+        meshes = { GetTestMesh() };
     }
     int sceneId = 0;
     std::vector<Mesh> meshes;

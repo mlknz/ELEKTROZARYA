@@ -5,7 +5,7 @@
 #include <vector>
 #include "render/vulkan_include.hpp"
 
-namespace Ride {
+namespace ez {
 
 struct Vertex {
     glm::vec2 pos;

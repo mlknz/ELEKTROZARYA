@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <cassert>
 
-namespace Ride {
+namespace ez {
 
 uint32_t findMemoryType(vk::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
     vk::PhysicalDeviceMemoryProperties memProperties;

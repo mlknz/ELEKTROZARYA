@@ -3,7 +3,7 @@
 #include <cstring>
 #include "render/vulkan/utils.hpp"
 
-using namespace Ride;
+using namespace ez;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
     VkDebugReportFlagsEXT flags,
@@ -59,9 +59,9 @@ ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstanc
     }
 
     vk::ApplicationInfo appInfo = {};
-    appInfo.pApplicationName = "Vulkan Ride";
+    appInfo.pApplicationName = "ELEKTROZARYA APP";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "No Engine";
+    appInfo.pEngineName = "ELEKTROZARYA ENGINE";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 0);
 

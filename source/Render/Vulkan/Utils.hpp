@@ -3,7 +3,7 @@
 #include <vector>
 #include "render/vulkan_include.hpp"
 
-namespace Ride
+namespace ez
 {
 
 const std::vector<const char*> validationLayers = {
@@ -38,7 +38,7 @@ inline QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device, vk::Surfa
         }
 
         VkBool32 presentSupport = false;
-        device.getSurfaceSupportKHR(i, surface, &presentSupport);
+        device.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface, &presentSupport);
 
         if (queueFamily.queueCount > 0 && presentSupport) {
             result.presentFamily = i;
