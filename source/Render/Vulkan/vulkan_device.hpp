@@ -45,7 +45,7 @@ private:
     vk::Device device;
 
     SDL_Window* window;
-    VkSurfaceKHR surface;
+    vk::SurfaceKHR surface;
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
 

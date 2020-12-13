@@ -30,7 +30,7 @@ int main(int, char* [])
 
     auto gameplay = std::make_unique<ez::Gameplay>(std::make_unique<ez::View>());
 
-    std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
+    auto startTime = std::chrono::high_resolution_clock::now();
     double prevTime = -1.0;
     double curTime = -1.0;
     double deltaTime = -1.0;
@@ -48,7 +48,7 @@ int main(int, char* [])
             gameplay->GetInput()->ProcessSDLEvent(evt);
         }
 
-        std::chrono::time_point currentTime = std::chrono::high_resolution_clock::now();
+        auto currentTime = std::chrono::high_resolution_clock::now();
 
         prevTime = curTime;
         curTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0;

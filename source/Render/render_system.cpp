@@ -259,7 +259,7 @@ bool RenderSystem::createCommandBuffers(vk::Device logicalDevice, vk::CommandPoo
 
         commandBuffers[i].endRenderPass();
 
-        if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+        if (commandBuffers[i].end() != vk::Result::eSuccess) {
             printf("failed to record command buffer!");
             return false;
         }
