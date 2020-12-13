@@ -57,10 +57,10 @@ private:
 
     VulkanSwapchainInfo info;
 
-    SDL_Window* window = nullptr;
-    vk::SurfaceKHR surface;
+    vk::Device logicalDevice; // todo: store just VulkanSwapchainCreateInfo ?
     vk::PhysicalDevice physicalDevice;
-    vk::Device logicalDevice;
+    vk::SurfaceKHR surface;
+    SDL_Window* window = nullptr;
 };
 
 }

@@ -21,9 +21,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
 
 VkResult CreateDebugReportCallbackEXT(vk::Instance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
                                       const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
-    auto func = (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+    auto func = (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance.operator VkInstance(), "vkCreateDebugReportCallbackEXT");
     if (func != nullptr) {
-        return func(instance, pCreateInfo, pAllocator, pCallback);
+        return func(instance.operator VkInstance(), pCreateInfo, pAllocator, pCallback);
     } else {
         return VK_ERROR_EXTENSION_NOT_PRESENT;
     }
@@ -108,10 +108,10 @@ ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstanc
     return {GraphicsResult::Ok, std::make_unique<VulkanInstance>(std::move(instance), std::move(supportedExtensions), std::move(vkDebugCallback))};
 }
 
-void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
-    auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+void DestroyDebugReportCallbackEXT(vk::Instance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
+    auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance.operator VkInstance(), "vkDestroyDebugReportCallbackEXT");
     if (func != nullptr) {
-        func(instance, callback, pAllocator);
+        func(instance.operator VkInstance(), callback, pAllocator);
     }
 }
 

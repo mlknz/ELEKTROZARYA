@@ -15,7 +15,7 @@ public:
     VulkanDevice() = delete;
     VulkanDevice(const VulkanDevice&) = delete;
 
-    VulkanDevice(vk::Instance, vk::PhysicalDevice, vk::Device, vk::CommandPool, vk::DescriptorPool, SDL_Window*, VkSurfaceKHR);
+    VulkanDevice(vk::Instance, vk::PhysicalDevice, vk::Device, vk::CommandPool, vk::DescriptorPool, SDL_Window*, vk::SurfaceKHR);
     ~VulkanDevice();
 
     vk::Device GetDevice() { return device; }
@@ -31,13 +31,13 @@ public:
     static ResultValue<std::unique_ptr<VulkanDevice>> CreateVulkanDevice(vk::Instance instance);
 
 private:
-    static ResultValue<vk::PhysicalDevice> PickPhysicalDevice(vk::Instance, VkSurfaceKHR);
+    static ResultValue<vk::PhysicalDevice> PickPhysicalDevice(vk::Instance, vk::SurfaceKHR);
 
-    static bool IsDeviceSuitable(vk::PhysicalDevice, VkSurfaceKHR);
+    static bool IsDeviceSuitable(vk::PhysicalDevice, vk::SurfaceKHR);
     static bool CheckDeviceExtensionSupport(vk::PhysicalDevice);
 
-    static ResultValue<vk::Device> CreateDevice(vk::PhysicalDevice, VkSurfaceKHR);
-    static ResultValue<vk::CommandPool> CreateGraphicsCommandPool(vk::PhysicalDevice, vk::Device device, VkSurfaceKHR);
+    static ResultValue<vk::Device> CreateDevice(vk::PhysicalDevice, vk::SurfaceKHR);
+    static ResultValue<vk::CommandPool> CreateGraphicsCommandPool(vk::PhysicalDevice, vk::Device device, vk::SurfaceKHR);
     static ResultValue<vk::DescriptorPool> CreateDescriptorPool(vk::Device device);
 
     vk::Instance instance;

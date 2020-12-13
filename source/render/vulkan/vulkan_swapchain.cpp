@@ -106,7 +106,7 @@ ResultValue<VulkanSwapchainInfo> VulkanSwapchain::CreateSwapchain(const VulkanSw
         return GraphicsResult::Error;
     }
 
-    vkGetSwapchainImagesKHR(ci.logicalDevice, info.swapchain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(ci.logicalDevice.operator VkDevice(), info.swapchain.operator VkSwapchainKHR(), &imageCount, nullptr);
     info.images.resize(imageCount);
     ci.logicalDevice.getSwapchainImagesKHR(info.swapchain, &imageCount, info.images.data());
 

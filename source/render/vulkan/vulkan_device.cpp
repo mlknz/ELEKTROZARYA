@@ -29,8 +29,9 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
         return GraphicsResult::Error;
     }
 
-    VkSurfaceKHR surface;
-    if (SDL_Vulkan_CreateSurface(window, instance, &surface) != SDL_TRUE)
+    vk::SurfaceKHR surface;
+    VkSurfaceKHR surfaceHandle = surface.operator VkSurfaceKHR();
+    if (SDL_Vulkan_CreateSurface(window, instance.operator VkInstance(), &surfaceHandle) != SDL_TRUE)
     {
         printf("Failed to create SDL vulkan surface");
         return GraphicsResult::Error;
@@ -69,7 +70,7 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
 
 VulkanDevice::VulkanDevice(vk::Instance aInstance, vk::PhysicalDevice aPhysicalDevice,
                            vk::Device aDevice, vk::CommandPool aGraphicsCommandPool, vk::DescriptorPool aDescriptorPool,
-                           SDL_Window* aWindow, VkSurfaceKHR aSurface)
+                           SDL_Window* aWindow, vk::SurfaceKHR aSurface)
     : instance(aInstance)
       , physicalDevice(aPhysicalDevice)
       , device(aDevice)
@@ -101,7 +102,7 @@ bool VulkanDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device) {
     return requiredExtensions.empty();
 }
 
-bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, VkSurfaceKHR surface) {
+bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
     QueueFamilyIndices indices = FindQueueFamilies(device, surface);
 
     bool extensionsSupported = CheckDeviceExtensionSupport(device);
@@ -117,7 +118,7 @@ bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, VkSurfaceKHR surf
     return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance instance, VkSurfaceKHR surface)
+ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
 {
     auto devicesRV = instance.enumeratePhysicalDevices();
     if (devicesRV.result != vk::Result::eSuccess)
@@ -142,7 +143,7 @@ ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance in
     return {GraphicsResult::Ok, chosenDevice};
 }
 
-ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface) {
     QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
 
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
@@ -185,7 +186,7 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
     return {GraphicsResult::Ok, device};
 }
 
-ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(vk::PhysicalDevice physicalDevice, vk::Device device, VkSurfaceKHR surface)
+ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(vk::PhysicalDevice physicalDevice, vk::Device device, vk::SurfaceKHR surface)
 {
     vk::CommandPool commandPool;
     ez::QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice, surface);
