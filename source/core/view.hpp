@@ -9,9 +9,9 @@ class View
 public:
     void SwitchToDefaultScene();
 
-    std::shared_ptr<Scene> GetActiveScene() const { return activeScene; }
+    std::shared_ptr<Scene> GetScene() const { return scene; }
 
 private:
-    std::shared_ptr<Scene> activeScene;
+    std::shared_ptr<Scene> scene;
 };
 }

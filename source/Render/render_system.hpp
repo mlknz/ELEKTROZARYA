@@ -4,6 +4,7 @@
 #include <memory>
 #include <optional>
 #include "core/scene/mesh.hpp"
+#include "core/scene/scene.hpp"
 #include "core/camera/camera.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/vulkan_instance.hpp"
@@ -44,7 +45,8 @@ public:
 
     static ResultValue<std::unique_ptr<RenderSystem>> Create();
 
-    void Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera);
+    void PrepareToRender(std::shared_ptr<Scene> scene);
+    void Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera); // todo: mewmew move Camera to View
 
     vk::Device GetDevice() { return vulkanDevice->GetDevice(); }
     vk::PhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }

@@ -4,7 +4,7 @@ namespace ez {
 
 void View::SwitchToDefaultScene()
 {
-    activeScene = std::make_shared<Scene>();
+    scene = std::make_shared<Scene>();
 }
 
 }

@@ -111,13 +111,7 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     , vulkanDeviceMemoryManager(std::move(ci.vulkanDeviceMemoryManager))
     , descriptorSetLayout(std::move(ci.descriptorSetLayout))
     , graphicsPipeline(std::move(ci.graphicsPipeline))
-{
-    // todo: move out
-    auto testMesh = GetTestMesh();
-    uploadMeshAttributes(GetDevice(), GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool(), testMesh)
-    && createDescriptorSet(GetDevice(), vulkanDevice->GetDescriptorPool())
-    && createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), testMesh);
-}
+{}
 
 std::optional<vk::DescriptorSetLayout> RenderSystem::CreateDescriptorSetLayout(vk::Device vkDevice)
 {
@@ -353,6 +347,17 @@ void RenderSystem::UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera)
     logicalDevice.unmapMemory(vulkanDeviceMemoryManager->GetUniformBufferMemory());
 }
 
+void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
+{
+    // todo: clean prev state
+    // todo: move out
+    auto testMesh = GetTestMesh();
+    uploadMeshAttributes(GetDevice(), GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool(), testMesh)
+    && createDescriptorSet(GetDevice(), vulkanDevice->GetDescriptorPool())
+    && createCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo(), testMesh);
+    scene->SetReadyToRender(true);
+}
+
 void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera)
 {
     UpdateGlobalUniforms(camera);
@@ -403,9 +408,9 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    vk::SwapchainKHR swapChains[] = {swapchainInfo.swapchain};
+    vk::SwapchainKHR swapchains[] = {swapchainInfo.swapchain};
     presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
+    presentInfo.pSwapchains = swapchains;
 
     presentInfo.pImageIndices = &imageIndex;
 

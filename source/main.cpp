@@ -5,11 +5,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <imgui/imgui.h> // mewmew
+
 #include <SDL.h>
 #include <SDL_syswm.h>
 
 #include "core/view.hpp"
 #include "core/input/input.hpp"
+#include "core/scene/scene.hpp"
 #include "render/render_system.hpp"
 #include "gameplay/gameplay.hpp"
 
@@ -25,14 +28,13 @@ int main(int, char* [])
     }
     std::unique_ptr<ez::RenderSystem> renderSystem = std::move(renderSystemRV.value);
 
-    auto view = std::make_unique<ez::View>();
-    auto gameplay = std::make_unique<ez::Gameplay>(std::move(view));
+    auto gameplay = std::make_unique<ez::Gameplay>(std::make_unique<ez::View>());
 
     std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
     double prevTime = -1.0;
     double curTime = -1.0;
     double deltaTime = -1.0;
-
+    // ImGui::Text("Hello, %d", 42);
     bool run = true;
     while (run)
     {
@@ -55,16 +57,31 @@ int main(int, char* [])
             deltaTime = curTime - prevTime;
         }
 
-        const vk::Extent2D& viewportExtent = renderSystem->GetViewportExtent();
+        const std::unique_ptr<ez::View>& curView = gameplay->GetView();
+        std::shared_ptr<ez::Scene> curScene = curView->GetScene();
 
+        if (!curScene->IsLoaded())
+        {
+            bool sceneLoadSuccess = curScene->Load();
+            if (!sceneLoadSuccess)
+            {
+                printf("Failed to load Scene");
+            }
+        }
+
+        const vk::Extent2D& viewportExtent = renderSystem->GetViewportExtent();
         gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
         gameplay->Update(curTime, deltaTime);
 
-        renderSystem->Draw(gameplay->GetView(), gameplay->GetActiveCamera());
+        if (!curScene->ReadyToRender())
+        {
+            renderSystem->PrepareToRender(curScene);
+        }
+
+        renderSystem->Draw(curView, gameplay->GetActiveCamera());
     }
 
     renderSystem.reset();
-    view.reset();
     gameplay.reset();
 
     SDL_Quit();

@@ -44,6 +44,8 @@ void Gameplay::Update(double curTime, double deltaTime)
     cameraMovement *= deltaTime;
 
     camera->MovePreserveDirection(cameraMovement);
+
+
 }
 
 }
