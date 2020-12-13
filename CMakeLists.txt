@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.16.0)
 project(ELEKTROZARYA)
 
+#https://trenki2.github.io/blog/2017/06/02/using-sdl2-with-cmake/
 set(SDL2_DIR C:/libs/SDL2) #requires sdl2-config.cmake in your SDL2 directory
 set(SOURCES ${PROJECT_SOURCE_DIR}/source)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/build/")
