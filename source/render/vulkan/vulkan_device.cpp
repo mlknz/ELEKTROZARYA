@@ -29,13 +29,14 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
         return GraphicsResult::Error;
     }
 
-    vk::SurfaceKHR surface;
-    VkSurfaceKHR surfaceHandle = surface.operator VkSurfaceKHR();
+
+    VkSurfaceKHR surfaceHandle;
     if (SDL_Vulkan_CreateSurface(window, instance.operator VkInstance(), &surfaceHandle) != SDL_TRUE)
     {
         printf("Failed to create SDL vulkan surface");
         return GraphicsResult::Error;
     }
+    vk::SurfaceKHR surface(surfaceHandle);
 
     auto physicalDeviceRV = PickPhysicalDevice(instance, surface);
     if (physicalDeviceRV.result != GraphicsResult::Ok)
