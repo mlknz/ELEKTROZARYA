@@ -62,7 +62,7 @@ int main(int, char* [])
 
         if (!curScene->IsLoaded())
         {
-            bool sceneLoadSuccess = curScene->Load(renderSystem->GetDevice());
+            bool sceneLoadSuccess = curScene->Load();
             if (!sceneLoadSuccess)
             {
                 printf("Failed to load Scene");
@@ -78,8 +78,8 @@ int main(int, char* [])
         renderSystem->Draw(curView, gameplay->GetActiveCamera());
     }
 
-    renderSystem.reset();
     gameplay.reset();
+    renderSystem.reset();
 
     SDL_Quit();
 

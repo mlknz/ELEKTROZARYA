@@ -1,8 +1,7 @@
 #include "vulkan_graphics_pipeline.hpp"
-
-#include <cassert>
 #include "core/file_utils.hpp"
 #include "core/scene/mesh.hpp"
+#include <cassert>
 
 namespace ez {
 

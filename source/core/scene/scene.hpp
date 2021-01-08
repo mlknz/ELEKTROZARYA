@@ -2,14 +2,13 @@
 
 #include <vector>
 #include "core/scene/mesh.hpp"
-#include "render/vulkan_include.hpp" // todo: remove vk
 
 namespace ez {
 
 class Scene final
 {
 public:
-    bool Load(vk::Device logicalDevice);  // todo: remove vk
+    bool Load();
     bool IsLoaded() const { return loaded; }
 
     void SetReadyToRender(bool value) { readyToRender = value; }

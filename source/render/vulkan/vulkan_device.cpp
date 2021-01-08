@@ -207,17 +207,20 @@ ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device de
 {
     vk::DescriptorPool descriptorPool;
 
+    const uint32_t maxDescriptorSetsCount = 1000;
+    const uint32_t maxDescriptorsCount = 32;
+
     std::vector<vk::DescriptorPoolSize> poolSizes(1); // todo: config constants or gather dynamically
     for (auto& poolSize : poolSizes)
     {
-        poolSize.descriptorCount = 1;
+        poolSize.descriptorCount = maxDescriptorsCount;
         poolSize.setType(vk::DescriptorType::eUniformBuffer);
     }
 
     vk::DescriptorPoolCreateInfo poolInfo = {};
     poolInfo.poolSizeCount = poolSizes.size();
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = 1;
+    poolInfo.maxSets = maxDescriptorSetsCount;
 
     if (device.createDescriptorPool(&poolInfo, nullptr, &descriptorPool) != vk::Result::eSuccess) {
         printf("Failed to create descriptor pool!");

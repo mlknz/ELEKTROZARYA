@@ -39,8 +39,7 @@ struct Vertex {
 
 struct Mesh
 {
-    Mesh() = delete;
-    Mesh(vk::Device aLogicalDevice);
+    Mesh() = default;
     ~Mesh();
     bool CreateVertexBuffers(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice,
                              vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool);
@@ -60,12 +59,10 @@ struct Mesh
     vk::DeviceMemory indexBufferMemory;
     vk::DeviceMemory uniformBufferMemory;
 
-    uint32_t vertexBufferMaxHackSize = 1000; // todo: calc needed size
-    uint32_t indexBufferMaxHackSize = 200;
-    uint32_t uniformBufferMaxHackSize = 200;
+    uint32_t uniformBufferMaxHackSize = 200; // todo: calc needed size
 
     vk::DescriptorSet descriptorSet;
 };
 
-Mesh GetTestMesh(vk::Device logicalDevice, int sceneIndex);
+Mesh GetTestMesh(int sceneIndex);
 }

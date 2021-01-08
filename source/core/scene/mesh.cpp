@@ -4,9 +4,9 @@
 
 namespace ez {
 
-    Mesh GetTestMesh(vk::Device logicalDevice, int sceneIndex)
+    Mesh GetTestMesh(int sceneIndex)
     {
-        Mesh mesh = Mesh(logicalDevice);
+        Mesh mesh;
 
         const float offset = sceneIndex > 0 ? 0.5f : 0.0f;
         mesh.vertices = {
@@ -23,32 +23,34 @@ namespace ez {
         return mesh;
     }
 
-    Mesh::Mesh(vk::Device aLogicalDevice)
-        : logicalDevice(aLogicalDevice)
-    {
-
-    }
-
     Mesh::~Mesh()
     {
-        logicalDevice.destroyBuffer(uniformBuffer);
-        logicalDevice.freeMemory(uniformBufferMemory);
+        if (logicalDevice)
+        {
+            logicalDevice.destroyBuffer(uniformBuffer);
+            logicalDevice.freeMemory(uniformBufferMemory);
 
-        logicalDevice.destroyBuffer(indexBuffer);
-        logicalDevice.freeMemory(indexBufferMemory);
+            logicalDevice.destroyBuffer(indexBuffer);
+            logicalDevice.freeMemory(indexBufferMemory);
 
-        logicalDevice.destroyBuffer(vertexBuffer);
-        logicalDevice.freeMemory(vertexBufferMemory);
+            logicalDevice.destroyBuffer(vertexBuffer);
+            logicalDevice.freeMemory(vertexBufferMemory);
+        }
     }
 
-    bool Mesh::CreateVertexBuffers(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice,
+    bool Mesh::CreateVertexBuffers(vk::Device aLogicalDevice, vk::PhysicalDevice physicalDevice,
                                    vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool)
     {
-        VulkanBuffer::createBuffer(logicalDevice, physicalDevice, vertexBufferMaxHackSize,
+        // todo: set logicalDevice from outside explicitly, stop passing it (and other stuff)
+        logicalDevice = aLogicalDevice;
+        vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
+        vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
+
+        VulkanBuffer::createBuffer(logicalDevice, physicalDevice, vertexBufferSize,
                                    vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
                                    vk::MemoryPropertyFlagBits::eDeviceLocal,
                                    vertexBuffer, vertexBufferMemory);
-        VulkanBuffer::createBuffer(logicalDevice, physicalDevice, indexBufferMaxHackSize,
+        VulkanBuffer::createBuffer(logicalDevice, physicalDevice, indexBufferSize,
                                    vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
                                    vk::MemoryPropertyFlagBits::eDeviceLocal,
                                    indexBuffer, indexBufferMemory);
@@ -59,8 +61,6 @@ namespace ez {
 
         // vert
         {
-            vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
-
             vk::Buffer stagingBuffer;
             vk::DeviceMemory stagingBufferMemory;
             VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
@@ -82,7 +82,6 @@ namespace ez {
 
         // index
         {
-            vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
             vk::Buffer stagingBuffer;
             vk::DeviceMemory stagingBufferMemory;
             VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
@@ -100,19 +99,23 @@ namespace ez {
             logicalDevice.destroyBuffer(stagingBuffer);
             logicalDevice.freeMemory(stagingBufferMemory);
         }
+
         return true;
     }
 
     bool Mesh::CreateDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool, vk::DescriptorSetLayout descriptorSetLayout, size_t hardcodedGlobalUBOSize)
     {
+        // todo: set logicalDevice from outside explicitly, stop passing it (and other stuff)
         vk::DescriptorSetLayout layouts[] = {descriptorSetLayout};
         vk::DescriptorSetAllocateInfo allocInfo = {};
         allocInfo.descriptorPool = descriptorPool;
         allocInfo.descriptorSetCount = 1;
         allocInfo.pSetLayouts = layouts;
 
-        if (logicalDevice.allocateDescriptorSets(&allocInfo, &descriptorSet) != vk::Result::eSuccess) {
+        vk::Result allocResult = logicalDevice.allocateDescriptorSets(&allocInfo, &descriptorSet);
+        if (allocResult != vk::Result::eSuccess) {
             printf("Failed to allocate descriptor set!");
+            assert(false);
             return false;
         }
 

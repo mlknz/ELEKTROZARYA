@@ -2,9 +2,10 @@
 
 namespace ez {
 
-bool Scene::Load(vk::Device logicalDevice)
+bool Scene::Load()
 {
-    meshes = { GetTestMesh(logicalDevice, sceneId) };
+    Mesh a = GetTestMesh(sceneId);
+    meshes.push_back(std::move(a));
 
     readyToRender = false;
     loaded = true;
