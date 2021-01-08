@@ -47,8 +47,6 @@ set(SOURCE_FILES
     ${SOURCES}/render/vulkan/vulkan_swapchain.hpp
     ${SOURCES}/render/vulkan/vulkan_render_pass.cpp
     ${SOURCES}/render/vulkan/vulkan_render_pass.hpp
-    ${SOURCES}/render/vulkan/vulkan_device_memory_manager.cpp
-    ${SOURCES}/render/vulkan/vulkan_device_memory_manager.hpp
     ${SOURCES}/render/vulkan/vulkan_buffer.cpp
     ${SOURCES}/render/vulkan/vulkan_buffer.hpp
     ${SOURCES}/render/vulkan/vulkan_graphics_pipeline.cpp
@@ -57,6 +55,7 @@ set(SOURCE_FILES
 
     ${SOURCES}/core/file_utils.cpp
     ${SOURCES}/core/file_utils.hpp
+    ${SOURCES}/core/scene/mesh.cpp
     ${SOURCES}/core/scene/mesh.hpp
     ${SOURCES}/core/scene/scene.cpp
     ${SOURCES}/core/scene/scene.hpp

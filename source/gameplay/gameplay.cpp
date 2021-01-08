@@ -45,7 +45,10 @@ void Gameplay::Update(double curTime, double deltaTime)
 
     camera->MovePreserveDirection(cameraMovement);
 
-
+    if (input->IsKeyPressed(SDLK_1))
+    {
+        view->ToggleSceneTest();
+    }
 }
 
 }

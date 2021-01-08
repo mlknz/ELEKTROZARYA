@@ -39,25 +39,33 @@ struct Vertex {
 
 struct Mesh
 {
+    Mesh() = delete;
+    Mesh(vk::Device aLogicalDevice);
+    ~Mesh();
+    bool CreateVertexBuffers(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice,
+                             vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool);
+    bool CreateDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool,
+                             vk::DescriptorSetLayout descriptorSetLayout, size_t hardcodedGlobalUBOSize);
+
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
+
+    vk::Device logicalDevice;
+
+    vk::Buffer vertexBuffer;
+    vk::Buffer indexBuffer;
+    vk::Buffer uniformBuffer;
+
+    vk::DeviceMemory vertexBufferMemory;
+    vk::DeviceMemory indexBufferMemory;
+    vk::DeviceMemory uniformBufferMemory;
+
+    uint32_t vertexBufferMaxHackSize = 1000; // todo: calc needed size
+    uint32_t indexBufferMaxHackSize = 200;
+    uint32_t uniformBufferMaxHackSize = 200;
+
+    vk::DescriptorSet descriptorSet;
 };
 
-inline Mesh GetTestMesh()
-{
-    const std::vector<Vertex> vertices = {
-        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-        {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
-    };
-
-    const std::vector<uint16_t> indices = {
-        0, 1, 2, 2, 3, 0
-    };
-
-    return Mesh {
-        vertices, indices
-    };
-}
+Mesh GetTestMesh(vk::Device logicalDevice, int sceneIndex);
 }

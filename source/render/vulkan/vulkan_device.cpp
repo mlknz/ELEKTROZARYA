@@ -194,6 +194,7 @@ ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(vk::Physica
 
     vk::CommandPoolCreateInfo poolInfo = {};
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
+    poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
 
     if (device.createCommandPool(&poolInfo, nullptr, &commandPool) != vk::Result::eSuccess) {
         printf("Failed to create graphics command pool!");

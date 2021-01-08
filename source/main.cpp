@@ -51,7 +51,7 @@ int main(int, char* [])
         auto currentTime = std::chrono::high_resolution_clock::now();
 
         prevTime = curTime;
-        curTime = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count() / 1000.0;
+        curTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) / 1000.0;
         if (prevTime > 0.0 && curTime > 0.0)
         {
             deltaTime = curTime - prevTime;
@@ -62,7 +62,7 @@ int main(int, char* [])
 
         if (!curScene->IsLoaded())
         {
-            bool sceneLoadSuccess = curScene->Load();
+            bool sceneLoadSuccess = curScene->Load(renderSystem->GetDevice());
             if (!sceneLoadSuccess)
             {
                 printf("Failed to load Scene");
@@ -73,10 +73,7 @@ int main(int, char* [])
         gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
         gameplay->Update(curTime, deltaTime);
 
-        if (!curScene->ReadyToRender())
-        {
-            renderSystem->PrepareToRender(curScene);
-        }
+        renderSystem->PrepareToRender(curScene);
 
         renderSystem->Draw(curView, gameplay->GetActiveCamera());
     }

@@ -8,6 +8,7 @@ class View
 {
 public:
     void SwitchToDefaultScene();
+    void ToggleSceneTest();
 
     std::shared_ptr<Scene> GetScene() const { return scene; }
 

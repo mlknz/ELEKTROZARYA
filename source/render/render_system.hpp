@@ -11,7 +11,6 @@
 #include "render/vulkan/vulkan_device.hpp"
 #include "render/vulkan/vulkan_swapchain.hpp"
 #include "render/vulkan/vulkan_render_pass.hpp"
-#include "render/vulkan/vulkan_device_memory_manager.hpp"
 #include "render/vulkan/vulkan_graphics_pipeline.hpp"
 
 namespace ez {
@@ -29,11 +28,11 @@ struct RenderSystemCreateInfo
     std::unique_ptr<VulkanDevice> vulkanDevice;
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain;
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass;
-    std::unique_ptr<VulkanDeviceMemoryManager> vulkanDeviceMemoryManager;
 
     FrameSemaphores frameSemaphores;
     vk::DescriptorSetLayout descriptorSetLayout;
     std::unique_ptr<GraphicsPipeline> graphicsPipeline;
+    std::vector<vk::CommandBuffer> commandBuffers;
 };
 
 class RenderSystem
@@ -58,8 +57,9 @@ public:
 
 private:
     static std::optional<vk::DescriptorSetLayout> CreateDescriptorSetLayout(vk::Device vkDevice);
+    static std::vector<vk::CommandBuffer> CreateCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, ez::VulkanSwapchainInfo& swapchainInfo);
 
-    void UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera);
+    void UpdateGlobalUniforms(std::shared_ptr<Scene> scene, const std::unique_ptr<Camera>& camera);
 
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
@@ -67,24 +67,14 @@ private:
     std::unique_ptr<VulkanInstance> vulkanInstance = nullptr;
     std::unique_ptr<VulkanDevice> vulkanDevice = nullptr;
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain = nullptr;
-    FrameSemaphores frameSemaphores;
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass = nullptr;
-    std::unique_ptr<VulkanDeviceMemoryManager> vulkanDeviceMemoryManager = nullptr;
-
-    vk::DescriptorSetLayout descriptorSetLayout;
     std::unique_ptr<GraphicsPipeline> graphicsPipeline = nullptr;
 
+    vk::DescriptorSetLayout descriptorSetLayout;
+    FrameSemaphores frameSemaphores;
 
-    // todo: move out
-    vk::DescriptorSet descriptorSet;
     std::vector<vk::CommandBuffer> commandBuffers;
-
-    bool uploadMeshAttributes(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool, const ez::Mesh& mesh);
-    bool createDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool);
-    bool createCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, ez::VulkanSwapchainInfo& swapchainInfo, const ez::Mesh& mesh);
-
-
-    // end of todo
+    size_t curFrameIndex = 0;
 };
 
 }
