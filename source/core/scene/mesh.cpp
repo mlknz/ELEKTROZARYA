@@ -38,11 +38,9 @@ namespace ez {
         }
     }
 
-    bool Mesh::CreateVertexBuffers(vk::Device aLogicalDevice, vk::PhysicalDevice physicalDevice,
-                                   vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool)
+    bool Mesh::CreateVertexBuffers(vk::PhysicalDevice physicalDevice, vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool)
     {
-        // todo: set logicalDevice from outside explicitly, stop passing it (and other stuff)
-        logicalDevice = aLogicalDevice;
+        assert(logicalDevice);
         vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
         vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
 
@@ -59,53 +57,15 @@ namespace ez {
                                    vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
                                    uniformBuffer, uniformBufferMemory);
 
-        // vert
-        {
-            vk::Buffer stagingBuffer;
-            vk::DeviceMemory stagingBufferMemory;
-            VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                        vertexBufferSize, vk::BufferUsageFlagBits::eTransferSrc,
-                         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                         stagingBuffer, stagingBufferMemory);
-
-            void* data;
-
-            logicalDevice.mapMemory(stagingBufferMemory, 0, vertexBufferSize, vk::MemoryMapFlags(), &data);
-            memcpy(data, vertices.data(), static_cast<size_t>(vertexBufferSize));
-            logicalDevice.unmapMemory(stagingBufferMemory);
-
-            VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, graphicsCommandPool, stagingBuffer, vertexBuffer, vertexBufferSize);
-
-            logicalDevice.destroyBuffer(stagingBuffer);
-            logicalDevice.freeMemory(stagingBufferMemory);
-        }
-
-        // index
-        {
-            vk::Buffer stagingBuffer;
-            vk::DeviceMemory stagingBufferMemory;
-            VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                         indexBufferSize, vk::BufferUsageFlagBits::eTransferSrc,
-                         vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                          stagingBuffer, stagingBufferMemory);
-
-            void* data;
-            logicalDevice.mapMemory(stagingBufferMemory, 0, indexBufferSize, vk::MemoryMapFlags(), &data);
-            memcpy(data, indices.data(), static_cast<size_t>(indexBufferSize));
-            logicalDevice.unmapMemory(stagingBufferMemory);
-
-            VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, graphicsCommandPool, stagingBuffer, indexBuffer, indexBufferSize);
-
-            logicalDevice.destroyBuffer(stagingBuffer);
-            logicalDevice.freeMemory(stagingBufferMemory);
-        }
+        VulkanBuffer::uploadData(logicalDevice, physicalDevice, graphicsQueue, graphicsCommandPool, vertexBuffer, vertexBufferSize, vertices.data());
+        VulkanBuffer::uploadData(logicalDevice, physicalDevice, graphicsQueue, graphicsCommandPool, indexBuffer, indexBufferSize, indices.data());
 
         return true;
     }
 
-    bool Mesh::CreateDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool, vk::DescriptorSetLayout descriptorSetLayout, size_t hardcodedGlobalUBOSize)
+    bool Mesh::CreateDescriptorSet(vk::DescriptorPool descriptorPool, vk::DescriptorSetLayout descriptorSetLayout, size_t hardcodedGlobalUBOSize)
     {
-        // todo: set logicalDevice from outside explicitly, stop passing it (and other stuff)
+        assert(logicalDevice);
         vk::DescriptorSetLayout layouts[] = {descriptorSetLayout};
         vk::DescriptorSetAllocateInfo allocInfo = {};
         allocInfo.descriptorPool = descriptorPool;

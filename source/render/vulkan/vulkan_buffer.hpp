@@ -23,5 +23,14 @@ public:
             vk::Buffer srcBuffer,
             vk::Buffer dstBuffer,
             vk::DeviceSize size);
+
+    static void uploadData(
+            vk::Device logicalDevice,
+            vk::PhysicalDevice physicalDevice,
+            vk::Queue graphicsQueue,
+            vk::CommandPool commandPool,
+            vk::Buffer dstBuffer,
+            vk::DeviceSize size,
+            void* data);
 };
 }

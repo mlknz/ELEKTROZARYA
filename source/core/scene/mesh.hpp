@@ -41,9 +41,11 @@ struct Mesh
 {
     Mesh() = default;
     ~Mesh();
-    bool CreateVertexBuffers(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice,
+
+    void SetLogicalDevice(vk::Device device) { logicalDevice = device; }
+    bool CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
                              vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool);
-    bool CreateDescriptorSet(vk::Device logicalDevice, vk::DescriptorPool descriptorPool,
+    bool CreateDescriptorSet(vk::DescriptorPool descriptorPool,
                              vk::DescriptorSetLayout descriptorSetLayout, size_t hardcodedGlobalUBOSize);
 
     std::vector<Vertex> vertices;

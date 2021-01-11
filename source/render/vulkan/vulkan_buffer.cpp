@@ -79,4 +79,32 @@ void VulkanBuffer::copyBuffer(vk::Device logicalDevice, vk::Queue graphicsQueue,
     logicalDevice.freeCommandBuffers(commandPool, 1, &commandBuffer);
 }
 
+void VulkanBuffer::uploadData(
+        vk::Device logicalDevice,
+        vk::PhysicalDevice physicalDevice,
+        vk::Queue graphicsQueue,
+        vk::CommandPool commandPool,
+        vk::Buffer dstBuffer,
+        vk::DeviceSize size,
+        void* bufferData)
+{
+    vk::Buffer stagingBuffer;
+    vk::DeviceMemory stagingBufferMemory;
+    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
+                size, vk::BufferUsageFlagBits::eTransferSrc,
+                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                 stagingBuffer, stagingBufferMemory);
+
+    void* data;
+
+    logicalDevice.mapMemory(stagingBufferMemory, 0, size, vk::MemoryMapFlags(), &data);
+    memcpy(data, bufferData, static_cast<size_t>(size));
+    logicalDevice.unmapMemory(stagingBufferMemory);
+
+    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, dstBuffer, size);
+
+    logicalDevice.destroyBuffer(stagingBuffer);
+    logicalDevice.freeMemory(stagingBufferMemory);
+}
+
 }

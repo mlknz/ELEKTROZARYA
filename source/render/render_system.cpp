@@ -245,8 +245,9 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
     bool meshesCreateSuccess = true;
     for (Mesh& mesh : sceneMeshes)
     {
-        meshesCreateSuccess |= mesh.CreateVertexBuffers(GetDevice(), GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool());
-        meshesCreateSuccess |= mesh.CreateDescriptorSet(GetDevice(), vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
+        mesh.SetLogicalDevice(GetDevice());
+        meshesCreateSuccess |= mesh.CreateVertexBuffers(GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool());
+        meshesCreateSuccess |= mesh.CreateDescriptorSet(vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
     }
     assert(meshesCreateSuccess);
     scene->SetReadyToRender(true);
