@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <imgui/imgui_impl_vulkan.h>
+#include <imgui/imgui_impl_sdl.h>
+
 #include "core/file_utils.hpp"
 #include "core/view.hpp"
 #include "core/scene/scene.hpp"
@@ -16,6 +19,15 @@ struct GlobalUBO
     glm::mat4 projectionMatrix;
     glm::mat4 viewProjectionMatrix;
 };
+
+static void check_vk_result_imgui(VkResult err)
+{
+    if (err == 0)
+        return;
+    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    if (err < 0)
+        abort();
+}
 
 ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
 {
@@ -98,6 +110,12 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
         return GraphicsResult::Error;
     }
 
+    if (!InitializeImGui(ci))
+    {
+        printf("Failed to initialize ImGui");
+        return GraphicsResult::Error;
+    }
+
     return {GraphicsResult::Ok, std::make_unique<RenderSystem>(ci)};
 }
 
@@ -149,6 +167,65 @@ std::vector<vk::CommandBuffer> RenderSystem::CreateCommandBuffers(vk::Device log
     }
 
     return commandBuffers;
+}
+
+bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+
+    ImGui_ImplSDL2_InitForVulkan(ci.vulkanDevice->GetWindow());
+
+    QueueFamilyIndices indices = FindQueueFamilies(ci.vulkanDevice->GetPhysicalDevice(), ci.vulkanDevice->GetSurface());
+
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = ci.vulkanInstance->GetInstance();
+    init_info.PhysicalDevice = ci.vulkanDevice->GetPhysicalDevice();
+    init_info.Device = ci.vulkanDevice->GetDevice();
+    init_info.QueueFamily = indices.graphicsFamily;
+    init_info.Queue = ci.vulkanDevice->GetGraphicsQueue();
+    init_info.PipelineCache = nullptr;
+    init_info.DescriptorPool = ci.vulkanDevice->GetDescriptorPool();
+    init_info.Allocator = nullptr;
+    init_info.MinImageCount = 2; // todo: config
+    init_info.ImageCount = ci.vulkanSwapchain->GetInfo().images.size();
+    init_info.CheckVkResultFn = check_vk_result_imgui;
+
+    ImGui_ImplVulkan_Init(&init_info, ci.vulkanRenderPass->GetRenderPass());
+
+    // Upload ImGui Fonts
+    {
+        vk::Device device = ci.vulkanDevice->GetDevice();
+        vk::CommandPool command_pool = ci.vulkanDevice->GetGraphicsCommandPool();
+        vk::CommandBuffer command_buffer = ci.commandBuffers.front();
+
+        device.resetCommandPool(command_pool, vk::CommandPoolResetFlagBits(0));
+
+        vk::CommandBufferBeginInfo begin_info = {};
+        begin_info.sType = vk::StructureType::eCommandBufferBeginInfo;
+        begin_info.flags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+        command_buffer.begin(begin_info);
+
+        ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+
+        vk::SubmitInfo end_info = {};
+        end_info.sType = vk::StructureType::eSubmitInfo;
+        end_info.commandBufferCount = 1;
+        end_info.pCommandBuffers = &command_buffer;
+        command_buffer.end();
+
+        if (ci.vulkanDevice->GetGraphicsQueue().submit(1, &end_info, nullptr) != vk::Result::eSuccess) {
+            assert("Failed to submit draw command buffer (imgui upload fonts)!" && false);
+            return false;
+        }
+
+        device.waitIdle();
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+
+    return true;
 }
 
 void RenderSystem::CleanupTotalPipeline()
@@ -324,6 +401,9 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
         curCb.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
     }
 
+    ImGui::Render();
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), curCb);
+
     curCb.endRenderPass();
 
     if (curCb.end() != vk::Result::eSuccess) {
@@ -368,6 +448,11 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
 RenderSystem::~RenderSystem()
 {
     // todo: cleanup all scenes meshes?
+
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+
     CleanupTotalPipeline();
 
     vk::Device logicalDevice = vulkanDevice->GetDevice();

@@ -1,5 +1,7 @@
 #include "gameplay.hpp"
 
+#include <imgui/imgui.h>
+
 #include "core/view.hpp"
 #include "core/camera/camera.hpp"
 #include "core/input/input.hpp"
@@ -48,7 +50,13 @@ void Gameplay::Update(double curTime, double deltaTime)
     if (input->IsKeyPressed(SDLK_1))
     {
         view->ToggleSceneTest();
-    }
+    }   
+
+    ImGui::NewFrame();
+    ImGui::Begin("Hello, world!");
+    ImGui::Text("Hello, %d", 42);
+    // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+    ImGui::End();
 }
 
 }

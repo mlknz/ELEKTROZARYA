@@ -2,14 +2,15 @@
 
 #include <SDL_vulkan.h>
 #include <set>
+#include <map>
 #include <string>
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_swapchain.hpp"
 
 using namespace ez;
 
-const int WIDTH = 800;
-const int HEIGHT = 600;
+const int WIDTH = 1024;
+const int HEIGHT = 768;
 
 const std::vector<const char*> requiredDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
@@ -21,7 +22,7 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
         "ELEKTROZARYA",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WIDTH, HEIGHT,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE
+        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
     );
     if (window == nullptr)
     {
@@ -75,12 +76,12 @@ VulkanDevice::VulkanDevice(vk::Instance aInstance, vk::PhysicalDevice aPhysicalD
     : instance(aInstance)
       , physicalDevice(aPhysicalDevice)
       , device(aDevice)
-      , graphicsCommandPool(aGraphicsCommandPool)
-      , descriptorPool(aDescriptorPool)
       , window(aWindow)
       , surface(aSurface)
+      , graphicsCommandPool(aGraphicsCommandPool)
+      , descriptorPool(aDescriptorPool)
 {
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
+    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface); // todo: find once and use elsewhere instead of FindQueueFamilies calls
 
     device.getQueue(indices.graphicsFamily, 0, &graphicsQueue);
     device.getQueue(indices.presentFamily, 0, &presentQueue);
@@ -207,14 +208,25 @@ ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device de
 {
     vk::DescriptorPool descriptorPool;
 
-    const uint32_t maxDescriptorSetsCount = 1000;
-    const uint32_t maxDescriptorsCount = 32;
+    const uint32_t maxDescriptorSetsCount = 1000; // todo: config
 
-    std::vector<vk::DescriptorPoolSize> poolSizes(1); // todo: config constants or gather dynamically
-    for (auto& poolSize : poolSizes)
+    const std::map<vk::DescriptorType, uint32_t> poolSizesConfig = {
+        { vk::DescriptorType::eUniformBuffer, 32 },
+        { vk::DescriptorType::eSampler, 1000 },
+        { vk::DescriptorType::eCombinedImageSampler, 1000 },
+        { vk::DescriptorType::eSampledImage, 1000 },
+        { vk::DescriptorType::eStorageImage, 1000 },
+        { vk::DescriptorType::eStorageBuffer, 1000 },
+        { vk::DescriptorType::eUniformBufferDynamic, 1000 },
+        { vk::DescriptorType::eUniformBufferDynamic, 1000 },
+        { vk::DescriptorType::eStorageBufferDynamic, 1000 },
+    };
+    std::vector<vk::DescriptorPoolSize> poolSizes; // todo: config constants or gather dynamically
+    for (auto& poolSizeConfig : poolSizesConfig)
     {
-        poolSize.descriptorCount = maxDescriptorsCount;
-        poolSize.setType(vk::DescriptorType::eUniformBuffer);
+        poolSizes.emplace_back();
+        poolSizes.back().setType(poolSizeConfig.first);
+        poolSizes.back().descriptorCount = poolSizeConfig.second;
     }
 
     vk::DescriptorPoolCreateInfo poolInfo = {};

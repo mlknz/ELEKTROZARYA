@@ -29,6 +29,10 @@ set(IMGUI_SOURCE_FILES
     ${PROJECT_SOURCE_DIR}/external/imgui/imstb_rectpack.h
     ${PROJECT_SOURCE_DIR}/external/imgui/imstb_textedit.h
     ${PROJECT_SOURCE_DIR}/external/imgui/imstb_truetype.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_impl_sdl.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_impl_sdl.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_impl_vulkan.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_impl_vulkan.h
 )
 
 set(SOURCE_FILES

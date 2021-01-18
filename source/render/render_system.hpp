@@ -49,6 +49,7 @@ public:
 
     vk::Device GetDevice() { return vulkanDevice->GetDevice(); }
     vk::PhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }
+    SDL_Window* GetWindow() { return vulkanDevice->GetWindow(); }
     vk::SurfaceKHR GetSurface() { return vulkanDevice->GetSurface(); }
     vk::Queue GetGraphicsQueue() { return vulkanDevice->GetGraphicsQueue(); }
     VulkanSwapchainInfo& GetSwapchainInfo() { return vulkanSwapchain->GetInfo(); }
@@ -58,6 +59,7 @@ public:
 private:
     static std::optional<vk::DescriptorSetLayout> CreateDescriptorSetLayout(vk::Device vkDevice);
     static std::vector<vk::CommandBuffer> CreateCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, ez::VulkanSwapchainInfo& swapchainInfo);
+    static bool InitializeImGui(const RenderSystemCreateInfo& ci);
 
     void UpdateGlobalUniforms(std::shared_ptr<Scene> scene, const std::unique_ptr<Camera>& camera);
 

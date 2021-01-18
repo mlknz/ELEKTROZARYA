@@ -5,10 +5,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <imgui/imgui.h> // mewmew
-
 #include <SDL.h>
 #include <SDL_syswm.h>
+#include <imgui/imgui_impl_vulkan.h>
+#include <imgui/imgui_impl_sdl.h>
 
 #include "core/view.hpp"
 #include "core/input/input.hpp"
@@ -34,7 +34,7 @@ int main(int, char* [])
     double prevTime = -1.0;
     double curTime = -1.0;
     double deltaTime = -1.0;
-    // ImGui::Text("Hello, %d", 42);
+
     bool run = true;
     while (run)
     {
@@ -68,6 +68,9 @@ int main(int, char* [])
                 printf("Failed to load Scene");
             }
         }
+
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplSDL2_NewFrame(renderSystem->GetWindow());
 
         const vk::Extent2D& viewportExtent = renderSystem->GetViewportExtent();
         gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
