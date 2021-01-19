@@ -1,7 +1,7 @@
 #include "vulkan_buffer.hpp"
 
 #include <stdio.h>
-#include <cassert>
+#include "core/log_assert.hpp"
 
 namespace ez {
 
@@ -15,7 +15,7 @@ uint32_t findMemoryType(vk::PhysicalDevice physicalDevice, uint32_t typeFilter, 
         }
     }
 
-    assert("Failed to find suitable memory type!" && false);
+    EZASSERT(false, "Failed to find suitable memory type!");
     return 0;
 }
 
@@ -27,7 +27,7 @@ bool VulkanBuffer::createBuffer(vk::Device logicalDevice, vk::PhysicalDevice phy
     bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
     if (logicalDevice.createBuffer(&bufferInfo, nullptr, &buffer) != vk::Result::eSuccess) {
-        printf("failed to create buffer!");
+        EZLOG("failed to create buffer!");
         return false;
     }
 
@@ -39,7 +39,7 @@ bool VulkanBuffer::createBuffer(vk::Device logicalDevice, vk::PhysicalDevice phy
     allocInfo.memoryTypeIndex = findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
 
     if (logicalDevice.allocateMemory(&allocInfo, nullptr, &bufferMemory) != vk::Result::eSuccess) {
-        printf("failed to allocate buffer memory!");
+        EZLOG("failed to allocate buffer memory!");
         return false;
     }
 

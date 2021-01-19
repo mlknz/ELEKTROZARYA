@@ -53,6 +53,7 @@ void Gameplay::Update(double curTime, double deltaTime)
     }   
 
     ImGui::NewFrame();
+    // ImGui::ShowDemoWindow();
     ImGui::Begin("Hello, world!");
     ImGui::Text("Hello, %d", 42);
     // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);

@@ -69,6 +69,7 @@ set(SOURCE_FILES
     ${SOURCES}/core/camera/camera.hpp
     ${SOURCES}/core/input/input.cpp
     ${SOURCES}/core/input/input.hpp
+    ${SOURCES}/core/log_assert.hpp
 
     ${SOURCES}/gameplay/gameplay.cpp
     ${SOURCES}/gameplay/gameplay.hpp

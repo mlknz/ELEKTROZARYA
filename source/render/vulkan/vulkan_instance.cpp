@@ -2,18 +2,19 @@
 
 #include <cstring>
 #include "render/vulkan/utils.hpp"
+#include "core/log_assert.hpp"
 
 using namespace ez;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
-    VkDebugReportFlagsEXT flags,
-    VkDebugReportObjectTypeEXT objType,
-    uint64_t obj,
-    size_t location,
-    int32_t code,
-    const char* layerPrefix,
+    [[maybe_unused]] VkDebugReportFlagsEXT flags,
+    [[maybe_unused]] VkDebugReportObjectTypeEXT objType,
+    [[maybe_unused]] uint64_t obj,
+    [[maybe_unused]] size_t location,
+    [[maybe_unused]] int32_t code,
+    [[maybe_unused]] const char* layerPrefix,
     const char* msg,
-    void* userData)
+    [[maybe_unused]] void* userData)
 {
     printf("VULKAN VALIDATION: %s\n", msg);
     return VK_FALSE;
@@ -21,7 +22,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCallback(
 
 VkResult CreateDebugReportCallbackEXT(vk::Instance instance, const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
                                       const VkAllocationCallbacks* pAllocator, VkDebugReportCallbackEXT* pCallback) {
-    auto func = (PFN_vkCreateDebugReportCallbackEXT) vkGetInstanceProcAddr(instance.operator VkInstance(), "vkCreateDebugReportCallbackEXT");
+    auto func = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance.operator VkInstance(), "vkCreateDebugReportCallbackEXT"));
     if (func != nullptr) {
         return func(instance.operator VkInstance(), pCreateInfo, pAllocator, pCallback);
     } else {
@@ -38,7 +39,7 @@ bool VulkanInstance::SetupDebugCallback(vk::Instance instance, VkDebugReportCall
     createInfo.pfnCallback = VulkanDebugCallback;
 
     if (CreateDebugReportCallbackEXT(instance, &createInfo, nullptr, &vkDebugCallback) != VK_SUCCESS) {
-        printf("failed to set up debug callback!");
+        EZLOG("failed to set up debug callback!");
         return false;
     }
 
@@ -54,14 +55,14 @@ VulkanInstance::VulkanInstance(vk::Instance aInstance, std::vector<const char*> 
 ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstance()
 {
     if (enableValidationLayers && !CheckValidationLayerSupport()) {
-        printf("Error: validation layers requested, but not available!");
+        EZLOG("Error: validation layers requested, but not available!");
         return GraphicsResult::Error;
     }
 
     vk::ApplicationInfo appInfo = {};
-    appInfo.pApplicationName = "ELEKTROZARYA APP";
+    appInfo.pApplicationName = "ELEKTROZARYA Vulkan C++ Sandbox";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.pEngineName = "ELEKTROZARYA ENGINE";
+    appInfo.pEngineName = "ELEKTROZARYA Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 0);
 
@@ -83,7 +84,7 @@ ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstanc
 
     vk::InstanceCreateInfo createInfo = {};
     createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = supportedExtensions.size();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(supportedExtensions.size());
     createInfo.ppEnabledExtensionNames = supportedExtensions.data();
 
     if (enableValidationLayers) {
@@ -95,13 +96,13 @@ ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstanc
 
     if (vk::createInstance(&createInfo, nullptr, &instance) != vk::Result::eSuccess)
     {
-        printf("Can't create vk instance");
+        EZLOG("Can't create vk instance");
         return GraphicsResult::Error;
     }
 
     if (!SetupDebugCallback(instance, vkDebugCallback))
     {
-        printf("Can't setup debug callbacks");
+        EZLOG("Can't setup debug callbacks");
         return GraphicsResult::Error;
     }
 
@@ -109,7 +110,7 @@ ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstanc
 }
 
 void DestroyDebugReportCallbackEXT(vk::Instance instance, VkDebugReportCallbackEXT callback, const VkAllocationCallbacks* pAllocator) {
-    auto func = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr(instance.operator VkInstance(), "vkDestroyDebugReportCallbackEXT");
+    auto func = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(vkGetInstanceProcAddr(instance.operator VkInstance(), "vkDestroyDebugReportCallbackEXT"));
     if (func != nullptr) {
         func(instance.operator VkInstance(), callback, pAllocator);
     }
@@ -119,7 +120,7 @@ VulkanInstance::~VulkanInstance()
 {
     if (vkDebugCallback)
     {
-        DestroyDebugReportCallbackEXT(instance, vkDebugCallback, 0);
+        DestroyDebugReportCallbackEXT(instance, vkDebugCallback, nullptr);
     }
 
     instance.destroy();

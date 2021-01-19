@@ -5,6 +5,7 @@
 #include <imgui/imgui_impl_vulkan.h>
 #include <imgui/imgui_impl_sdl.h>
 
+#include "core/log_assert.hpp"
 #include "core/file_utils.hpp"
 #include "core/view.hpp"
 #include "core/scene/scene.hpp"
@@ -35,7 +36,7 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     auto vulkanInstanceRV = VulkanInstance::CreateVulkanInstance();
     if (vulkanInstanceRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to create VulkanInstance");
+        EZLOG("Failed to create VulkanInstance");
         return vulkanInstanceRV.result;
     }
     ci.vulkanInstance = std::move(vulkanInstanceRV.value);
@@ -43,7 +44,7 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     auto vulkanDeviceRV = VulkanDevice::CreateVulkanDevice(ci.vulkanInstance->GetInstance());
     if (vulkanDeviceRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to create VulkanDevice");
+        EZLOG("Failed to create VulkanDevice");
         return vulkanDeviceRV.result;
     }
     ci.vulkanDevice = std::move(vulkanDeviceRV.value);
@@ -56,7 +57,7 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to create VulkanSwapchain");
+        EZLOG("Failed to create VulkanSwapchain");
         return vulkanSwapchainRV.result;
     }
     ci.vulkanSwapchain = std::move(vulkanSwapchainRV.value);
@@ -66,14 +67,14 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     if (ci.vulkanDevice->GetDevice().createSemaphore(&semaphoreInfo, nullptr, &ci.frameSemaphores.imageAvailableSemaphore) != vk::Result::eSuccess ||
         ci.vulkanDevice->GetDevice().createSemaphore(&semaphoreInfo, nullptr, &ci.frameSemaphores.renderFinishedSemaphore) != vk::Result::eSuccess)
     {
-        printf("Failed to create FrameSemaphores!");
+        EZLOG("Failed to create FrameSemaphores!");
         return GraphicsResult::Error;
     }
 
     auto vulkanRenderPassRV = VulkanRenderPass::CreateRenderPass({ci.vulkanDevice->GetDevice(), ci.vulkanSwapchain->GetInfo().imageFormat});
     if (vulkanRenderPassRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to create VulkanRenderPass");
+        EZLOG("Failed to create VulkanRenderPass");
         return vulkanRenderPassRV.result;
     }
     ci.vulkanRenderPass = std::move(vulkanRenderPassRV.value);
@@ -81,14 +82,14 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     GraphicsResult framebuffersResult = ci.vulkanSwapchain->CreateFramebuffersForRenderPass(ci.vulkanRenderPass->GetRenderPass());
     if (framebuffersResult != GraphicsResult::Ok)
     {
-        printf("Failed to create Framebuffers");
+        EZLOG("Failed to create Framebuffers");
         return framebuffersResult;
     }
 
     auto dsLayoutPtr = CreateDescriptorSetLayout(ci.vulkanDevice->GetDevice());
     if (!dsLayoutPtr.has_value())
     {
-        printf("Failed to create default vk::DescriptorSetLayout");
+        EZLOG("Failed to create default vk::DescriptorSetLayout");
         return GraphicsResult::Error;
     }
     ci.descriptorSetLayout = *dsLayoutPtr;
@@ -99,20 +100,20 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
 
     if (!ci.graphicsPipeline->Ready())
     {
-        printf("Failed to create default GraphicsPipeline");
+        EZLOG("Failed to create default GraphicsPipeline");
         return GraphicsResult::Error;
     }
 
     ci.commandBuffers = CreateCommandBuffers(ci.vulkanDevice->GetDevice(), ci.vulkanDevice->GetGraphicsCommandPool(), ci.vulkanSwapchain->GetInfo());
     if (ci.commandBuffers.empty())
     {
-        printf("Failed to create command buffers");
+        EZLOG("Failed to create command buffers");
         return GraphicsResult::Error;
     }
 
     if (!InitializeImGui(ci))
     {
-        printf("Failed to initialize ImGui");
+        EZLOG("Failed to initialize ImGui");
         return GraphicsResult::Error;
     }
 
@@ -146,7 +147,7 @@ std::optional<vk::DescriptorSetLayout> RenderSystem::CreateDescriptorSetLayout(v
     vk::DescriptorSetLayout dsLayout;
     vk::Result result = vkDevice.createDescriptorSetLayout(&layoutInfo, nullptr, &dsLayout);
     if (result != vk::Result::eSuccess) {
-        printf("Failed to create descriptor set layout!");
+        EZLOG("Failed to create descriptor set layout!");
         return {};
     }
     return dsLayout;
@@ -162,7 +163,7 @@ std::vector<vk::CommandBuffer> RenderSystem::CreateCommandBuffers(vk::Device log
     allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
     if (logicalDevice.allocateCommandBuffers(&allocInfo, commandBuffers.data()) != vk::Result::eSuccess) {
-        printf("failed to allocate command buffers!");
+        EZLOG("failed to allocate command buffers!");
         return {};
     }
 
@@ -217,7 +218,7 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
         command_buffer.end();
 
         if (ci.vulkanDevice->GetGraphicsQueue().submit(1, &end_info, nullptr) != vk::Result::eSuccess) {
-            assert("Failed to submit draw command buffer (imgui upload fonts)!" && false);
+            EZASSERT(false, "Failed to submit draw command buffer (imgui upload fonts)!");
             return false;
         }
 
@@ -258,7 +259,7 @@ void RenderSystem::RecreateTotalPipeline()
     });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to Recreate VulkanSwapchain");
+        EZLOG("Failed to Recreate VulkanSwapchain");
         return;
     }
     vulkanSwapchain = std::move(vulkanSwapchainRV.value);
@@ -266,7 +267,7 @@ void RenderSystem::RecreateTotalPipeline()
     auto vulkanRenderPassRV = VulkanRenderPass::CreateRenderPass({vulkanDevice->GetDevice(), vulkanSwapchain->GetInfo().imageFormat});
     if (vulkanRenderPassRV.result != GraphicsResult::Ok)
     {
-        printf("Failed to Recreate VulkanRenderPass");
+        EZLOG("Failed to Recreate VulkanRenderPass");
         return;
     }
     vulkanRenderPass = std::move(vulkanRenderPassRV.value);
@@ -274,7 +275,7 @@ void RenderSystem::RecreateTotalPipeline()
     GraphicsResult framebuffersResult = vulkanSwapchain->CreateFramebuffersForRenderPass(vulkanRenderPass->GetRenderPass());
     if (framebuffersResult != GraphicsResult::Ok)
     {
-        printf("Failed to Recreate Framebuffers");
+        EZLOG("Failed to Recreate Framebuffers");
         return;
     }
     graphicsPipeline.reset();
@@ -283,11 +284,10 @@ void RenderSystem::RecreateTotalPipeline()
                 );
     if (!graphicsPipeline->Ready())
     {
-        printf("Failed to recreate GraphicsPipeline");
-        assert(false); // todo: fallback
+        EZASSERT(false, "Failed to recreate GraphicsPipeline"); // todo: fallback
     }
 
-    assert(commandBuffers.empty());
+    EZASSERT(commandBuffers.empty());
     commandBuffers = CreateCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo());
 }
 
@@ -326,7 +326,7 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
         meshesCreateSuccess |= mesh.CreateVertexBuffers(GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool());
         meshesCreateSuccess |= mesh.CreateDescriptorSet(vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
     }
-    assert(meshesCreateSuccess);
+    EZASSERT(meshesCreateSuccess);
     scene->SetReadyToRender(true);
 }
 
@@ -354,7 +354,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
         RecreateTotalPipeline();
         return;
     } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
-        assert("Failed to acquire swapchain image!" && false);
+        EZASSERT(false, "Failed to acquire swapchain image!");
     }
 
     vk::SubmitInfo submitInfo = {};
@@ -365,7 +365,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
 
-    assert(curFrameIndex < commandBuffers.size());
+    EZASSERT((curFrameIndex < commandBuffers.size()));
     vk::CommandBuffer curCb = commandBuffers.at(curFrameIndex);
 
     std::array<float,4> clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -407,8 +407,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     curCb.endRenderPass();
 
     if (curCb.end() != vk::Result::eSuccess) {
-        printf("failed to record command buffer!");
-        assert(false);
+        EZASSERT(false, "failed to record command buffer!");
     }
 
     submitInfo.commandBufferCount = 1;
@@ -420,7 +419,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     submitInfo.pSignalSemaphores = signalSemaphores;
 
     if (graphicsQueue.submit(1, &submitInfo, nullptr) != vk::Result::eSuccess) {
-        assert("Failed to submit draw command buffer!" && false);
+        EZASSERT(false, "Failed to submit draw command buffer!");
     }
 
     vk::PresentInfoKHR presentInfo = {};
@@ -439,7 +438,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
         RecreateTotalPipeline();
     } else if (result != vk::Result::eSuccess) {
-        assert("Failed to present swapchain image!" && false);
+        EZASSERT(false, "Failed to present swapchain image!");
     }
 
     presentQueue.waitIdle();

@@ -1,5 +1,6 @@
 #include "mesh.hpp"
 
+#include "core/log_assert.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
 
 namespace ez {
@@ -74,8 +75,7 @@ namespace ez {
 
         vk::Result allocResult = logicalDevice.allocateDescriptorSets(&allocInfo, &descriptorSet);
         if (allocResult != vk::Result::eSuccess) {
-            printf("Failed to allocate descriptor set!");
-            assert(false);
+            EZASSERT(false, "Failed to allocate descriptor set!");
             return false;
         }
 

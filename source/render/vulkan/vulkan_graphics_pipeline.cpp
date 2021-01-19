@@ -1,7 +1,7 @@
 #include "vulkan_graphics_pipeline.hpp"
 #include "core/file_utils.hpp"
 #include "core/scene/mesh.hpp"
-#include <cassert>
+#include "core/log_assert.hpp"
 
 namespace ez {
 
@@ -26,7 +26,7 @@ vk::ShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& c
 
     vk::ShaderModule shaderModule;
     if (logicalDevice.createShaderModule(&createInfo, nullptr, &shaderModule) != vk::Result::eSuccess) {
-        assert(false && "failed to create shader module!");
+        EZASSERT(false, "failed to create shader module!");
     }
 
     return shaderModule;
@@ -117,7 +117,7 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
     if (logicalDevice.createPipelineLayout(&pipelineLayoutInfo, nullptr, &pipelineLayout) != vk::Result::eSuccess) {
-        printf("Failed to create pipeline layout!");
+        EZLOG("Failed to create pipeline layout!");
         return false;
     }
 
@@ -135,7 +135,7 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
     pipelineInfo.subpass = 0;
 
     if (logicalDevice.createGraphicsPipelines(nullptr, 1, &pipelineInfo, nullptr, &graphicsPipeline) != vk::Result::eSuccess) {
-        printf("Failed to create graphics pipeline!");
+        EZLOG("Failed to create graphics pipeline!");
         return false;
     }
 

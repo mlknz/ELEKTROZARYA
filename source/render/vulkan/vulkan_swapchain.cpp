@@ -2,16 +2,17 @@
 
 #include <algorithm>
 #include <SDL_vulkan.h>
+#include "core/log_assert.hpp"
 #include "render/vulkan/utils.hpp"
 
 using namespace ez;
 
 VulkanSwapchain::VulkanSwapchain(const VulkanSwapchainCreateInfo& ci, VulkanSwapchainInfo&& info)
-    : logicalDevice(ci.logicalDevice)
+    : info(std::move(info))
+    , logicalDevice(ci.logicalDevice)
     , physicalDevice(ci.physicalDevice)
     , surface(ci.surface)
     , window(ci.window)
-    , info(std::move(info))
 {
 }
 
@@ -23,7 +24,7 @@ ResultValue<SwapChainSupportDetails> VulkanSwapchain::QuerySwapchainSupport(vk::
     auto formatsRV = device.getSurfaceFormatsKHR(surface);
     if (formatsRV.result != vk::Result::eSuccess)
     {
-        printf("device.getSurfaceFormatsKHR failed");
+        EZLOG("device.getSurfaceFormatsKHR failed");
         return {GraphicsResult::Error, details};
     }
 
@@ -32,7 +33,7 @@ ResultValue<SwapChainSupportDetails> VulkanSwapchain::QuerySwapchainSupport(vk::
     auto presentModesRV = device.getSurfacePresentModesKHR(surface);
     if (presentModesRV.result != vk::Result::eSuccess)
     {
-        printf("device.getSurfacePresentModesKHR failed");
+        EZLOG("device.getSurfacePresentModesKHR failed");
         return {GraphicsResult::Error, details};
     }
     details.presentModes = presentModesRV.value;
@@ -102,7 +103,7 @@ ResultValue<VulkanSwapchainInfo> VulkanSwapchain::CreateSwapchain(const VulkanSw
     createInfo.clipped = VK_TRUE;
 
     if (ci.logicalDevice.createSwapchainKHR(&createInfo, nullptr, &info.swapchain) != vk::Result::eSuccess) {
-        printf("Failed to create swapchain!");
+        EZLOG("Failed to create swapchain!");
         return GraphicsResult::Error;
     }
 
@@ -183,7 +184,7 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice, Vulka
         createInfo.subresourceRange.layerCount = 1;
 
         if (logicalDevice.createImageView(&createInfo, nullptr, &info.imageViews[i]) != vk::Result::eSuccess) {
-            printf("Failed to create image views!");
+            EZLOG("Failed to create image views!");
             return GraphicsResult::Error;
         }
     }
@@ -209,7 +210,7 @@ GraphicsResult VulkanSwapchain::CreateFramebuffersForRenderPass(vk::RenderPass v
         framebufferInfo.layers = 1;
 
         if (logicalDevice.createFramebuffer(&framebufferInfo, nullptr, &info.framebuffers[i]) != vk::Result::eSuccess) {
-            printf("Failed to create framebuffer!");
+            EZLOG("Failed to create framebuffer!");
             return GraphicsResult::Error;
         }
     }

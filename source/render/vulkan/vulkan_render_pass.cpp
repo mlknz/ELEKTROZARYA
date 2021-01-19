@@ -1,5 +1,7 @@
 #include "vulkan_render_pass.hpp"
 
+#include "core/log_assert.hpp"
+
 using namespace ez;
 
 ResultValue<std::unique_ptr<VulkanRenderPass>> VulkanRenderPass::CreateRenderPass(VulkanRenderPassCreateInfo ci)
@@ -31,7 +33,7 @@ ResultValue<std::unique_ptr<VulkanRenderPass>> VulkanRenderPass::CreateRenderPas
 
     vk::Result result = ci.logicalDevice.createRenderPass(&renderPassInfo, nullptr, &renderPass);
     if (result != vk::Result::eSuccess) {
-        printf("Failed to create render pass!");
+        EZLOG("Failed to create render pass!");
         return GraphicsResult::Error;
     }
     return {GraphicsResult::Ok, std::make_unique<VulkanRenderPass>(ci.logicalDevice, renderPass)};

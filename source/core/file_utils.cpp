@@ -2,12 +2,13 @@
 
 #include <fstream>
 #include <iostream>
+#include "core/log_assert.hpp"
 
 std::vector<char> readFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
     if (!file.is_open()) {
-        printf("failed to open file: %s",filename.c_str());
+        EZLOG("failed to open file:", filename.c_str());
         return {};
     }
 

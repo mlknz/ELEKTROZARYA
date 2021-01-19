@@ -10,6 +10,7 @@
 #include <imgui/imgui_impl_vulkan.h>
 #include <imgui/imgui_impl_sdl.h>
 
+#include "core/log_assert.hpp"
 #include "core/view.hpp"
 #include "core/input/input.hpp"
 #include "core/scene/scene.hpp"
@@ -23,7 +24,7 @@ int main(int, char* [])
     auto renderSystemRV = ez::RenderSystem::Create();
     if (renderSystemRV.result != ez::GraphicsResult::Ok)
     {
-        printf("Failed to create RenderSystem");
+        EZLOG("Failed to create RenderSystem");
         return EXIT_FAILURE;
     }
     std::unique_ptr<ez::RenderSystem> renderSystem = std::move(renderSystemRV.value);
@@ -63,10 +64,7 @@ int main(int, char* [])
         if (!curScene->IsLoaded())
         {
             bool sceneLoadSuccess = curScene->Load();
-            if (!sceneLoadSuccess)
-            {
-                printf("Failed to load Scene");
-            }
+            EZASSERT(sceneLoadSuccess, "Failed to load Scene");
         }
 
         ImGui_ImplVulkan_NewFrame();
