@@ -7,13 +7,11 @@
 #include <string>
 
 #include "core/log_assert.hpp"
+#include "render/config.hpp"
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_swapchain.hpp"
 
 using namespace ez;
-
-const int WIDTH = 1024;
-const int HEIGHT = 768;
 
 const std::vector<const char*> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
@@ -24,8 +22,8 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(
         SDL_CreateWindow("ELEKTROZARYA Vulkan C++ Sandbox",
                          SDL_WINDOWPOS_CENTERED,
                          SDL_WINDOWPOS_CENTERED,
-                         WIDTH,
-                         HEIGHT,
+                         Config::WindowWidth,
+                         Config::WindowHeight,
                          SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (window == nullptr)
     {
@@ -241,22 +239,8 @@ ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device de
 {
     vk::DescriptorPool descriptorPool;
 
-    const uint32_t maxDescriptorSetsCount = 1000;  // todo: config
-
-    const std::map<vk::DescriptorType, uint32_t> poolSizesConfig = {
-        { vk::DescriptorType::eUniformBuffer, 32 },
-        { vk::DescriptorType::eSampler, 1000 },
-        { vk::DescriptorType::eCombinedImageSampler, 1000 },
-        { vk::DescriptorType::eSampledImage, 1000 },
-        { vk::DescriptorType::eStorageImage, 1000 },
-        { vk::DescriptorType::eStorageBuffer, 1000 },
-        { vk::DescriptorType::eUniformBufferDynamic, 1000 },
-        { vk::DescriptorType::eUniformBufferDynamic, 1000 },
-        { vk::DescriptorType::eStorageBufferDynamic, 1000 },
-    };
-    std::vector<vk::DescriptorPoolSize>
-        poolSizes;  // todo: config constants or gather dynamically
-    for (auto& poolSizeConfig : poolSizesConfig)
+    std::vector<vk::DescriptorPoolSize> poolSizes;
+    for (auto& poolSizeConfig : Config::VulkanDescriptorPoolSizes)
     {
         poolSizes.emplace_back();
         poolSizes.back().setType(poolSizeConfig.first);
@@ -266,7 +250,7 @@ ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device de
     vk::DescriptorPoolCreateInfo poolInfo = {};
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = maxDescriptorSetsCount;
+    poolInfo.maxSets = Config::MaxDescriptorSetsCount;
 
     if (device.createDescriptorPool(&poolInfo, nullptr, &descriptorPool) !=
         vk::Result::eSuccess)

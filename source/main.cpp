@@ -30,7 +30,7 @@ int main(int, char*[])
 
     auto gameplay = std::make_unique<ez::Gameplay>(std::make_unique<ez::View>());
 
-    std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
+    // std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
     std::chrono::time_point prevTime = std::chrono::high_resolution_clock::now();
     int64_t deltaTimeMcs = -1.0;
 

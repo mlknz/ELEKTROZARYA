@@ -38,6 +38,7 @@ set(IMGUI_SOURCE_FILES
 set(SOURCE_FILES
     ${IMGUI_SOURCE_FILES}
     ${SOURCES}/main.cpp
+    ${SOURCES}/render/config.hpp
     ${SOURCES}/render/render_system.cpp
     ${SOURCES}/render/render_system.hpp
     ${SOURCES}/render/graphics_result.hpp
