@@ -65,11 +65,14 @@ int main(int, char*[])
         ImGui_ImplSDL2_NewFrame(renderSystem->GetWindow());
 
         const vk::Extent2D& viewportExtent = renderSystem->GetViewportExtent();
-        gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
+        if (viewportExtent.height != 0 && viewportExtent.width != 0)
+        {
+            gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
+        }
+
         gameplay->Update(deltaTimeMcs);
 
         renderSystem->PrepareToRender(curScene);
-
         renderSystem->Draw(curView, gameplay->GetActiveCamera());
     }
 
