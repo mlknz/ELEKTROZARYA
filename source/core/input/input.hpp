@@ -1,19 +1,20 @@
 #pragma once
 
-#include <set>
 #include <SDL_events.h>
 #include <SDL_keycode.h>
 
+#include <set>
+
 namespace ez
 {
-
 class Input
 {
-public:
+   public:
     void ProcessSDLEvent(const SDL_Event&);
 
     bool IsKeyPressed(SDL_Keycode) const;
-private:
+
+   private:
     std::set<SDL_Keycode> keyboardPressed;
 };
-}
+}  // namespace ez

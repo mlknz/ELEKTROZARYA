@@ -1,19 +1,20 @@
 #include "render_system.hpp"
 
+#include <imgui/imgui_impl_sdl.h>
+#include <imgui/imgui_impl_vulkan.h>
+
 #include <algorithm>
 #include <cassert>
-#include <imgui/imgui_impl_vulkan.h>
-#include <imgui/imgui_impl_sdl.h>
 
-#include "core/log_assert.hpp"
 #include "core/file_utils.hpp"
-#include "core/view.hpp"
+#include "core/log_assert.hpp"
 #include "core/scene/scene.hpp"
+#include "core/view.hpp"
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
 
-namespace ez{
-
+namespace ez
+{
 struct GlobalUBO
 {
     glm::mat4 viewMatrix;
@@ -23,11 +24,9 @@ struct GlobalUBO
 
 static void check_vk_result_imgui(VkResult err)
 {
-    if (err == 0)
-        return;
+    if (err == 0) return;
     fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
-    if (err < 0)
-        abort();
+    if (err < 0) abort();
 }
 
 ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
@@ -49,12 +48,11 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     }
     ci.vulkanDevice = std::move(vulkanDeviceRV.value);
 
-    auto vulkanSwapchainRV = VulkanSwapchain::CreateVulkanSwapchain({
-        ci.vulkanDevice->GetDevice(),
-        ci.vulkanDevice->GetPhysicalDevice(),
-        ci.vulkanDevice->GetSurface(),
-        ci.vulkanDevice->GetWindow()
-    });
+    auto vulkanSwapchainRV =
+        VulkanSwapchain::CreateVulkanSwapchain({ ci.vulkanDevice->GetDevice(),
+                                                 ci.vulkanDevice->GetPhysicalDevice(),
+                                                 ci.vulkanDevice->GetSurface(),
+                                                 ci.vulkanDevice->GetWindow() });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to create VulkanSwapchain");
@@ -64,14 +62,19 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
 
     vk::SemaphoreCreateInfo semaphoreInfo = {};
 
-    if (ci.vulkanDevice->GetDevice().createSemaphore(&semaphoreInfo, nullptr, &ci.frameSemaphores.imageAvailableSemaphore) != vk::Result::eSuccess ||
-        ci.vulkanDevice->GetDevice().createSemaphore(&semaphoreInfo, nullptr, &ci.frameSemaphores.renderFinishedSemaphore) != vk::Result::eSuccess)
+    if (ci.vulkanDevice->GetDevice().createSemaphore(
+            &semaphoreInfo, nullptr, &ci.frameSemaphores.imageAvailableSemaphore) !=
+            vk::Result::eSuccess ||
+        ci.vulkanDevice->GetDevice().createSemaphore(
+            &semaphoreInfo, nullptr, &ci.frameSemaphores.renderFinishedSemaphore) !=
+            vk::Result::eSuccess)
     {
         EZLOG("Failed to create FrameSemaphores!");
         return GraphicsResult::Error;
     }
 
-    auto vulkanRenderPassRV = VulkanRenderPass::CreateRenderPass({ci.vulkanDevice->GetDevice(), ci.vulkanSwapchain->GetInfo().imageFormat});
+    auto vulkanRenderPassRV = VulkanRenderPass::CreateRenderPass(
+        { ci.vulkanDevice->GetDevice(), ci.vulkanSwapchain->GetInfo().imageFormat });
     if (vulkanRenderPassRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to create VulkanRenderPass");
@@ -79,7 +82,8 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     }
     ci.vulkanRenderPass = std::move(vulkanRenderPassRV.value);
 
-    GraphicsResult framebuffersResult = ci.vulkanSwapchain->CreateFramebuffersForRenderPass(ci.vulkanRenderPass->GetRenderPass());
+    GraphicsResult framebuffersResult = ci.vulkanSwapchain->CreateFramebuffersForRenderPass(
+        ci.vulkanRenderPass->GetRenderPass());
     if (framebuffersResult != GraphicsResult::Ok)
     {
         EZLOG("Failed to create Framebuffers");
@@ -94,9 +98,11 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     }
     ci.descriptorSetLayout = *dsLayoutPtr;
 
-    ci.graphicsPipeline = std::make_unique<GraphicsPipeline>(
-                ci.vulkanDevice->GetDevice(), ci.vulkanSwapchain->GetInfo().extent, ci.vulkanRenderPass->GetRenderPass(), ci.descriptorSetLayout
-                );
+    ci.graphicsPipeline =
+        std::make_unique<GraphicsPipeline>(ci.vulkanDevice->GetDevice(),
+                                           ci.vulkanSwapchain->GetInfo().extent,
+                                           ci.vulkanRenderPass->GetRenderPass(),
+                                           ci.descriptorSetLayout);
 
     if (!ci.graphicsPipeline->Ready())
     {
@@ -104,7 +110,9 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
         return GraphicsResult::Error;
     }
 
-    ci.commandBuffers = CreateCommandBuffers(ci.vulkanDevice->GetDevice(), ci.vulkanDevice->GetGraphicsCommandPool(), ci.vulkanSwapchain->GetInfo());
+    ci.commandBuffers = CreateCommandBuffers(ci.vulkanDevice->GetDevice(),
+                                             ci.vulkanDevice->GetGraphicsCommandPool(),
+                                             ci.vulkanSwapchain->GetInfo());
     if (ci.commandBuffers.empty())
     {
         EZLOG("Failed to create command buffers");
@@ -117,7 +125,7 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
         return GraphicsResult::Error;
     }
 
-    return {GraphicsResult::Ok, std::make_unique<RenderSystem>(ci)};
+    return { GraphicsResult::Ok, std::make_unique<RenderSystem>(ci) };
 }
 
 RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
@@ -129,9 +137,11 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     , descriptorSetLayout(std::move(ci.descriptorSetLayout))
     , frameSemaphores(std::move(ci.frameSemaphores))
     , commandBuffers(std::move(ci.commandBuffers))
-{}
+{
+}
 
-std::optional<vk::DescriptorSetLayout> RenderSystem::CreateDescriptorSetLayout(vk::Device vkDevice)
+std::optional<vk::DescriptorSetLayout> RenderSystem::CreateDescriptorSetLayout(
+    vk::Device vkDevice)
 {
     vk::DescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
@@ -146,15 +156,19 @@ std::optional<vk::DescriptorSetLayout> RenderSystem::CreateDescriptorSetLayout(v
 
     vk::DescriptorSetLayout dsLayout;
     vk::Result result = vkDevice.createDescriptorSetLayout(&layoutInfo, nullptr, &dsLayout);
-    if (result != vk::Result::eSuccess) {
+    if (result != vk::Result::eSuccess)
+    {
         EZLOG("Failed to create descriptor set layout!");
         return {};
     }
     return dsLayout;
 }
 
-std::vector<vk::CommandBuffer> RenderSystem::CreateCommandBuffers(vk::Device logicalDevice,
-                                                                  vk::CommandPool graphicsCommandPool, ez::VulkanSwapchainInfo& swapchainInfo) {
+std::vector<vk::CommandBuffer> RenderSystem::CreateCommandBuffers(
+    vk::Device logicalDevice,
+    vk::CommandPool graphicsCommandPool,
+    ez::VulkanSwapchainInfo& swapchainInfo)
+{
     std::vector<vk::CommandBuffer> commandBuffers(swapchainInfo.framebuffers.size());
 
     vk::CommandBufferAllocateInfo allocInfo = {};
@@ -162,7 +176,9 @@ std::vector<vk::CommandBuffer> RenderSystem::CreateCommandBuffers(vk::Device log
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
     allocInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
 
-    if (logicalDevice.allocateCommandBuffers(&allocInfo, commandBuffers.data()) != vk::Result::eSuccess) {
+    if (logicalDevice.allocateCommandBuffers(&allocInfo, commandBuffers.data()) !=
+        vk::Result::eSuccess)
+    {
         EZLOG("failed to allocate command buffers!");
         return {};
     }
@@ -174,12 +190,14 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGuiIO& io = ImGui::GetIO();
+    (void)io;
     ImGui::StyleColorsDark();
 
     ImGui_ImplSDL2_InitForVulkan(ci.vulkanDevice->GetWindow());
 
-    QueueFamilyIndices indices = FindQueueFamilies(ci.vulkanDevice->GetPhysicalDevice(), ci.vulkanDevice->GetSurface());
+    QueueFamilyIndices indices =
+        FindQueueFamilies(ci.vulkanDevice->GetPhysicalDevice(), ci.vulkanDevice->GetSurface());
 
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance = ci.vulkanInstance->GetInstance();
@@ -190,7 +208,7 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
     init_info.PipelineCache = nullptr;
     init_info.DescriptorPool = ci.vulkanDevice->GetDescriptorPool();
     init_info.Allocator = nullptr;
-    init_info.MinImageCount = 2; // todo: config
+    init_info.MinImageCount = 2;  // todo: config
     init_info.ImageCount = ci.vulkanSwapchain->GetInfo().images.size();
     init_info.CheckVkResultFn = check_vk_result_imgui;
 
@@ -217,7 +235,9 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
         end_info.pCommandBuffers = &command_buffer;
         command_buffer.end();
 
-        if (ci.vulkanDevice->GetGraphicsQueue().submit(1, &end_info, nullptr) != vk::Result::eSuccess) {
+        if (ci.vulkanDevice->GetGraphicsQueue().submit(1, &end_info, nullptr) !=
+            vk::Result::eSuccess)
+        {
             EZASSERT(false, "Failed to submit draw command buffer (imgui upload fonts)!");
             return false;
         }
@@ -239,7 +259,9 @@ void RenderSystem::CleanupTotalPipeline()
 
     vulkanSwapchain.reset();
 
-    logicalDevice.freeCommandBuffers(vulkanDevice->GetGraphicsCommandPool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+    logicalDevice.freeCommandBuffers(vulkanDevice->GetGraphicsCommandPool(),
+                                     static_cast<uint32_t>(commandBuffers.size()),
+                                     commandBuffers.data());
     commandBuffers = {};
 
     graphicsPipeline.reset();
@@ -251,12 +273,11 @@ void RenderSystem::RecreateTotalPipeline()
     CleanupTotalPipeline();
 
     // todo: remove duplication with CreateRenderSystem
-    auto vulkanSwapchainRV = VulkanSwapchain::CreateVulkanSwapchain({
-        vulkanDevice->GetDevice(),
-        vulkanDevice->GetPhysicalDevice(),
-        vulkanDevice->GetSurface(),
-        vulkanDevice->GetWindow()
-    });
+    auto vulkanSwapchainRV =
+        VulkanSwapchain::CreateVulkanSwapchain({ vulkanDevice->GetDevice(),
+                                                 vulkanDevice->GetPhysicalDevice(),
+                                                 vulkanDevice->GetSurface(),
+                                                 vulkanDevice->GetWindow() });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to Recreate VulkanSwapchain");
@@ -264,7 +285,8 @@ void RenderSystem::RecreateTotalPipeline()
     }
     vulkanSwapchain = std::move(vulkanSwapchainRV.value);
 
-    auto vulkanRenderPassRV = VulkanRenderPass::CreateRenderPass({vulkanDevice->GetDevice(), vulkanSwapchain->GetInfo().imageFormat});
+    auto vulkanRenderPassRV = VulkanRenderPass::CreateRenderPass(
+        { vulkanDevice->GetDevice(), vulkanSwapchain->GetInfo().imageFormat });
     if (vulkanRenderPassRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to Recreate VulkanRenderPass");
@@ -272,39 +294,42 @@ void RenderSystem::RecreateTotalPipeline()
     }
     vulkanRenderPass = std::move(vulkanRenderPassRV.value);
 
-    GraphicsResult framebuffersResult = vulkanSwapchain->CreateFramebuffersForRenderPass(vulkanRenderPass->GetRenderPass());
+    GraphicsResult framebuffersResult =
+        vulkanSwapchain->CreateFramebuffersForRenderPass(vulkanRenderPass->GetRenderPass());
     if (framebuffersResult != GraphicsResult::Ok)
     {
         EZLOG("Failed to Recreate Framebuffers");
         return;
     }
     graphicsPipeline.reset();
-    graphicsPipeline = std::make_unique<GraphicsPipeline>(
-                GetDevice(), GetSwapchainInfo().extent, vulkanRenderPass->GetRenderPass(), descriptorSetLayout
-                );
+    graphicsPipeline = std::make_unique<GraphicsPipeline>(GetDevice(),
+                                                          GetSwapchainInfo().extent,
+                                                          vulkanRenderPass->GetRenderPass(),
+                                                          descriptorSetLayout);
     if (!graphicsPipeline->Ready())
     {
-        EZASSERT(false, "Failed to recreate GraphicsPipeline"); // todo: fallback
+        EZASSERT(false, "Failed to recreate GraphicsPipeline");  // todo: fallback
     }
 
     EZASSERT(commandBuffers.empty());
-    commandBuffers = CreateCommandBuffers(GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo());
+    commandBuffers = CreateCommandBuffers(
+        GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo());
 }
 
-void RenderSystem::UpdateGlobalUniforms(std::shared_ptr<Scene> scene, const std::unique_ptr<Camera>& camera)
+void RenderSystem::UpdateGlobalUniforms(std::shared_ptr<Scene> scene,
+                                        const std::unique_ptr<Camera>& camera)
 {
     vk::Device logicalDevice = vulkanDevice->GetDevice();
 
     void* data;
-    GlobalUBO ubo = {
-        camera->GetViewMatrix(),
-        camera->GetProjectionMatrix(),
-        camera->GetViewProjectionMatrix()
-    };
+    GlobalUBO ubo = { camera->GetViewMatrix(),
+                      camera->GetProjectionMatrix(),
+                      camera->GetViewProjectionMatrix() };
 
     for (Mesh& mesh : scene->GetMeshesMutable())
     {
-        logicalDevice.mapMemory(mesh.uniformBufferMemory, 0, sizeof(ubo), vk::MemoryMapFlags(), &data);
+        logicalDevice.mapMemory(
+            mesh.uniformBufferMemory, 0, sizeof(ubo), vk::MemoryMapFlags(), &data);
         memcpy(data, &ubo, sizeof(ubo));
         logicalDevice.unmapMemory(mesh.uniformBufferMemory);
     }
@@ -312,10 +337,7 @@ void RenderSystem::UpdateGlobalUniforms(std::shared_ptr<Scene> scene, const std:
 
 void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
 {
-    if (scene->ReadyToRender())
-    {
-        return;
-    }
+    if (scene->ReadyToRender()) { return; }
 
     // todo: cleanup old scene meshes
     std::vector<Mesh>& sceneMeshes = scene->GetMeshesMutable();
@@ -323,14 +345,17 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
     for (Mesh& mesh : sceneMeshes)
     {
         mesh.SetLogicalDevice(GetDevice());
-        meshesCreateSuccess |= mesh.CreateVertexBuffers(GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool());
-        meshesCreateSuccess |= mesh.CreateDescriptorSet(vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
+        meshesCreateSuccess |= mesh.CreateVertexBuffers(
+            GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool());
+        meshesCreateSuccess |= mesh.CreateDescriptorSet(
+            vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
     }
     EZASSERT(meshesCreateSuccess);
     scene->SetReadyToRender(true);
 }
 
-void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera)
+void RenderSystem::Draw(const std::unique_ptr<View>& view,
+                        const std::unique_ptr<Camera>& camera)
 {
     std::shared_ptr<Scene> scene = view->GetScene();
     UpdateGlobalUniforms(scene, camera);
@@ -342,25 +367,27 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     vk::Queue presentQueue = vulkanDevice->GetPresentQueue();
 
     uint32_t imageIndex;
-    vk::Result result = logicalDevice.acquireNextImageKHR(
-                swapchainInfo.swapchain,
-                std::numeric_limits<uint64_t>::max(),
-                frameSemaphores.imageAvailableSemaphore,
-                nullptr,
-                &imageIndex
-                );
+    vk::Result result =
+        logicalDevice.acquireNextImageKHR(swapchainInfo.swapchain,
+                                          std::numeric_limits<uint64_t>::max(),
+                                          frameSemaphores.imageAvailableSemaphore,
+                                          nullptr,
+                                          &imageIndex);
 
-    if (result == vk::Result::eErrorOutOfDateKHR) {
+    if (result == vk::Result::eErrorOutOfDateKHR)
+    {
         RecreateTotalPipeline();
         return;
-    } else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR) {
+    }
+    else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+    {
         EZASSERT(false, "Failed to acquire swapchain image!");
     }
 
     vk::SubmitInfo submitInfo = {};
 
-    vk::Semaphore waitSemaphores[] = {frameSemaphores.imageAvailableSemaphore};
-    vk::PipelineStageFlags waitStages[] = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+    vk::Semaphore waitSemaphores[] = { frameSemaphores.imageAvailableSemaphore };
+    vk::PipelineStageFlags waitStages[] = { vk::PipelineStageFlagBits::eColorAttachmentOutput };
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
@@ -368,7 +395,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     EZASSERT((curFrameIndex < commandBuffers.size()));
     vk::CommandBuffer curCb = commandBuffers.at(curFrameIndex);
 
-    std::array<float,4> clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+    std::array<float, 4> clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
     vk::CommandBufferBeginInfo beginInfo = {};
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 
@@ -377,7 +404,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     vk::RenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.renderPass = vulkanRenderPass->GetRenderPass();
     renderPassInfo.framebuffer = swapchainInfo.framebuffers[imageIndex];
-    renderPassInfo.renderArea.offset = vk::Offset2D{0, 0};
+    renderPassInfo.renderArea.offset = vk::Offset2D{ 0, 0 };
     renderPassInfo.renderArea.extent = swapchainInfo.extent;
 
     vk::ClearValue clearColorVal = vk::ClearColorValue(clearColor);
@@ -390,13 +417,17 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
 
     for (Mesh& mesh : scene->GetMeshesMutable())
     {
-        vk::Buffer vertexBuffers[] = {mesh.vertexBuffer};
-        vk::DeviceSize offsets[] = {0};
+        vk::Buffer vertexBuffers[] = { mesh.vertexBuffer };
+        vk::DeviceSize offsets[] = { 0 };
 
         curCb.bindVertexBuffers(0, 1, vertexBuffers, offsets);
         curCb.bindIndexBuffer(mesh.indexBuffer, 0, vk::IndexType::eUint16);
 
-        curCb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, graphicsPipeline->GetLayout(), 0, {mesh.descriptorSet}, {});
+        curCb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                 graphicsPipeline->GetLayout(),
+                                 0,
+                                 { mesh.descriptorSet },
+                                 {});
 
         curCb.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
     }
@@ -406,7 +437,8 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
 
     curCb.endRenderPass();
 
-    if (curCb.end() != vk::Result::eSuccess) {
+    if (curCb.end() != vk::Result::eSuccess)
+    {
         EZASSERT(false, "failed to record command buffer!");
     }
 
@@ -414,11 +446,12 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     submitInfo.pCommandBuffers = &curCb;
     curFrameIndex = (curFrameIndex + 1) % commandBuffers.size();
 
-    vk::Semaphore signalSemaphores[] = {frameSemaphores.renderFinishedSemaphore};
+    vk::Semaphore signalSemaphores[] = { frameSemaphores.renderFinishedSemaphore };
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (graphicsQueue.submit(1, &submitInfo, nullptr) != vk::Result::eSuccess) {
+    if (graphicsQueue.submit(1, &submitInfo, nullptr) != vk::Result::eSuccess)
+    {
         EZASSERT(false, "Failed to submit draw command buffer!");
     }
 
@@ -427,7 +460,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    vk::SwapchainKHR swapchains[] = {swapchainInfo.swapchain};
+    vk::SwapchainKHR swapchains[] = { swapchainInfo.swapchain };
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapchains;
 
@@ -435,9 +468,12 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view, const std::unique_ptr
 
     result = presentQueue.presentKHR(&presentInfo);
 
-    if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR) {
+    if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR)
+    {
         RecreateTotalPipeline();
-    } else if (result != vk::Result::eSuccess) {
+    }
+    else if (result != vk::Result::eSuccess)
+    {
         EZASSERT(false, "Failed to present swapchain image!");
     }
 
@@ -466,4 +502,4 @@ RenderSystem::~RenderSystem()
     vulkanInstance.reset();
 }
 
-}
+}  // namespace ez

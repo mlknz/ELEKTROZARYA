@@ -1,7 +1,7 @@
 #include "core/scene/scene.hpp"
 
-namespace ez {
-
+namespace ez
+{
 bool Scene::Load()
 {
     Mesh a = GetTestMesh(sceneId);
@@ -13,4 +13,4 @@ bool Scene::Load()
     return loaded;
 }
 
-}
+}  // namespace ez

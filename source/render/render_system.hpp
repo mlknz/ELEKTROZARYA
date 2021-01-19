@@ -3,18 +3,19 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+
+#include "core/camera/camera.hpp"
 #include "core/scene/mesh.hpp"
 #include "core/scene/scene.hpp"
-#include "core/camera/camera.hpp"
 #include "render/graphics_result.hpp"
-#include "render/vulkan/vulkan_instance.hpp"
 #include "render/vulkan/vulkan_device.hpp"
-#include "render/vulkan/vulkan_swapchain.hpp"
-#include "render/vulkan/vulkan_render_pass.hpp"
 #include "render/vulkan/vulkan_graphics_pipeline.hpp"
+#include "render/vulkan/vulkan_instance.hpp"
+#include "render/vulkan/vulkan_render_pass.hpp"
+#include "render/vulkan/vulkan_swapchain.hpp"
 
-namespace ez {
-
+namespace ez
+{
 class View;
 struct FrameSemaphores
 {
@@ -37,7 +38,7 @@ struct RenderSystemCreateInfo
 
 class RenderSystem
 {
-public:
+   public:
     RenderSystem() = delete;
     RenderSystem(RenderSystemCreateInfo& ci);
     ~RenderSystem();
@@ -45,7 +46,8 @@ public:
     static ResultValue<std::unique_ptr<RenderSystem>> Create();
 
     void PrepareToRender(std::shared_ptr<Scene> scene);
-    void Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera); // todo: mewmew move Camera to View
+    void Draw(const std::unique_ptr<View>& view,
+              const std::unique_ptr<Camera>& camera);  // todo: mewmew move Camera to View
 
     vk::Device GetDevice() { return vulkanDevice->GetDevice(); }
     vk::PhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }
@@ -56,12 +58,17 @@ public:
 
     const vk::Extent2D& GetViewportExtent() const { return vulkanSwapchain->GetInfo().extent; }
 
-private:
-    static std::optional<vk::DescriptorSetLayout> CreateDescriptorSetLayout(vk::Device vkDevice);
-    static std::vector<vk::CommandBuffer> CreateCommandBuffers(vk::Device logicalDevice, vk::CommandPool graphicsCommandPool, ez::VulkanSwapchainInfo& swapchainInfo);
+   private:
+    static std::optional<vk::DescriptorSetLayout> CreateDescriptorSetLayout(
+        vk::Device vkDevice);
+    static std::vector<vk::CommandBuffer> CreateCommandBuffers(
+        vk::Device logicalDevice,
+        vk::CommandPool graphicsCommandPool,
+        ez::VulkanSwapchainInfo& swapchainInfo);
     static bool InitializeImGui(const RenderSystemCreateInfo& ci);
 
-    void UpdateGlobalUniforms(std::shared_ptr<Scene> scene, const std::unique_ptr<Camera>& camera);
+    void UpdateGlobalUniforms(std::shared_ptr<Scene> scene,
+                              const std::unique_ptr<Camera>& camera);
 
     void CleanupTotalPipeline();
     void RecreateTotalPipeline();
@@ -79,4 +86,4 @@ private:
     size_t curFrameIndex = 0;
 };
 
-}
+}  // namespace ez

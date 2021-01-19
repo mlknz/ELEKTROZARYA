@@ -1,17 +1,20 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <array>
+#include <glm/glm.hpp>
 #include <vector>
+
 #include "render/vulkan_include.hpp"
 
-namespace ez {
-
-struct Vertex {
+namespace ez
+{
+struct Vertex
+{
     glm::vec2 pos;
     glm::vec3 color;
 
-    static vk::VertexInputBindingDescription getBindingDescription() {
+    static vk::VertexInputBindingDescription getBindingDescription()
+    {
         vk::VertexInputBindingDescription bindingDescription = {};
         bindingDescription.binding = 0;
         bindingDescription.stride = sizeof(Vertex);
@@ -20,7 +23,8 @@ struct Vertex {
         return bindingDescription;
     }
 
-    static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions() {
+    static std::array<vk::VertexInputAttributeDescription, 2> getAttributeDescriptions()
+    {
         std::array<vk::VertexInputAttributeDescription, 2> attributeDescriptions = {};
 
         attributeDescriptions[0].binding = 0;
@@ -44,9 +48,11 @@ struct Mesh
 
     void SetLogicalDevice(vk::Device device) { logicalDevice = device; }
     bool CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
-                             vk::Queue graphicsQueue, vk::CommandPool graphicsCommandPool);
+                             vk::Queue graphicsQueue,
+                             vk::CommandPool graphicsCommandPool);
     bool CreateDescriptorSet(vk::DescriptorPool descriptorPool,
-                             vk::DescriptorSetLayout descriptorSetLayout, size_t hardcodedGlobalUBOSize);
+                             vk::DescriptorSetLayout descriptorSetLayout,
+                             size_t hardcodedGlobalUBOSize);
 
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
@@ -61,10 +67,10 @@ struct Mesh
     vk::DeviceMemory indexBufferMemory;
     vk::DeviceMemory uniformBufferMemory;
 
-    uint32_t uniformBufferMaxHackSize = 200; // todo: calc needed size
+    uint32_t uniformBufferMaxHackSize = 200;  // todo: calc needed size
 
     vk::DescriptorSet descriptorSet;
 };
 
 Mesh GetTestMesh(int sceneIndex);
-}
+}  // namespace ez

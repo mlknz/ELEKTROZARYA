@@ -6,13 +6,13 @@ namespace ez
 {
 class View
 {
-public:
+   public:
     void SwitchToDefaultScene();
     void ToggleSceneTest();
 
     std::shared_ptr<Scene> GetScene() const { return scene; }
 
-private:
+   private:
     std::shared_ptr<Scene> scene;
 };
-}
+}  // namespace ez

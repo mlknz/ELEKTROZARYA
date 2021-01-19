@@ -1,15 +1,18 @@
 #pragma once
 
 #include <vector>
+
 #include "render/vulkan_include.hpp"
 
-namespace ez {
-
+namespace ez
+{
 class GraphicsPipeline
 {
-public:
-    GraphicsPipeline(vk::Device logicalDevice, vk::Extent2D swapchainExtent,
-                     vk::RenderPass renderPass, vk::DescriptorSetLayout descriptorSetLayout);
+   public:
+    GraphicsPipeline(vk::Device logicalDevice,
+                     vk::Extent2D swapchainExtent,
+                     vk::RenderPass renderPass,
+                     vk::DescriptorSetLayout descriptorSetLayout);
     ~GraphicsPipeline();
 
     vk::Pipeline GetPipeline() { return graphicsPipeline; }
@@ -17,9 +20,11 @@ public:
 
     bool Ready() const { return ready; }
 
-private:
+   private:
     vk::ShaderModule createShaderModule(const std::vector<char>& code);
-    bool CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::RenderPass renderPass, vk::DescriptorSetLayout descriptorSetLayout);
+    bool CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
+                                vk::RenderPass renderPass,
+                                vk::DescriptorSetLayout descriptorSetLayout);
 
     vk::Device logicalDevice;
     vk::PipelineLayout pipelineLayout;
@@ -28,5 +33,4 @@ private:
     bool ready = false;
 };
 
-}
-
+}  // namespace ez

@@ -1,16 +1,23 @@
 #include "vulkan_buffer.hpp"
 
 #include <stdio.h>
+
 #include "core/log_assert.hpp"
 
-namespace ez {
-
-uint32_t findMemoryType(vk::PhysicalDevice physicalDevice, uint32_t typeFilter, vk::MemoryPropertyFlags properties) {
+namespace ez
+{
+uint32_t findMemoryType(vk::PhysicalDevice physicalDevice,
+                        uint32_t typeFilter,
+                        vk::MemoryPropertyFlags properties)
+{
     vk::PhysicalDeviceMemoryProperties memProperties;
     physicalDevice.getMemoryProperties(&memProperties);
 
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+    {
+        if ((typeFilter & (1 << i)) &&
+            (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
             return i;
         }
     }
@@ -19,14 +26,21 @@ uint32_t findMemoryType(vk::PhysicalDevice physicalDevice, uint32_t typeFilter, 
     return 0;
 }
 
-bool VulkanBuffer::createBuffer(vk::Device logicalDevice, vk::PhysicalDevice physicalDevice, vk::DeviceSize size,
-                  vk::BufferUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Buffer& buffer, vk::DeviceMemory& bufferMemory) {
+bool VulkanBuffer::createBuffer(vk::Device logicalDevice,
+                                vk::PhysicalDevice physicalDevice,
+                                vk::DeviceSize size,
+                                vk::BufferUsageFlags usage,
+                                vk::MemoryPropertyFlags properties,
+                                vk::Buffer& buffer,
+                                vk::DeviceMemory& bufferMemory)
+{
     vk::BufferCreateInfo bufferInfo = {};
     bufferInfo.size = size;
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = vk::SharingMode::eExclusive;
 
-    if (logicalDevice.createBuffer(&bufferInfo, nullptr, &buffer) != vk::Result::eSuccess) {
+    if (logicalDevice.createBuffer(&bufferInfo, nullptr, &buffer) != vk::Result::eSuccess)
+    {
         EZLOG("failed to create buffer!");
         return false;
     }
@@ -36,9 +50,12 @@ bool VulkanBuffer::createBuffer(vk::Device logicalDevice, vk::PhysicalDevice phy
 
     vk::MemoryAllocateInfo allocInfo = {};
     allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
+    allocInfo.memoryTypeIndex =
+        findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
 
-    if (logicalDevice.allocateMemory(&allocInfo, nullptr, &bufferMemory) != vk::Result::eSuccess) {
+    if (logicalDevice.allocateMemory(&allocInfo, nullptr, &bufferMemory) !=
+        vk::Result::eSuccess)
+    {
         EZLOG("failed to allocate buffer memory!");
         return false;
     }
@@ -47,8 +64,13 @@ bool VulkanBuffer::createBuffer(vk::Device logicalDevice, vk::PhysicalDevice phy
     return true;
 }
 
-void VulkanBuffer::copyBuffer(vk::Device logicalDevice, vk::Queue graphicsQueue, vk::CommandPool commandPool,
-                              vk::Buffer srcBuffer, vk::Buffer dstBuffer, vk::DeviceSize size) {
+void VulkanBuffer::copyBuffer(vk::Device logicalDevice,
+                              vk::Queue graphicsQueue,
+                              vk::CommandPool commandPool,
+                              vk::Buffer srcBuffer,
+                              vk::Buffer dstBuffer,
+                              vk::DeviceSize size)
+{
     vk::CommandBufferAllocateInfo allocInfo = {};
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
     allocInfo.commandPool = commandPool;
@@ -64,7 +86,7 @@ void VulkanBuffer::copyBuffer(vk::Device logicalDevice, vk::Queue graphicsQueue,
 
     vk::BufferCopy copyRegion = {};
     copyRegion.size = size;
-    copyRegion.dstOffset = 0; // todo
+    copyRegion.dstOffset = 0;  // todo
     commandBuffer.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
 
     commandBuffer.end();
@@ -79,21 +101,24 @@ void VulkanBuffer::copyBuffer(vk::Device logicalDevice, vk::Queue graphicsQueue,
     logicalDevice.freeCommandBuffers(commandPool, 1, &commandBuffer);
 }
 
-void VulkanBuffer::uploadData(
-        vk::Device logicalDevice,
-        vk::PhysicalDevice physicalDevice,
-        vk::Queue graphicsQueue,
-        vk::CommandPool commandPool,
-        vk::Buffer dstBuffer,
-        vk::DeviceSize size,
-        void* bufferData)
+void VulkanBuffer::uploadData(vk::Device logicalDevice,
+                              vk::PhysicalDevice physicalDevice,
+                              vk::Queue graphicsQueue,
+                              vk::CommandPool commandPool,
+                              vk::Buffer dstBuffer,
+                              vk::DeviceSize size,
+                              void* bufferData)
 {
     vk::Buffer stagingBuffer;
     vk::DeviceMemory stagingBufferMemory;
-    VulkanBuffer::createBuffer(logicalDevice, physicalDevice,
-                size, vk::BufferUsageFlagBits::eTransferSrc,
-                 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-                 stagingBuffer, stagingBufferMemory);
+    VulkanBuffer::createBuffer(
+        logicalDevice,
+        physicalDevice,
+        size,
+        vk::BufferUsageFlagBits::eTransferSrc,
+        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+        stagingBuffer,
+        stagingBufferMemory);
 
     void* data;
 
@@ -101,10 +126,11 @@ void VulkanBuffer::uploadData(
     memcpy(data, bufferData, static_cast<size_t>(size));
     logicalDevice.unmapMemory(stagingBufferMemory);
 
-    VulkanBuffer::copyBuffer(logicalDevice, graphicsQueue, commandPool, stagingBuffer, dstBuffer, size);
+    VulkanBuffer::copyBuffer(
+        logicalDevice, graphicsQueue, commandPool, stagingBuffer, dstBuffer, size);
 
     logicalDevice.destroyBuffer(stagingBuffer);
     logicalDevice.freeMemory(stagingBufferMemory);
 }
 
-}
+}  // namespace ez

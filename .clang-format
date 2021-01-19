@@ -1,0 +1,13 @@
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 96
+
+DerivePointerAlignment: false
+PointerAlignment: Left
+BreakBeforeBraces: Allman
+AlignOperands: AlignAfterOperator
+AllowShortBlocksOnASingleLine: Always
+BreakConstructorInitializers: BeforeComma
+Cpp11BracedListStyle: false
+BinPackArguments: false
+BinPackParameters: false

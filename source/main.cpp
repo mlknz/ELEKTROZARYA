@@ -1,23 +1,22 @@
-#include <iostream>
-#include <chrono>
+#include <SDL.h>
+#include <SDL_syswm.h>
+#include <imgui/imgui_impl_sdl.h>
+#include <imgui/imgui_impl_vulkan.h>
 
+#include <chrono>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <iostream>
 
-#include <SDL.h>
-#include <SDL_syswm.h>
-#include <imgui/imgui_impl_vulkan.h>
-#include <imgui/imgui_impl_sdl.h>
-
-#include "core/log_assert.hpp"
-#include "core/view.hpp"
 #include "core/input/input.hpp"
+#include "core/log_assert.hpp"
 #include "core/scene/scene.hpp"
-#include "render/render_system.hpp"
+#include "core/view.hpp"
 #include "gameplay/gameplay.hpp"
+#include "render/render_system.hpp"
 
-int main(int, char* [])
+int main(int, char*[])
 {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 
@@ -42,21 +41,18 @@ int main(int, char* [])
         SDL_Event evt;
         while (SDL_PollEvent(&evt))
         {
-            if (evt.type == SDL_QUIT)
-            {
-                run = false;
-            }
+            if (evt.type == SDL_QUIT) { run = false; }
             gameplay->GetInput()->ProcessSDLEvent(evt);
         }
 
         auto currentTime = std::chrono::high_resolution_clock::now();
 
         prevTime = curTime;
-        curTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count()) / 1000.0;
-        if (prevTime > 0.0 && curTime > 0.0)
-        {
-            deltaTime = curTime - prevTime;
-        }
+        curTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                          currentTime - startTime)
+                                          .count()) /
+                  1000.0;
+        if (prevTime > 0.0 && curTime > 0.0) { deltaTime = curTime - prevTime; }
 
         const std::unique_ptr<ez::View>& curView = gameplay->GetView();
         std::shared_ptr<ez::Scene> curScene = curView->GetScene();

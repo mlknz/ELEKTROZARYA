@@ -1,12 +1,15 @@
 #include "vulkan_graphics_pipeline.hpp"
+
 #include "core/file_utils.hpp"
-#include "core/scene/mesh.hpp"
 #include "core/log_assert.hpp"
+#include "core/scene/mesh.hpp"
 
-namespace ez {
-
-GraphicsPipeline::GraphicsPipeline(vk::Device aLogicalDevice, vk::Extent2D swapchainExtent,
-                                   vk::RenderPass renderPass, vk::DescriptorSetLayout descriptorSetLayout)
+namespace ez
+{
+GraphicsPipeline::GraphicsPipeline(vk::Device aLogicalDevice,
+                                   vk::Extent2D swapchainExtent,
+                                   vk::RenderPass renderPass,
+                                   vk::DescriptorSetLayout descriptorSetLayout)
     : logicalDevice(aLogicalDevice)
 {
     ready = CreateGraphicsPipeline(swapchainExtent, renderPass, descriptorSetLayout);
@@ -25,14 +28,18 @@ vk::ShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& c
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     vk::ShaderModule shaderModule;
-    if (logicalDevice.createShaderModule(&createInfo, nullptr, &shaderModule) != vk::Result::eSuccess) {
+    if (logicalDevice.createShaderModule(&createInfo, nullptr, &shaderModule) !=
+        vk::Result::eSuccess)
+    {
         EZASSERT(false, "failed to create shader module!");
     }
 
     return shaderModule;
 }
 
-bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::RenderPass renderPass, vk::DescriptorSetLayout descriptorSetLayout)
+bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
+                                              vk::RenderPass renderPass,
+                                              vk::DescriptorSetLayout descriptorSetLayout)
 {
     auto vertShaderCode = readFile("../source/shaders/vert.spv");
     auto fragShaderCode = readFile("../source/shaders/frag.spv");
@@ -50,7 +57,8 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
     fragShaderStageInfo.module = fragShaderModule;
     fragShaderStageInfo.pName = "main";
 
-    vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    vk::PipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo,
+                                                         fragShaderStageInfo };
 
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
 
@@ -58,7 +66,8 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
     auto attributeDescriptions = ez::Vertex::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+    vertexInputInfo.vertexAttributeDescriptionCount =
+        static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
     vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
@@ -75,7 +84,7 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
     viewport.maxDepth = 1.0f;
 
     vk::Rect2D scissor = {};
-    scissor.offset = vk::Offset2D{0, 0};
+    scissor.offset = vk::Offset2D{ 0, 0 };
     scissor.extent = swapchainExtent;
 
     vk::PipelineViewportStateCreateInfo viewportState = {};
@@ -99,7 +108,9 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
 
     vk::PipelineColorBlendAttachmentState colorBlendAttachment = {};
 
-    colorBlendAttachment.colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
+    colorBlendAttachment.colorWriteMask =
+        vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+        vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA;
     colorBlendAttachment.blendEnable = VK_FALSE;
 
     vk::PipelineColorBlendStateCreateInfo colorBlending = {};
@@ -116,7 +127,9 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
 
-    if (logicalDevice.createPipelineLayout(&pipelineLayoutInfo, nullptr, &pipelineLayout) != vk::Result::eSuccess) {
+    if (logicalDevice.createPipelineLayout(&pipelineLayoutInfo, nullptr, &pipelineLayout) !=
+        vk::Result::eSuccess)
+    {
         EZLOG("Failed to create pipeline layout!");
         return false;
     }
@@ -134,7 +147,9 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
 
-    if (logicalDevice.createGraphicsPipelines(nullptr, 1, &pipelineInfo, nullptr, &graphicsPipeline) != vk::Result::eSuccess) {
+    if (logicalDevice.createGraphicsPipelines(
+            nullptr, 1, &pipelineInfo, nullptr, &graphicsPipeline) != vk::Result::eSuccess)
+    {
         EZLOG("Failed to create graphics pipeline!");
         return false;
     }
@@ -143,4 +158,4 @@ bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent, vk::
     logicalDevice.destroyShaderModule(fragShaderModule, nullptr);
     return true;
 }
-}
+}  // namespace ez

@@ -2,11 +2,11 @@
 
 #include <glm/glm.hpp>
 
-namespace ez {
-
+namespace ez
+{
 class Camera
 {
-public:
+   public:
     Camera();
 
     const glm::mat4& GetViewMatrix() const { return viewMatrix; }
@@ -16,7 +16,7 @@ public:
     void SetViewportExtent(uint32_t width, uint32_t height);
     void MovePreserveDirection(const glm::vec3& offset);
 
-private:
+   private:
     void Recalc();
 
     float _fov;
@@ -34,4 +34,4 @@ private:
     uint32_t viewportHeight;
 };
 
-}
+}  // namespace ez

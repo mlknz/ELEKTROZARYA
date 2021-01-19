@@ -4,10 +4,10 @@
 
 namespace ez
 {
-    void Input::ProcessSDLEvent(const SDL_Event& event)
+void Input::ProcessSDLEvent(const SDL_Event& event)
+{
+    switch (event.type)
     {
-        switch(event.type)
-        {
         case SDL_KEYDOWN:
             keyboardPressed.insert(event.key.keysym.sym);
             break;
@@ -16,11 +16,11 @@ namespace ez
             break;
         default:
             break;
-        }
-    }
-
-    bool Input::IsKeyPressed(SDL_Keycode key) const
-    {
-        return keyboardPressed.find(key) != keyboardPressed.end();
     }
 }
+
+bool Input::IsKeyPressed(SDL_Keycode key) const
+{
+    return keyboardPressed.find(key) != keyboardPressed.end();
+}
+}  // namespace ez

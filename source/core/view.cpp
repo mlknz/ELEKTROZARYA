@@ -1,11 +1,8 @@
 #include "view.hpp"
 
-namespace ez {
-
-void View::SwitchToDefaultScene()
+namespace ez
 {
-    scene = std::make_shared<Scene>();
-}
+void View::SwitchToDefaultScene() { scene = std::make_shared<Scene>(); }
 
 bool sceneChanged = false;
 
@@ -19,4 +16,4 @@ void View::ToggleSceneTest()
     }
 }
 
-}
+}  // namespace ez

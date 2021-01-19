@@ -1,56 +1,60 @@
 #pragma once
 
 #include <utility>
+
 #include "render/vulkan_include.hpp"
 
 namespace ez
 {
-    enum class GraphicsResult
+enum class GraphicsResult
+{
+    Ok,
+    Error
+};
+
+template <typename Value>
+class ResultValue
+{
+   public:
+    ResultValue(GraphicsResult aResult) : result(aResult) {}
+
+    ResultValue(GraphicsResult aResult, Value&& aValue)
+        : result(aResult), value(std::forward<Value>(aValue))
     {
-        Ok,
-        Error
-    };
+    }
 
-    template<typename Value> class ResultValue
+    ResultValue(GraphicsResult aResult, const Value& aValue) : result(aResult), value(aValue) {}
+
+    ResultValue(vk::Result result) : ResultValue(ToGraphicsResult(result)) {}
+
+    ResultValue(vk::Result result, Value&& val)
+        : ResultValue(ToGraphicsResult(result), std::forward<Value>(val))
     {
-    public:
-        ResultValue(GraphicsResult aResult)
-            : result(aResult) {}
+    }
 
-        ResultValue(GraphicsResult aResult, Value&& aValue)
-                    : result(aResult)
-                    , value(std::forward<Value>(aValue)) {}
+    ResultValue(vk::Result result, const Value& val)
+        : ResultValue(ToGraphicsResult(result), val)
+    {
+    }
 
-        ResultValue(GraphicsResult aResult, const Value& aValue)
-                    : result(aResult)
-                    , value(aValue) {}
+    ResultValue(ResultValue&& other)
+        : result(std::move(other.result)), value(std::move(other.value))
+    {
+    }
 
-        ResultValue(vk::Result result)
-                    : ResultValue(ToGraphicsResult(result)) {}
+    GraphicsResult result;
+    Value value;
 
-        ResultValue(vk::Result result, Value&& val)
-                    : ResultValue(ToGraphicsResult(result), std::forward<Value>(val)) {}
-
-        ResultValue(vk::Result result, const Value& val)
-                    : ResultValue(ToGraphicsResult(result), val) {}
-
-        ResultValue(ResultValue&& other)
-                    : result(std::move(other.result))
-                    , value(std::move(other.value)) {}
-
-        GraphicsResult result;
-        Value value;
-
-    private:
-        GraphicsResult ToGraphicsResult(vk::Result vkResult)
+   private:
+    GraphicsResult ToGraphicsResult(vk::Result vkResult)
+    {
+        switch (vkResult)
         {
-            switch (vkResult)
-            {
             case vk::Result::eSuccess:
                 return GraphicsResult::Ok;
             default:
                 return GraphicsResult::Error;
-            }
         }
-    };
-}
+    }
+};
+}  // namespace ez

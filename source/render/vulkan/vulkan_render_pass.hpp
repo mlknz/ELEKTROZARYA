@@ -13,7 +13,7 @@ struct VulkanRenderPassCreateInfo
 
 class VulkanRenderPass
 {
-public:
+   public:
     VulkanRenderPass() = delete;
     VulkanRenderPass(const VulkanRenderPass&) = delete;
     VulkanRenderPass(vk::Device aLogicalDevice, vk::RenderPass aRenderPass);
@@ -22,11 +22,12 @@ public:
 
     vk::RenderPass& GetRenderPass() { return renderPass; }
 
-    static ResultValue<std::unique_ptr<VulkanRenderPass>> CreateRenderPass(VulkanRenderPassCreateInfo);
+    static ResultValue<std::unique_ptr<VulkanRenderPass>> CreateRenderPass(
+        VulkanRenderPassCreateInfo);
 
-private:
+   private:
     vk::Device logicalDevice;
     vk::RenderPass renderPass;
 };
 
-}
+}  // namespace ez

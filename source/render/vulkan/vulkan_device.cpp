@@ -1,9 +1,11 @@
 #include "vulkan_device.hpp"
 
 #include <SDL_vulkan.h>
-#include <set>
+
 #include <map>
+#include <set>
 #include <string>
+
 #include "core/log_assert.hpp"
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_swapchain.hpp"
@@ -13,18 +15,18 @@ using namespace ez;
 const int WIDTH = 1024;
 const int HEIGHT = 768;
 
-const std::vector<const char*> requiredDeviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+const std::vector<const char*> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::Instance instance)
+ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(
+    vk::Instance instance)
 {
-    SDL_Window* window = SDL_CreateWindow(
-        "ELEKTROZARYA Vulkan C++ Sandbox",
-        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        WIDTH, HEIGHT,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI
-    );
+    SDL_Window* window =
+        SDL_CreateWindow("ELEKTROZARYA Vulkan C++ Sandbox",
+                         SDL_WINDOWPOS_CENTERED,
+                         SDL_WINDOWPOS_CENTERED,
+                         WIDTH,
+                         HEIGHT,
+                         SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (window == nullptr)
     {
         EZLOG("Failed to create SDL window");
@@ -32,7 +34,8 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
     }
 
     VkSurfaceKHR surfaceHandle;
-    if (SDL_Vulkan_CreateSurface(window, instance.operator VkInstance(), &surfaceHandle) != SDL_TRUE)
+    if (SDL_Vulkan_CreateSurface(window, instance.operator VkInstance(), &surfaceHandle) !=
+        SDL_TRUE)
     {
         EZLOG("Failed to create SDL vulkan surface");
         return GraphicsResult::Error;
@@ -53,7 +56,8 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
         return deviceRV.result;
     }
 
-    auto graphicsCommandPoolRV = CreateGraphicsCommandPool(physicalDeviceRV.value, deviceRV.value, surface);
+    auto graphicsCommandPoolRV =
+        CreateGraphicsCommandPool(physicalDeviceRV.value, deviceRV.value, surface);
     if (graphicsCommandPoolRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to create graphics command pool");
@@ -67,60 +71,76 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(vk::
         return deviceRV.result;
     }
 
-    return {GraphicsResult::Ok, std::make_unique<VulkanDevice>(instance, physicalDeviceRV.value, deviceRV.value, graphicsCommandPoolRV.value, descriptorPoolRV.value, window, surface) };
+    return { GraphicsResult::Ok,
+             std::make_unique<VulkanDevice>(instance,
+                                            physicalDeviceRV.value,
+                                            deviceRV.value,
+                                            graphicsCommandPoolRV.value,
+                                            descriptorPoolRV.value,
+                                            window,
+                                            surface) };
 }
 
-VulkanDevice::VulkanDevice(vk::Instance aInstance, vk::PhysicalDevice aPhysicalDevice,
-                           vk::Device aDevice, vk::CommandPool aGraphicsCommandPool, vk::DescriptorPool aDescriptorPool,
-                           SDL_Window* aWindow, vk::SurfaceKHR aSurface)
+VulkanDevice::VulkanDevice(vk::Instance aInstance,
+                           vk::PhysicalDevice aPhysicalDevice,
+                           vk::Device aDevice,
+                           vk::CommandPool aGraphicsCommandPool,
+                           vk::DescriptorPool aDescriptorPool,
+                           SDL_Window* aWindow,
+                           vk::SurfaceKHR aSurface)
     : instance(aInstance)
-      , physicalDevice(aPhysicalDevice)
-      , device(aDevice)
-      , window(aWindow)
-      , surface(aSurface)
-      , graphicsCommandPool(aGraphicsCommandPool)
-      , descriptorPool(aDescriptorPool)
+    , physicalDevice(aPhysicalDevice)
+    , device(aDevice)
+    , window(aWindow)
+    , surface(aSurface)
+    , graphicsCommandPool(aGraphicsCommandPool)
+    , descriptorPool(aDescriptorPool)
 {
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface); // todo: find once and use elsewhere instead of FindQueueFamilies calls
+    QueueFamilyIndices indices = FindQueueFamilies(
+        physicalDevice,
+        surface);  // todo: find once and use elsewhere instead of FindQueueFamilies calls
 
     device.getQueue(indices.graphicsFamily, 0, &graphicsQueue);
     device.getQueue(indices.presentFamily, 0, &presentQueue);
 }
 
-bool VulkanDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device) {
+bool VulkanDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
+{
     auto extensionsRV = device.enumerateDeviceExtensionProperties();
-    if (extensionsRV.result != vk::Result::eSuccess)
-    {
-        return false;
-    }
+    if (extensionsRV.result != vk::Result::eSuccess) { return false; }
     const std::vector<vk::ExtensionProperties>& availableExtensions = extensionsRV.value;
 
-    std::set<std::string> requiredExtensions(requiredDeviceExtensions.begin(), requiredDeviceExtensions.end());
+    std::set<std::string> requiredExtensions(requiredDeviceExtensions.begin(),
+                                             requiredDeviceExtensions.end());
 
-    for (const auto& extension : availableExtensions) {
+    for (const auto& extension : availableExtensions)
+    {
         requiredExtensions.erase(extension.extensionName);
     }
 
     return requiredExtensions.empty();
 }
 
-bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR surface) {
+bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR surface)
+{
     QueueFamilyIndices indices = FindQueueFamilies(device, surface);
 
     bool extensionsSupported = CheckDeviceExtensionSupport(device);
 
     bool swapChainAdequate = false;
-    if (extensionsSupported) {
+    if (extensionsSupported)
+    {
         auto swapChainSupport = VulkanSwapchain::QuerySwapchainSupport(device, surface);
-        swapChainAdequate = swapChainSupport.result == GraphicsResult::Ok
-                && !swapChainSupport.value.formats.empty()
-                && !swapChainSupport.value.presentModes.empty();
+        swapChainAdequate = swapChainSupport.result == GraphicsResult::Ok &&
+                            !swapChainSupport.value.formats.empty() &&
+                            !swapChainSupport.value.presentModes.empty();
     }
 
     return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
-ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance instance, vk::SurfaceKHR surface)
+ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance instance,
+                                                                 vk::SurfaceKHR surface)
 {
     auto devicesRV = instance.enumeratePhysicalDevices();
     if (devicesRV.result != vk::Result::eSuccess)
@@ -131,28 +151,34 @@ ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance in
     const std::vector<vk::PhysicalDevice>& devices = devicesRV.value;
 
     vk::PhysicalDevice chosenDevice;
-    for (const auto& device : devices) {
-        if (IsDeviceSuitable(device, surface)) {
+    for (const auto& device : devices)
+    {
+        if (IsDeviceSuitable(device, surface))
+        {
             chosenDevice = device;
             break;
         }
     }
 
-    if (!chosenDevice) {
+    if (!chosenDevice)
+    {
         EZLOG("Failed to find a suitable GPU!");
         return GraphicsResult::Error;
     }
-    return {GraphicsResult::Ok, chosenDevice};
+    return { GraphicsResult::Ok, chosenDevice };
 }
 
-ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDevice, vk::SurfaceKHR surface) {
+ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDevice,
+                                                   vk::SurfaceKHR surface)
+{
     QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
 
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-    std::set<int> uniqueQueueFamilies = {indices.graphicsFamily, indices.presentFamily};
+    std::set<int> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
 
     float queuePriority = 1.0f;
-    for (int queueFamily : uniqueQueueFamilies) {
+    for (int queueFamily : uniqueQueueFamilies)
+    {
         vk::DeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.queueFamilyIndex = queueFamily;
         queueCreateInfo.queueCount = 1;
@@ -172,43 +198,50 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
     createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.size());
     createInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
 
-    if (enableValidationLayers) {
+    if (enableValidationLayers)
+    {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         createInfo.ppEnabledLayerNames = validationLayers.data();
-    } else {
+    }
+    else
+    {
         createInfo.enabledLayerCount = 0;
     }
 
     vk::Device device;
-    if (physicalDevice.createDevice(&createInfo, nullptr, &device) != vk::Result::eSuccess) {
+    if (physicalDevice.createDevice(&createInfo, nullptr, &device) != vk::Result::eSuccess)
+    {
         EZLOG("Failed to create vk::device!");
         return GraphicsResult::Error;
     }
 
-    return {GraphicsResult::Ok, device};
+    return { GraphicsResult::Ok, device };
 }
 
-ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(vk::PhysicalDevice physicalDevice, vk::Device device, vk::SurfaceKHR surface)
+ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(
+    vk::PhysicalDevice physicalDevice, vk::Device device, vk::SurfaceKHR surface)
 {
     vk::CommandPool commandPool;
     ez::QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice, surface);
 
     vk::CommandPoolCreateInfo poolInfo = {};
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
-    poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer | vk::CommandPoolCreateFlagBits::eTransient;
+    poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer |
+                     vk::CommandPoolCreateFlagBits::eTransient;
 
-    if (device.createCommandPool(&poolInfo, nullptr, &commandPool) != vk::Result::eSuccess) {
+    if (device.createCommandPool(&poolInfo, nullptr, &commandPool) != vk::Result::eSuccess)
+    {
         EZLOG("Failed to create graphics command pool!");
         return GraphicsResult::Error;
     }
-    return {GraphicsResult::Ok, commandPool};
+    return { GraphicsResult::Ok, commandPool };
 }
 
 ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device device)
 {
     vk::DescriptorPool descriptorPool;
 
-    const uint32_t maxDescriptorSetsCount = 1000; // todo: config
+    const uint32_t maxDescriptorSetsCount = 1000;  // todo: config
 
     const std::map<vk::DescriptorType, uint32_t> poolSizesConfig = {
         { vk::DescriptorType::eUniformBuffer, 32 },
@@ -221,7 +254,8 @@ ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device de
         { vk::DescriptorType::eUniformBufferDynamic, 1000 },
         { vk::DescriptorType::eStorageBufferDynamic, 1000 },
     };
-    std::vector<vk::DescriptorPoolSize> poolSizes; // todo: config constants or gather dynamically
+    std::vector<vk::DescriptorPoolSize>
+        poolSizes;  // todo: config constants or gather dynamically
     for (auto& poolSizeConfig : poolSizesConfig)
     {
         poolSizes.emplace_back();
@@ -234,11 +268,13 @@ ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device de
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = maxDescriptorSetsCount;
 
-    if (device.createDescriptorPool(&poolInfo, nullptr, &descriptorPool) != vk::Result::eSuccess) {
+    if (device.createDescriptorPool(&poolInfo, nullptr, &descriptorPool) !=
+        vk::Result::eSuccess)
+    {
         EZLOG("Failed to create descriptor pool!");
         return GraphicsResult::Error;
     }
-    return {GraphicsResult::Ok, descriptorPool};
+    return { GraphicsResult::Ok, descriptorPool };
 }
 
 VulkanDevice::~VulkanDevice()

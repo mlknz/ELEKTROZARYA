@@ -20,10 +20,7 @@ Camera::Camera()
 
 void Camera::SetViewportExtent(uint32_t width, uint32_t height)
 {
-    if (width == viewportWidth && height == viewportHeight)
-    {
-        return;
-    }
+    if (width == viewportWidth && height == viewportHeight) { return; }
 
     viewportWidth = width;
     viewportHeight = height;
@@ -33,10 +30,7 @@ void Camera::SetViewportExtent(uint32_t width, uint32_t height)
 
 void Camera::MovePreserveDirection(const glm::vec3& offset)
 {
-    if (glm::length2(offset) < kSmallFloat)
-    {
-        return;
-    }
+    if (glm::length2(offset) < kSmallFloat) { return; }
     _position += offset;
     _targetPosition += offset;
 
@@ -52,4 +46,4 @@ void Camera::Recalc()
 
     viewProjectionMatrix = projectionMatrix * viewMatrix;
 }
-}
+}  // namespace ez

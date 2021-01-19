@@ -2,12 +2,12 @@
 
 #include <imgui/imgui.h>
 
-#include "core/view.hpp"
 #include "core/camera/camera.hpp"
 #include "core/input/input.hpp"
+#include "core/view.hpp"
 
-namespace ez {
-
+namespace ez
+{
 Gameplay::Gameplay(std::unique_ptr<View>&& aView) : view(std::move(aView))
 {
     view->SwitchToDefaultScene();
@@ -18,39 +18,21 @@ Gameplay::Gameplay(std::unique_ptr<View>&& aView) : view(std::move(aView))
 
 void Gameplay::SetViewportExtent(uint32_t width, uint32_t height)
 {
-    if (camera)
-    {
-        camera->SetViewportExtent(width, height);
-    }
+    if (camera) { camera->SetViewportExtent(width, height); }
 }
 
 void Gameplay::Update(double curTime, double deltaTime)
 {
     glm::vec3 cameraMovement;
-    if (input->IsKeyPressed(SDLK_a))
-    {
-        cameraMovement.x += 1.0f;
-    }
-    if (input->IsKeyPressed(SDLK_d))
-    {
-        cameraMovement.x -= 1.0f;
-    }
-    if (input->IsKeyPressed(SDLK_s))
-    {
-        cameraMovement.z -= 1.0f;
-    }
-    if (input->IsKeyPressed(SDLK_w))
-    {
-        cameraMovement.z += 1.0f;
-    }
+    if (input->IsKeyPressed(SDLK_a)) { cameraMovement.x += 1.0f; }
+    if (input->IsKeyPressed(SDLK_d)) { cameraMovement.x -= 1.0f; }
+    if (input->IsKeyPressed(SDLK_s)) { cameraMovement.z -= 1.0f; }
+    if (input->IsKeyPressed(SDLK_w)) { cameraMovement.z += 1.0f; }
     cameraMovement *= deltaTime;
 
     camera->MovePreserveDirection(cameraMovement);
 
-    if (input->IsKeyPressed(SDLK_1))
-    {
-        view->ToggleSceneTest();
-    }   
+    if (input->IsKeyPressed(SDLK_1)) { view->ToggleSceneTest(); }
 
     ImGui::NewFrame();
     // ImGui::ShowDemoWindow();
@@ -60,4 +42,4 @@ void Gameplay::Update(double curTime, double deltaTime)
     ImGui::End();
 }
 
-}
+}  // namespace ez

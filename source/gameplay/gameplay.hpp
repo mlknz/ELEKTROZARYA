@@ -2,15 +2,15 @@
 
 #include <memory>
 
-namespace ez {
-
+namespace ez
+{
 class Camera;
 class View;
 class Input;
 
 class Gameplay
 {
-public:
+   public:
     Gameplay(std::unique_ptr<View>&& aView);
 
     std::unique_ptr<Input>& GetInput() { return input; }
@@ -21,10 +21,10 @@ public:
     void SetViewportExtent(uint32_t width, uint32_t height);
     void Update(double curTime, double deltaTime);
 
-private:
+   private:
     std::unique_ptr<View> view;
     std::unique_ptr<Camera> camera;
     std::unique_ptr<Input> input;
 };
 
-}
+}  // namespace ez
