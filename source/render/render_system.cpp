@@ -251,8 +251,8 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
 
 void RenderSystem::CleanupTotalPipeline()
 {
-    assert(vulkanInstance);
-    assert(vulkanDevice);
+    EZASSERT(vulkanInstance);
+    EZASSERT(vulkanDevice);
 
     vk::Device logicalDevice = vulkanDevice->GetDevice();
     logicalDevice.waitIdle();

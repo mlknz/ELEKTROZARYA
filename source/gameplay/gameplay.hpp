@@ -1,5 +1,6 @@
 #pragma once
 
+#include <list>
 #include <memory>
 
 namespace ez
@@ -19,12 +20,14 @@ class Gameplay
     const std::unique_ptr<Camera>& GetActiveCamera() const { return camera; }
 
     void SetViewportExtent(uint32_t width, uint32_t height);
-    void Update(double curTime, double deltaTime);
+    void Update(int64_t deltaTimeMcs);
 
    private:
     std::unique_ptr<View> view;
     std::unique_ptr<Camera> camera;
     std::unique_ptr<Input> input;
+
+    std::list<int64_t> frameTimesMcs;
 };
 
 }  // namespace ez

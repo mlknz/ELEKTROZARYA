@@ -30,10 +30,9 @@ int main(int, char*[])
 
     auto gameplay = std::make_unique<ez::Gameplay>(std::make_unique<ez::View>());
 
-    auto startTime = std::chrono::high_resolution_clock::now();
-    double prevTime = -1.0;
-    double curTime = -1.0;
-    double deltaTime = -1.0;
+    std::chrono::time_point startTime = std::chrono::high_resolution_clock::now();
+    std::chrono::time_point prevTime = std::chrono::high_resolution_clock::now();
+    int64_t deltaTimeMcs = -1.0;
 
     bool run = true;
     while (run)
@@ -45,14 +44,13 @@ int main(int, char*[])
             gameplay->GetInput()->ProcessSDLEvent(evt);
         }
 
-        auto currentTime = std::chrono::high_resolution_clock::now();
+        std::chrono::time_point currentTime = std::chrono::high_resolution_clock::now();
 
-        prevTime = curTime;
-        curTime = static_cast<double>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                          currentTime - startTime)
-                                          .count()) /
-                  1000.0;
-        if (prevTime > 0.0 && curTime > 0.0) { deltaTime = curTime - prevTime; }
+        deltaTimeMcs =
+            std::chrono::duration_cast<std::chrono::microseconds>(currentTime - prevTime)
+                .count();
+
+        prevTime = currentTime;
 
         const std::unique_ptr<ez::View>& curView = gameplay->GetView();
         std::shared_ptr<ez::Scene> curScene = curView->GetScene();
@@ -68,7 +66,7 @@ int main(int, char*[])
 
         const vk::Extent2D& viewportExtent = renderSystem->GetViewportExtent();
         gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
-        gameplay->Update(curTime, deltaTime);
+        gameplay->Update(deltaTimeMcs);
 
         renderSystem->PrepareToRender(curScene);
 
