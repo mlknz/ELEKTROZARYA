@@ -421,7 +421,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
         vk::DeviceSize offsets[] = { 0 };
 
         curCb.bindVertexBuffers(0, 1, vertexBuffers, offsets);
-        curCb.bindIndexBuffer(mesh.indexBuffer, 0, vk::IndexType::eUint16);
+        curCb.bindIndexBuffer(mesh.indexBuffer, 0, vk::IndexType::eUint32);
 
         curCb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                  graphicsPipeline->GetLayout(),

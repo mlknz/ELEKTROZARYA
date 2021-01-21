@@ -16,6 +16,7 @@ include_directories(
     external
     external/glm
     external/gli
+    external/tinygltf
 )
 
 set(IMGUI_SOURCE_FILES
