@@ -27,7 +27,7 @@ void Gameplay::SetViewportExtent(uint32_t width, uint32_t height)
 void Gameplay::Update(int64_t deltaTimeMcs)
 {
     double deltaTimeSeconds = static_cast<double>(deltaTimeMcs) / (1000 * 1000);
-    glm::vec3 cameraMovement;
+    glm::vec3 cameraMovement = glm::vec3(0.0f, 0.0f, 0.0f);
     if (input->IsKeyPressed(SDLK_a)) { cameraMovement.x += 1.0f; }
     if (input->IsKeyPressed(SDLK_d)) { cameraMovement.x -= 1.0f; }
     if (input->IsKeyPressed(SDLK_s)) { cameraMovement.z -= 1.0f; }

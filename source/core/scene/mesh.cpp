@@ -339,14 +339,24 @@ bool Mesh::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         indexBuffer,
         indexBufferMemory);
-    VulkanBuffer::createBuffer(
-        logicalDevice,
-        physicalDevice,
-        uniformBufferMaxHackSize,
-        vk::BufferUsageFlagBits::eUniformBuffer,
-        vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-        uniformBuffer,
-        uniformBufferMemory);
+    VulkanBuffer::createBuffer(logicalDevice,
+                               physicalDevice,
+                               uniformBufferMaxHackSize,
+                               vk::BufferUsageFlagBits::eUniformBuffer,
+                               vk::MemoryPropertyFlagBits::eHostVisible |
+                                   vk::MemoryPropertyFlagBits::eHostCoherent |
+                                   vk::MemoryPropertyFlagBits::eDeviceLocal,
+                               uniformBuffer,
+                               uniformBufferMemory);
+
+    //    vk::DebugUtilsObjectNameInfoEXT nameInfo;
+    //    nameInfo.objectType = vk::ObjectType::eDeviceMemory;
+    //    nameInfo.setPObjectName("GLOBAL_UBO_MEMORY");
+    //    const uint64_t objectHandle =
+    //        reinterpret_cast<uint64_t>(uniformBufferMemory.operator VkDeviceMemory());
+    //    nameInfo.objectHandle = objectHandle;
+
+    //    logicalDevice.setDebugUtilsObjectNameEXT(nameInfo);
 
     VulkanBuffer::uploadData(logicalDevice,
                              physicalDevice,
