@@ -7,8 +7,10 @@ layout(binding = 0) uniform GlobalUniformBufferObject {
     mat4 viewProjectionMatrix;
 } globalUniforms;
 
-layout(location = 0) in vec2 inPosition;
-layout(location = 1) in vec3 inColor;
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inUv0;
+layout(location = 3) in vec2 inUv1;
 
 layout(location = 0) out vec3 fragColor;
 
@@ -17,6 +19,6 @@ out gl_PerVertex {
 };
 
 void main() {
-    gl_Position = globalUniforms.viewProjectionMatrix * vec4(inPosition, 0.0, 1.0);
-    fragColor = inColor;
+    gl_Position = globalUniforms.viewProjectionMatrix * vec4(inPosition, 1.0);
+    fragColor = vec3(1.0, 1.0, 0.0);
 }

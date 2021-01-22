@@ -38,20 +38,20 @@ BoundingBox BoundingBox::GetAABB(glm::mat4 m)
     return BoundingBox(min, max);
 }
 
-Mesh GetTestMesh([[maybe_unused]] int sceneIndex)
+Mesh LoadGLTFMesh(const std::string& gltfFilePath)
 {
-    const std::string filename = "../assets/DamagedHelmet/glTF/DamagedHelmet.gltf";
-    EZLOG("loading gltf file", filename);
+    EZLOG("loading gltf file", gltfFilePath);
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF loader;
     std::string err;
     std::string warn;
 
-    bool fileLoaded = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, filename);
+    bool fileLoaded = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, gltfFilePath);
 
     EZASSERT(fileLoaded, "Failed to load file");
 
     Mesh mesh;
+    mesh.name = gltfFilePath;
 
     const tinygltf::Scene& scene = gltfModel.scenes.at(size_t(gltfModel.defaultScene));
     for (size_t i = 0; i < scene.nodes.size(); i++)
@@ -61,14 +61,6 @@ Mesh GetTestMesh([[maybe_unused]] int sceneIndex)
         mesh.LoadNodeFromGLTF(
             nullptr, node, uint32_t(scene.nodes[i]), gltfModel, mesh.indices, mesh.vertices);
     }
-
-    //    const float offset = sceneIndex > 0 ? 0.5f : 0.0f;
-    //    mesh.vertices = { { { -0.5f + offset, -0.5f }, { 1.0f, 0.0f, 0.0f } },
-    //                      { { 0.5f + offset, -0.5f }, { 0.0f, 1.0f, 0.0f } },
-    //                      { { 0.5f + offset, 0.5f }, { 0.0f, 0.0f, 1.0f } },
-    //                      { { -0.5f + offset, 0.5f }, { 1.0f, 1.0f, 1.0f } } };
-
-    //    mesh.indices = { 0, 1, 2, 2, 3, 0 };
 
     return mesh;
 }
@@ -80,7 +72,7 @@ void Mesh::LoadNodeFromGLTF(Node* parent,
                             std::vector<uint32_t>& indexBuffer,
                             std::vector<Vertex>& vertexBuffer)
 {
-    Node* newNode = new Node{};
+    std::unique_ptr<Node> newNode = std::make_unique<Node>();
     newNode->index = nodeIndex;
     newNode->parent = parent;
     newNode->name = node.name;
@@ -112,7 +104,7 @@ void Mesh::LoadNodeFromGLTF(Node* parent,
     {
         for (size_t i = 0; i < node.children.size(); i++)
         {
-            LoadNodeFromGLTF(newNode,
+            LoadNodeFromGLTF(newNode.get(),
                              model.nodes[node.children[i]],
                              node.children[i],
                              model,
@@ -301,10 +293,10 @@ void Mesh::LoadNodeFromGLTF(Node* parent,
             newNode->subMesh->bb.max = glm::max(newNode->subMesh->bb.max, p->bb.max);
         }
     }
-    if (parent) { parent->children.push_back(newNode); }
+    if (parent) { parent->children.push_back(std::move(newNode)); }
     else
     {
-        nodes.push_back(newNode);
+        nodes.push_back(std::move(newNode));
     }
 }
 
@@ -321,7 +313,6 @@ Mesh::~Mesh()
         logicalDevice.destroyBuffer(vertexBuffer);
         logicalDevice.freeMemory(vertexBufferMemory);
     }
-    for (Node* node : nodes) { delete node; }
 }
 
 bool Mesh::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,

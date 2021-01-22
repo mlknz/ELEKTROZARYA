@@ -1,19 +1,10 @@
 #include "view.hpp"
 
+#include "core/log_assert.hpp"
 namespace ez
 {
 void View::SwitchToDefaultScene() { scene = std::make_shared<Scene>(); }
 
-bool sceneChanged = false;
-
-void View::ToggleSceneTest()
-{
-    if (!sceneChanged)
-    {
-        scene = std::make_shared<Scene>();
-        scene->sceneId = 1;
-        sceneChanged = true;
-    }
-}
+void View::ToggleSceneTest() { EZASSERT(false, "Not Implemented"); }
 
 }  // namespace ez

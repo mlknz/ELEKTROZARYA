@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <memory>
 #include <vector>
 
@@ -51,12 +50,12 @@ struct Vertex
         attributeDescriptions[1].offset = offsetof(Vertex, normal);
 
         attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 1;
+        attributeDescriptions[2].location = 2;
         attributeDescriptions[2].format = vk::Format::eR32G32Sfloat;
         attributeDescriptions[2].offset = offsetof(Vertex, uv0);
 
         attributeDescriptions[3].binding = 0;
-        attributeDescriptions[3].location = 1;
+        attributeDescriptions[3].location = 3;
         attributeDescriptions[3].format = vk::Format::eR32G32Sfloat;
         attributeDescriptions[3].offset = offsetof(Vertex, uv1);
 
@@ -165,7 +164,7 @@ struct Node
 {
     Node* parent;
     uint32_t index;
-    std::vector<Node*> children;
+    std::vector<std::unique_ptr<Node>> children;
     glm::mat4 matrix;
     std::string name;
     std::unique_ptr<SubMesh> subMesh;
@@ -208,7 +207,6 @@ struct Node
     ~Node()
     {
         // if (subMesh) { delete subMesh; }
-        for (auto& child : children) { delete child; }
     }
 };
 
@@ -216,6 +214,8 @@ struct Mesh
 {
     Mesh() = default;
     ~Mesh();
+    Mesh(const Mesh& other) = delete;
+    Mesh(Mesh&& other) = default;
 
     void SetLogicalDevice(vk::Device device) { logicalDevice = device; }
     bool CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
@@ -225,7 +225,8 @@ struct Mesh
                              vk::DescriptorSetLayout descriptorSetLayout,
                              size_t hardcodedGlobalUBOSize);
 
-    std::vector<Node*> nodes;
+    std::string name;
+    std::vector<std::unique_ptr<Node>> nodes;
 
     std::vector<Vertex> vertices;   // todo: clear after uploading
     std::vector<uint32_t> indices;  // todo: clear after uploading
@@ -253,6 +254,6 @@ struct Mesh
                           std::vector<Vertex>& vertexBuffer);
 };
 
-Mesh GetTestMesh(int sceneIndex);
+Mesh LoadGLTFMesh(const std::string& gltfFilePath);
 
 }  // namespace ez
