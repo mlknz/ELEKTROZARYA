@@ -1,7 +1,7 @@
 #include "render_system.hpp"
 
-#include <imgui/imgui_impl_sdl.h>
-#include <imgui/imgui_impl_vulkan.h>
+#include <imgui/backends/imgui_impl_sdl.h>
+#include <imgui/backends/imgui_impl_vulkan.h>
 
 #include <algorithm>
 #include <cassert>

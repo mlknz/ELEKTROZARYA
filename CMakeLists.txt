@@ -17,27 +17,10 @@ include_directories(
     external/glm
     external/gli
     external/tinygltf
-)
-
-set(IMGUI_SOURCE_FILES
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui.h
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_demo.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_draw.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_widgets.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_internal.h
-    ${PROJECT_SOURCE_DIR}/external/imgui/imconfig.h
-    ${PROJECT_SOURCE_DIR}/external/imgui/imstb_rectpack.h
-    ${PROJECT_SOURCE_DIR}/external/imgui/imstb_textedit.h
-    ${PROJECT_SOURCE_DIR}/external/imgui/imstb_truetype.h
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_impl_sdl.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_impl_sdl.h
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_impl_vulkan.cpp
-    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_impl_vulkan.h
+    external/imgui
 )
 
 set(SOURCE_FILES
-    ${IMGUI_SOURCE_FILES}
     ${SOURCES}/main.cpp
     ${SOURCES}/render/config.hpp
     ${SOURCES}/render/render_system.cpp
@@ -82,10 +65,31 @@ add_executable(ELEKTROZARYA ${SOURCE_FILES})
 target_compile_definitions(ELEKTROZARYA PRIVATE GLM_FORCE_RADIANS=1)
 target_precompile_headers(ELEKTROZARYA PRIVATE ${SOURCES}/render/vulkan_include.hpp)
 
+set(IMGUI_SOURCE_FILES
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_internal.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_demo.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_draw.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_widgets.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/imgui_tables.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/imconfig.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/imstb_rectpack.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/imstb_textedit.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/imstb_truetype.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/backends/imgui_impl_sdl.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/backends/imgui_impl_sdl.h
+    ${PROJECT_SOURCE_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
+    ${PROJECT_SOURCE_DIR}/external/imgui/backends/imgui_impl_vulkan.h
+)
+
+add_library(imgui ${IMGUI_SOURCE_FILES})
+
 target_link_libraries(ELEKTROZARYA
     # Vulkan_LIBRARIES returns .dll on windows which is incompatible with llvm linker
     ${Vulkan_INCLUDE_DIRS}/../Lib/vulkan-1.lib
     ${SDL2_LIBRARIES}
+    imgui
 )
 
 set_property(TARGET ELEKTROZARYA PROPERTY CXX_STANDARD 17)

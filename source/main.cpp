@@ -1,7 +1,7 @@
 #include <SDL.h>
 #include <SDL_syswm.h>
-#include <imgui/imgui_impl_sdl.h>
-#include <imgui/imgui_impl_vulkan.h>
+#include <imgui/backends/imgui_impl_sdl.h>
+#include <imgui/backends/imgui_impl_vulkan.h>
 
 #include <chrono>
 #include <glm/glm.hpp>
