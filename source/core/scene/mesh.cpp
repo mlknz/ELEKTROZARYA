@@ -1,6 +1,7 @@
 #include "mesh.hpp"
 
 #include "core/log_assert.hpp"
+#include "render/graphics_result.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
@@ -349,14 +350,14 @@ bool Mesh::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
                                uniformBuffer,
                                uniformBufferMemory);
 
-    //    vk::DebugUtilsObjectNameInfoEXT nameInfo;
-    //    nameInfo.objectType = vk::ObjectType::eDeviceMemory;
-    //    nameInfo.setPObjectName("GLOBAL_UBO_MEMORY");
-    //    const uint64_t objectHandle =
-    //        reinterpret_cast<uint64_t>(uniformBufferMemory.operator VkDeviceMemory());
-    //    nameInfo.objectHandle = objectHandle;
+    vk::DebugUtilsObjectNameInfoEXT nameInfo;
+    nameInfo.objectType = vk::ObjectType::eDeviceMemory;
+    nameInfo.setPObjectName("MESH_GLOBAL_UBO_MEMORY");
+    const uint64_t objectHandle =
+        reinterpret_cast<uint64_t>(uniformBufferMemory.operator VkDeviceMemory());
+    nameInfo.objectHandle = objectHandle;
 
-    //    logicalDevice.setDebugUtilsObjectNameEXT(nameInfo);
+    CheckVkResult(logicalDevice.setDebugUtilsObjectNameEXT(nameInfo));
 
     VulkanBuffer::uploadData(logicalDevice,
                              physicalDevice,
@@ -380,7 +381,7 @@ bool Mesh::CreateDescriptorSet(vk::DescriptorPool descriptorPool,
                                vk::DescriptorSetLayout descriptorSetLayout,
                                size_t hardcodedGlobalUBOSize)
 {
-    assert(logicalDevice);
+    EZASSERT(logicalDevice);
     vk::DescriptorSetLayout layouts[] = { descriptorSetLayout };
     vk::DescriptorSetAllocateInfo allocInfo = {};
     allocInfo.descriptorPool = descriptorPool;

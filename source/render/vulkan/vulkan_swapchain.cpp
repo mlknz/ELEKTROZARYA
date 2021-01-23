@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "core/log_assert.hpp"
+#include "render/graphics_result.hpp"
 #include "render/vulkan/utils.hpp"
 
 using namespace ez;
@@ -23,7 +24,7 @@ ResultValue<SwapChainSupportDetails> VulkanSwapchain::QuerySwapchainSupport(
     vk::PhysicalDevice device, vk::SurfaceKHR surface)
 {
     SwapChainSupportDetails details;
-    device.getSurfaceCapabilitiesKHR(surface, &details.capabilities);
+    CheckVkResult(device.getSurfaceCapabilitiesKHR(surface, &details.capabilities));
 
     auto formatsRV = device.getSurfaceFormatsKHR(surface);
     if (formatsRV.result != vk::Result::eSuccess)
@@ -123,7 +124,8 @@ ResultValue<VulkanSwapchainInfo> VulkanSwapchain::CreateSwapchain(
                             &imageCount,
                             nullptr);
     info.images.resize(imageCount);
-    ci.logicalDevice.getSwapchainImagesKHR(info.swapchain, &imageCount, info.images.data());
+    CheckVkResult(ci.logicalDevice.getSwapchainImagesKHR(
+        info.swapchain, &imageCount, info.images.data()));
 
     info.imageFormat = surfaceFormat.format;
     info.extent = extent;

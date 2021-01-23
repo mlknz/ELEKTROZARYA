@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "core/log_assert.hpp"
+#include "render/graphics_result.hpp"
 
 namespace ez
 {
@@ -60,7 +61,7 @@ bool VulkanBuffer::createBuffer(vk::Device logicalDevice,
         return false;
     }
 
-    logicalDevice.bindBufferMemory(buffer, bufferMemory, 0);
+    CheckVkResult(logicalDevice.bindBufferMemory(buffer, bufferMemory, 0));
     return true;
 }
 
@@ -77,26 +78,26 @@ void VulkanBuffer::copyBuffer(vk::Device logicalDevice,
     allocInfo.commandBufferCount = 1;
 
     vk::CommandBuffer commandBuffer;
-    logicalDevice.allocateCommandBuffers(&allocInfo, &commandBuffer);
+    CheckVkResult(logicalDevice.allocateCommandBuffers(&allocInfo, &commandBuffer));
 
     vk::CommandBufferBeginInfo beginInfo = {};
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
 
-    commandBuffer.begin(&beginInfo);
+    CheckVkResult(commandBuffer.begin(&beginInfo));
 
     vk::BufferCopy copyRegion = {};
     copyRegion.size = size;
     copyRegion.dstOffset = 0;  // todo
     commandBuffer.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
 
-    commandBuffer.end();
+    CheckVkResult(commandBuffer.end());
 
     vk::SubmitInfo submitInfo = {};
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &commandBuffer;
 
-    graphicsQueue.submit(1, &submitInfo, nullptr);
-    graphicsQueue.waitIdle();
+    CheckVkResult(graphicsQueue.submit(1, &submitInfo, nullptr));
+    CheckVkResult(graphicsQueue.waitIdle());
 
     logicalDevice.freeCommandBuffers(commandPool, 1, &commandBuffer);
 }
@@ -122,7 +123,8 @@ void VulkanBuffer::uploadData(vk::Device logicalDevice,
 
     void* data;
 
-    logicalDevice.mapMemory(stagingBufferMemory, 0, size, vk::MemoryMapFlags(), &data);
+    CheckVkResult(
+        logicalDevice.mapMemory(stagingBufferMemory, 0, size, vk::MemoryMapFlags(), &data));
     memcpy(data, bufferData, static_cast<size_t>(size));
     logicalDevice.unmapMemory(stagingBufferMemory);
 

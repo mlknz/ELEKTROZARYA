@@ -10,6 +10,7 @@
 #include "core/log_assert.hpp"
 #include "core/scene/scene.hpp"
 #include "core/view.hpp"
+#include "render/graphics_result.hpp"
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
 
@@ -223,17 +224,15 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
         device.resetCommandPool(command_pool, vk::CommandPoolResetFlagBits(0));
 
         vk::CommandBufferBeginInfo begin_info = {};
-        begin_info.sType = vk::StructureType::eCommandBufferBeginInfo;
         begin_info.flags |= vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-        command_buffer.begin(begin_info);
+        CheckVkResult(command_buffer.begin(begin_info));
 
         ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
 
         vk::SubmitInfo end_info = {};
-        end_info.sType = vk::StructureType::eSubmitInfo;
         end_info.commandBufferCount = 1;
         end_info.pCommandBuffers = &command_buffer;
-        command_buffer.end();
+        CheckVkResult(command_buffer.end());
 
         if (ci.vulkanDevice->GetGraphicsQueue().submit(1, &end_info, nullptr) !=
             vk::Result::eSuccess)
@@ -242,7 +241,7 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
             return false;
         }
 
-        device.waitIdle();
+        CheckVkResult(device.waitIdle());
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
@@ -255,7 +254,7 @@ void RenderSystem::CleanupTotalPipeline()
     EZASSERT(vulkanDevice);
 
     vk::Device logicalDevice = vulkanDevice->GetDevice();
-    logicalDevice.waitIdle();
+    CheckVkResult(logicalDevice.waitIdle());
 
     vulkanSwapchain.reset();
 
@@ -328,8 +327,8 @@ void RenderSystem::UpdateGlobalUniforms(std::shared_ptr<Scene> scene,
 
     for (Mesh& mesh : scene->GetMeshesMutable())
     {
-        logicalDevice.mapMemory(
-            mesh.uniformBufferMemory, 0, sizeof(ubo), vk::MemoryMapFlags(), &data);
+        CheckVkResult(logicalDevice.mapMemory(
+            mesh.uniformBufferMemory, 0, sizeof(ubo), vk::MemoryMapFlags(), &data));
         memcpy(data, &ubo, sizeof(ubo));
         logicalDevice.unmapMemory(mesh.uniformBufferMemory);
     }
@@ -399,7 +398,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
     vk::CommandBufferBeginInfo beginInfo = {};
     beginInfo.flags = vk::CommandBufferUsageFlagBits::eSimultaneousUse;
 
-    curCb.begin(&beginInfo);
+    CheckVkResult(curCb.begin(&beginInfo));
 
     vk::RenderPassBeginInfo renderPassInfo = {};
     renderPassInfo.renderPass = vulkanRenderPass->GetRenderPass();
@@ -477,7 +476,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
         EZASSERT(false, "Failed to present swapchain image!");
     }
 
-    presentQueue.waitIdle();
+    CheckVkResult(presentQueue.waitIdle());
 }
 
 RenderSystem::~RenderSystem()
@@ -491,7 +490,7 @@ RenderSystem::~RenderSystem()
     CleanupTotalPipeline();
 
     vk::Device logicalDevice = vulkanDevice->GetDevice();
-    logicalDevice.waitIdle();
+    CheckVkResult(logicalDevice.waitIdle());
 
     logicalDevice.destroyDescriptorSetLayout(descriptorSetLayout);
 

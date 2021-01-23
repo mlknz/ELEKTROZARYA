@@ -79,7 +79,9 @@ set(SOURCE_FILES
 
 add_executable(ELEKTROZARYA ${SOURCE_FILES})
 
-target_compile_definitions(ELEKTROZARYA PRIVATE VK_USE_PLATFORM_WIN32_KHR=1 GLM_FORCE_RADIANS=1)
+target_compile_definitions(ELEKTROZARYA PRIVATE GLM_FORCE_RADIANS=1)
+target_precompile_headers(ELEKTROZARYA PRIVATE ${SOURCES}/render/vulkan_include.hpp)
+
 target_link_libraries(ELEKTROZARYA
     # Vulkan_LIBRARIES returns .dll on windows which is incompatible with llvm linker
     ${Vulkan_INCLUDE_DIRS}/../Lib/vulkan-1.lib

@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "core/log_assert.hpp"
 #include "render/vulkan_include.hpp"
 
 namespace ez
@@ -57,4 +58,9 @@ class ResultValue
         }
     }
 };
+
+inline void CheckVkResult(vk::Result result)
+{
+    if (result != vk::Result::eSuccess) { EZASSERT(false); }
+}
 }  // namespace ez

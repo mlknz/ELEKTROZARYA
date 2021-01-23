@@ -241,7 +241,7 @@ struct Mesh
     vk::DeviceMemory indexBufferMemory;
     vk::DeviceMemory uniformBufferMemory;
 
-    uint32_t uniformBufferMaxHackSize = 200;  // todo: calc needed size or config
+    uint32_t uniformBufferMaxHackSize = 192;  // todo: calc needed size or config
 
     vk::DescriptorSet descriptorSet;
 

@@ -2,13 +2,14 @@
 
 #include <vector>
 
+#include "render/graphics_result.hpp"
 #include "render/vulkan_include.hpp"
 
 namespace ez
 {
-const std::vector<const char*> validationLayers = { "VK_LAYER_LUNARG_standard_validation" };
+const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
-// todo: remove enableValidationLayers
+// todo: remove enableValidationLayers - move standard validation define to cmake?
 #ifdef NDEBUG
 const bool enableValidationLayers = false;
 #else
@@ -37,7 +38,8 @@ inline QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device, vk::Surfa
         }
 
         VkBool32 presentSupport = false;
-        device.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface, &presentSupport);
+        CheckVkResult(
+            device.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface, &presentSupport));
 
         if (queueFamily.queueCount > 0 && presentSupport) { result.presentFamily = i; }
 

@@ -5,6 +5,8 @@
 #include "core/log_assert.hpp"
 #include "render/vulkan/utils.hpp"
 
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+
 using namespace ez;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -69,6 +71,11 @@ VulkanInstance::VulkanInstance(vk::Instance aInstance,
 
 ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstance()
 {
+    vk::DynamicLoader dl;
+    PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr =
+        dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
+
     if (enableValidationLayers && !CheckValidationLayerSupport())
     {
         EZLOG(
@@ -121,6 +128,8 @@ ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstanc
         EZLOG("Can't create vk instance");
         return GraphicsResult::Error;
     }
+
+    VULKAN_HPP_DEFAULT_DISPATCHER.init(instance);
 
     if (!SetupDebugCallback(instance, vkDebugCallback))
     {
