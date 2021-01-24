@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 
+#include "render/vulkan/vulkan_graphics_pipeline.hpp"
 #include "render/vulkan_include.hpp"
 
 namespace tinygltf
@@ -212,7 +213,8 @@ struct Node
 
 struct Mesh
 {
-    Mesh() = default;
+    Mesh() = delete;
+    Mesh(const std::string& gltfFilePath);
     ~Mesh();
     Mesh(const Mesh& other) = delete;
     Mesh(Mesh&& other) = default;
@@ -222,8 +224,10 @@ struct Mesh
                              vk::Queue graphicsQueue,
                              vk::CommandPool graphicsCommandPool);
     bool CreateDescriptorSet(vk::DescriptorPool descriptorPool,
-                             vk::DescriptorSetLayout descriptorSetLayout,
+                             vk::DescriptorSetLayout aDescriptorSetLayout,
                              size_t hardcodedGlobalUBOSize);
+
+    vk::DescriptorSetLayout GetDescriptorSetLayout() const { return descriptorSetLayout; }
 
     std::string name;
     std::vector<std::unique_ptr<Node>> nodes;
@@ -241,9 +245,11 @@ struct Mesh
     vk::DeviceMemory indexBufferMemory;
     vk::DeviceMemory uniformBufferMemory;
 
-    uint32_t uniformBufferMaxHackSize = 192;  // todo: calc needed size or config
+    uint32_t uniformBufferMaxHackSize = 192;
 
+    vk::DescriptorSetLayout descriptorSetLayout;
     vk::DescriptorSet descriptorSet;
+    std::shared_ptr<VulkanGraphicsPipeline> graphicsPipeline;
 
     // private:
     void LoadNodeFromGLTF(Node* parent,
@@ -253,7 +259,5 @@ struct Mesh
                           std::vector<uint32_t>& indexBuffer,
                           std::vector<Vertex>& vertexBuffer);
 };
-
-Mesh LoadGLTFMesh(const std::string& gltfFilePath);
 
 }  // namespace ez

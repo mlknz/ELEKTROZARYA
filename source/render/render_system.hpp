@@ -9,8 +9,8 @@
 #include "core/scene/scene.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/vulkan_device.hpp"
-#include "render/vulkan/vulkan_graphics_pipeline.hpp"
 #include "render/vulkan/vulkan_instance.hpp"
+#include "render/vulkan/vulkan_pipeline_manager.hpp"
 #include "render/vulkan/vulkan_render_pass.hpp"
 #include "render/vulkan/vulkan_swapchain.hpp"
 
@@ -29,10 +29,10 @@ struct RenderSystemCreateInfo
     std::unique_ptr<VulkanDevice> vulkanDevice;
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain;
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass;
+    std::unique_ptr<VulkanPipelineManager> vulkanPipelineManager;
 
     FrameSemaphores frameSemaphores;
     vk::DescriptorSetLayout descriptorSetLayout;
-    std::unique_ptr<GraphicsPipeline> graphicsPipeline;
     std::vector<vk::CommandBuffer> commandBuffers;
 };
 
@@ -77,13 +77,15 @@ class RenderSystem
     std::unique_ptr<VulkanDevice> vulkanDevice = nullptr;
     std::unique_ptr<VulkanSwapchain> vulkanSwapchain = nullptr;
     std::unique_ptr<VulkanRenderPass> vulkanRenderPass = nullptr;
-    std::unique_ptr<GraphicsPipeline> graphicsPipeline = nullptr;
+    std::unique_ptr<VulkanPipelineManager> vulkanPipelineManager = nullptr;
 
     vk::DescriptorSetLayout descriptorSetLayout;
     FrameSemaphores frameSemaphores;
 
     std::vector<vk::CommandBuffer> commandBuffers;
     size_t curFrameIndex = 0;
+
+    bool needRecreateResources = false;
 };
 
 }  // namespace ez

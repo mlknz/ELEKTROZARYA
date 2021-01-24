@@ -1,26 +1,30 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "render/vulkan_include.hpp"
 
 namespace ez
 {
-class GraphicsPipeline
+class VulkanGraphicsPipeline
 {
    public:
-    GraphicsPipeline(vk::Device logicalDevice,
-                     vk::Extent2D swapchainExtent,
-                     vk::RenderPass renderPass,
-                     vk::DescriptorSetLayout descriptorSetLayout);
-    ~GraphicsPipeline();
+    VulkanGraphicsPipeline(VulkanGraphicsPipeline&& other);
+    ~VulkanGraphicsPipeline();
 
-    vk::Pipeline GetPipeline() { return graphicsPipeline; }
-    vk::PipelineLayout GetLayout() { return pipelineLayout; }
+    vk::Pipeline GetPipeline() const { return graphicsPipeline; }
+    vk::PipelineLayout GetPipelineLayout() const { return pipelineLayout; }
 
-    bool Ready() const { return ready; }
+    static std::shared_ptr<VulkanGraphicsPipeline> CreateVulkanGraphicsPipeline(
+        vk::Device logicalDevice,
+        vk::Extent2D swapchainExtent,
+        vk::RenderPass renderPass,
+        vk::DescriptorSetLayout descriptorSetLayout);
 
    private:
+    VulkanGraphicsPipeline(vk::Device aLogicalDevice);
+
     vk::ShaderModule createShaderModule(const std::vector<char>& code);
     bool CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
                                 vk::RenderPass renderPass,
@@ -29,8 +33,6 @@ class GraphicsPipeline
     vk::Device logicalDevice;
     vk::PipelineLayout pipelineLayout;
     vk::Pipeline graphicsPipeline;
-
-    bool ready = false;
 };
 
 }  // namespace ez

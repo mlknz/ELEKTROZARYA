@@ -39,7 +39,7 @@ BoundingBox BoundingBox::GetAABB(glm::mat4 m)
     return BoundingBox(min, max);
 }
 
-Mesh LoadGLTFMesh(const std::string& gltfFilePath)
+Mesh::Mesh(const std::string& gltfFilePath)
 {
     EZLOG("loading gltf file", gltfFilePath);
     tinygltf::Model gltfModel;
@@ -51,19 +51,17 @@ Mesh LoadGLTFMesh(const std::string& gltfFilePath)
 
     EZASSERT(fileLoaded, "Failed to load file");
 
-    Mesh mesh;
-    mesh.name = gltfFilePath;
+    name = gltfFilePath;
+    indices = {};
+    vertices = {};
 
     const tinygltf::Scene& scene = gltfModel.scenes.at(size_t(gltfModel.defaultScene));
     for (size_t i = 0; i < scene.nodes.size(); i++)
     {
         const tinygltf::Node node = gltfModel.nodes.at(size_t(scene.nodes[i]));
         EZLOG("Loading Node", node.name);
-        mesh.LoadNodeFromGLTF(
-            nullptr, node, uint32_t(scene.nodes[i]), gltfModel, mesh.indices, mesh.vertices);
+        LoadNodeFromGLTF(nullptr, node, uint32_t(scene.nodes[i]), gltfModel, indices, vertices);
     }
-
-    return mesh;
 }
 
 void Mesh::LoadNodeFromGLTF(Node* parent,
@@ -378,10 +376,12 @@ bool Mesh::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
 }
 
 bool Mesh::CreateDescriptorSet(vk::DescriptorPool descriptorPool,
-                               vk::DescriptorSetLayout descriptorSetLayout,
+                               vk::DescriptorSetLayout aDescriptorSetLayout,
                                size_t hardcodedGlobalUBOSize)
 {
     EZASSERT(logicalDevice);
+    descriptorSetLayout = aDescriptorSetLayout;
+
     vk::DescriptorSetLayout layouts[] = { descriptorSetLayout };
     vk::DescriptorSetAllocateInfo allocInfo = {};
     allocInfo.descriptorPool = descriptorPool;

@@ -4,8 +4,7 @@ namespace ez
 {
 bool Scene::Load()
 {
-    Mesh a = LoadGLTFMesh("../assets/DamagedHelmet/glTF/DamagedHelmet.gltf");
-    meshes.push_back(std::move(a));
+    meshes.emplace_back("../assets/DamagedHelmet/glTF/DamagedHelmet.gltf");
 
     readyToRender = false;
     loaded = true;

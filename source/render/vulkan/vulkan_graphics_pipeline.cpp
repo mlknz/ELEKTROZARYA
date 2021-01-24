@@ -6,22 +6,46 @@
 
 namespace ez
 {
-GraphicsPipeline::GraphicsPipeline(vk::Device aLogicalDevice,
-                                   vk::Extent2D swapchainExtent,
-                                   vk::RenderPass renderPass,
-                                   vk::DescriptorSetLayout descriptorSetLayout)
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(vk::Device aLogicalDevice)
     : logicalDevice(aLogicalDevice)
 {
-    ready = CreateGraphicsPipeline(swapchainExtent, renderPass, descriptorSetLayout);
 }
 
-GraphicsPipeline::~GraphicsPipeline()
+VulkanGraphicsPipeline::VulkanGraphicsPipeline(VulkanGraphicsPipeline&& other)
 {
-    logicalDevice.destroyPipeline(graphicsPipeline);
-    logicalDevice.destroyPipelineLayout(pipelineLayout);
+    logicalDevice = other.logicalDevice;
+    pipelineLayout = other.pipelineLayout;
+    graphicsPipeline = other.graphicsPipeline;
+
+    other.logicalDevice = nullptr;
+    other.pipelineLayout = nullptr;
+    other.graphicsPipeline = nullptr;
 }
 
-vk::ShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& code)
+VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
+{
+    if (logicalDevice)
+    {
+        logicalDevice.destroyPipeline(graphicsPipeline);
+        logicalDevice.destroyPipelineLayout(pipelineLayout);
+    }
+}
+
+std::shared_ptr<VulkanGraphicsPipeline> VulkanGraphicsPipeline::CreateVulkanGraphicsPipeline(
+    vk::Device logicalDevice,
+    vk::Extent2D swapchainExtent,
+    vk::RenderPass renderPass,
+    vk::DescriptorSetLayout descriptorSetLayout)
+{
+    VulkanGraphicsPipeline obj{ logicalDevice };
+    if (obj.CreateGraphicsPipeline(swapchainExtent, renderPass, descriptorSetLayout))
+    {
+        return std::make_shared<VulkanGraphicsPipeline>(std::move(obj));
+    }
+    return {};
+}
+
+vk::ShaderModule VulkanGraphicsPipeline::createShaderModule(const std::vector<char>& code)
 {
     vk::ShaderModuleCreateInfo createInfo = {};
     createInfo.codeSize = code.size();
@@ -37,9 +61,9 @@ vk::ShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& c
     return shaderModule;
 }
 
-bool GraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
-                                              vk::RenderPass renderPass,
-                                              vk::DescriptorSetLayout descriptorSetLayout)
+bool VulkanGraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
+                                                    vk::RenderPass renderPass,
+                                                    vk::DescriptorSetLayout descriptorSetLayout)
 {
     auto vertShaderCode = readFile("../source/shaders/vert.spv");
     auto fragShaderCode = readFile("../source/shaders/frag.spv");

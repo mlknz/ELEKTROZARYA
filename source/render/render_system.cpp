@@ -99,17 +99,8 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     }
     ci.descriptorSetLayout = *dsLayoutPtr;
 
-    ci.graphicsPipeline =
-        std::make_unique<GraphicsPipeline>(ci.vulkanDevice->GetDevice(),
-                                           ci.vulkanSwapchain->GetInfo().extent,
-                                           ci.vulkanRenderPass->GetRenderPass(),
-                                           ci.descriptorSetLayout);
-
-    if (!ci.graphicsPipeline->Ready())
-    {
-        EZLOG("Failed to create default GraphicsPipeline");
-        return GraphicsResult::Error;
-    }
+    ci.vulkanPipelineManager =
+        std::make_unique<VulkanPipelineManager>(ci.vulkanDevice->GetDevice());
 
     ci.commandBuffers = CreateCommandBuffers(ci.vulkanDevice->GetDevice(),
                                              ci.vulkanDevice->GetGraphicsCommandPool(),
@@ -134,7 +125,7 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     , vulkanDevice(std::move(ci.vulkanDevice))
     , vulkanSwapchain(std::move(ci.vulkanSwapchain))
     , vulkanRenderPass(std::move(ci.vulkanRenderPass))
-    , graphicsPipeline(std::move(ci.graphicsPipeline))
+    , vulkanPipelineManager(std::move(ci.vulkanPipelineManager))
     , descriptorSetLayout(std::move(ci.descriptorSetLayout))
     , frameSemaphores(std::move(ci.frameSemaphores))
     , commandBuffers(std::move(ci.commandBuffers))
@@ -210,7 +201,7 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
     init_info.DescriptorPool = ci.vulkanDevice->GetDescriptorPool();
     init_info.Allocator = nullptr;
     init_info.MinImageCount = 2;  // todo: config
-    init_info.ImageCount = ci.vulkanSwapchain->GetInfo().images.size();
+    init_info.ImageCount = static_cast<uint32_t>(ci.vulkanSwapchain->GetInfo().images.size());
     init_info.CheckVkResultFn = check_vk_result_imgui;
 
     ImGui_ImplVulkan_Init(&init_info, ci.vulkanRenderPass->GetRenderPass());
@@ -263,7 +254,7 @@ void RenderSystem::CleanupTotalPipeline()
                                      commandBuffers.data());
     commandBuffers = {};
 
-    graphicsPipeline.reset();
+    vulkanPipelineManager.reset();
     vulkanRenderPass.reset();
 }
 
@@ -300,19 +291,16 @@ void RenderSystem::RecreateTotalPipeline()
         EZLOG("Failed to Recreate Framebuffers");
         return;
     }
-    graphicsPipeline.reset();
-    graphicsPipeline = std::make_unique<GraphicsPipeline>(GetDevice(),
-                                                          GetSwapchainInfo().extent,
-                                                          vulkanRenderPass->GetRenderPass(),
-                                                          descriptorSetLayout);
-    if (!graphicsPipeline->Ready())
-    {
-        EZASSERT(false, "Failed to recreate GraphicsPipeline");  // todo: fallback
-    }
+
+    EZASSERT(!vulkanPipelineManager);
+
+    vulkanPipelineManager = std::make_unique<VulkanPipelineManager>(GetDevice());
 
     EZASSERT(commandBuffers.empty());
     commandBuffers = CreateCommandBuffers(
         GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo());
+
+    needRecreateResources = true;
 }
 
 void RenderSystem::UpdateGlobalUniforms(std::shared_ptr<Scene> scene,
@@ -336,6 +324,11 @@ void RenderSystem::UpdateGlobalUniforms(std::shared_ptr<Scene> scene,
 
 void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
 {
+    if (needRecreateResources)
+    {
+        scene->SetReadyToRender(false);
+        needRecreateResources = false;
+    }
     if (scene->ReadyToRender()) { return; }
 
     // todo: cleanup old scene meshes
@@ -348,6 +341,20 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
             GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool());
         meshesCreateSuccess |= mesh.CreateDescriptorSet(
             vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
+
+        auto vulkanGraphicsPipelineRV =
+            vulkanPipelineManager->CreateGraphicsPipeline(GetSwapchainInfo().extent,
+                                                          vulkanRenderPass->GetRenderPass(),
+                                                          mesh.descriptorSetLayout);
+        if (vulkanGraphicsPipelineRV.result != GraphicsResult::Ok)
+        {
+            EZASSERT(false, "Failed to create graphics pipeline for mesh");
+            meshesCreateSuccess = false;
+        }
+        else
+        {
+            mesh.graphicsPipeline = vulkanGraphicsPipelineRV.value;
+        }
     }
     EZASSERT(meshesCreateSuccess);
     scene->SetReadyToRender(true);
@@ -412,10 +419,16 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
 
     curCb.beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 
-    curCb.bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline->GetPipeline());
-
-    for (Mesh& mesh : scene->GetMeshesMutable())
+    for (const Mesh& mesh : scene->GetMeshesMutable())
     {
+        if (!mesh.graphicsPipeline)
+        {
+            EZASSERT(false, "Invalid Mesh Graphics Pipeline");
+            continue;
+        }
+        curCb.bindPipeline(vk::PipelineBindPoint::eGraphics,
+                           mesh.graphicsPipeline->GetPipeline());
+
         vk::Buffer vertexBuffers[] = { mesh.vertexBuffer };
         vk::DeviceSize offsets[] = { 0 };
 
@@ -423,7 +436,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
         curCb.bindIndexBuffer(mesh.indexBuffer, 0, vk::IndexType::eUint32);
 
         curCb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                 graphicsPipeline->GetLayout(),
+                                 mesh.graphicsPipeline->GetPipelineLayout(),
                                  0,
                                  { mesh.descriptorSet },
                                  {});
