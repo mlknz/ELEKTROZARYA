@@ -18,6 +18,7 @@ include_directories(
     external/gli
     external/tinygltf
     external/imgui
+    external/glslang
 )
 
 set(SOURCE_FILES
@@ -86,12 +87,23 @@ set(IMGUI_SOURCE_FILES
 )
 
 add_library(imgui ${IMGUI_SOURCE_FILES})
+# glslang stuff start
+option(ENABLE_SPVREMAPPER "" OFF)
+option(ENABLE_GLSLANG_BINARIES "" OFF)
+option(ENABLE_CTEST "" OFF)
+option(ENABLE_HLSL OFF)
+option(ENABLE_RTTI "" ON)
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/external/glslang)
+# glslang stuff end
 
 target_link_libraries(ELEKTROZARYA
     # Vulkan_LIBRARIES returns .dll on windows which is incompatible with llvm linker
     ${Vulkan_INCLUDE_DIRS}/../Lib/vulkan-1.lib
     ${SDL2_LIBRARIES}
     imgui
+    glslang
+    SPIRV
 )
 
 set_property(TARGET ELEKTROZARYA PROPERTY CXX_STANDARD 17)
