@@ -6,6 +6,7 @@ namespace ez
 {
 void Input::ProcessSDLEvent(const SDL_Event& event)
 {
+    keyboardReleasedLastUpdate.clear();
     switch (event.type)
     {
         case SDL_KEYDOWN:
@@ -13,6 +14,7 @@ void Input::ProcessSDLEvent(const SDL_Event& event)
             break;
         case SDL_KEYUP:
             keyboardPressed.erase(event.key.keysym.sym);
+            keyboardReleasedLastUpdate.insert(event.key.keysym.sym);
             break;
         default:
             break;
@@ -22,5 +24,10 @@ void Input::ProcessSDLEvent(const SDL_Event& event)
 bool Input::IsKeyPressed(SDL_Keycode key) const
 {
     return keyboardPressed.find(key) != keyboardPressed.end();
+}
+
+bool Input::IsKeyReleasedLastUpdate(SDL_Keycode key) const
+{
+    return keyboardReleasedLastUpdate.find(key) != keyboardReleasedLastUpdate.end();
 }
 }  // namespace ez

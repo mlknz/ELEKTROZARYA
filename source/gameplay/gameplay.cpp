@@ -32,9 +32,12 @@ void Gameplay::Update(int64_t deltaTimeMcs)
     if (input->IsKeyPressed(SDLK_d)) { cameraMovement.x -= 1.0f; }
     if (input->IsKeyPressed(SDLK_s)) { cameraMovement.z -= 1.0f; }
     if (input->IsKeyPressed(SDLK_w)) { cameraMovement.z += 1.0f; }
+
     cameraMovement *= deltaTimeSeconds;
 
     camera->MovePreserveDirection(cameraMovement);
+
+    if (input->IsKeyReleasedLastUpdate(SDLK_r)) { ReloadScene(); }
 
     int64_t frameTimesSum = 0;
     frameTimesMcs.emplace_front(deltaTimeMcs);
@@ -54,12 +57,19 @@ void Gameplay::Update(int64_t deltaTimeMcs)
 
     ImGui::Text("Frame time (ms): %d.%d", int(avgFrameTime) / 1000, int(avgFrameTime) % 1000);
     ImGui::Text("FPS: %lf", 1.0 / avgDeltaTimeSeconds);
-    if (ImGui::Button("Toggle Scene Test")) { view->ToggleSceneTest(); }
+    if (ImGui::Button("Reload Scene")) { ReloadScene(); }
+
+    // if (ImGui::Button("Toggle Scene Test")) { view->ToggleSceneTest(); }
 
     // ImGui::ShowDemoWindow();
     // ImGui::Text("Hello, %d", 42);
     // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
     ImGui::End();
+}
+
+void Gameplay::ReloadScene()
+{
+    if (view && view->GetScene()) { view->GetScene()->SetReadyToRender(false); }
 }
 
 }  // namespace ez

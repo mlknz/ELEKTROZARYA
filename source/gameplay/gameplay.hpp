@@ -23,6 +23,7 @@ class Gameplay
     void Update(int64_t deltaTimeMcs);
 
    private:
+    void ReloadScene();
     std::unique_ptr<View> view;
     std::unique_ptr<Camera> camera;
     std::unique_ptr<Input> input;
