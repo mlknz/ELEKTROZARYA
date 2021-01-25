@@ -3,4 +3,7 @@
 #include <string>
 #include <vector>
 
-std::vector<char> readFile(const std::string& filename);
+namespace ez::FileUtils
+{
+std::vector<char> ReadFile(const std::string& filename);
+}

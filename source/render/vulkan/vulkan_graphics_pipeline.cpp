@@ -3,6 +3,7 @@
 #include "core/file_utils.hpp"
 #include "core/log_assert.hpp"
 #include "core/scene/mesh.hpp"
+#include "render/vulkan/vulkan_shader_compiler.hpp"
 
 namespace ez
 {
@@ -45,10 +46,10 @@ std::shared_ptr<VulkanGraphicsPipeline> VulkanGraphicsPipeline::CreateVulkanGrap
     return {};
 }
 
-vk::ShaderModule VulkanGraphicsPipeline::createShaderModule(const std::vector<char>& code)
+vk::ShaderModule VulkanGraphicsPipeline::CreateShaderModule(const std::vector<uint32_t>& code)
 {
     vk::ShaderModuleCreateInfo createInfo = {};
-    createInfo.codeSize = code.size();
+    createInfo.codeSize = code.size() * sizeof(uint32_t);
     createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
 
     vk::ShaderModule shaderModule;
@@ -65,11 +66,13 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent
                                                     vk::RenderPass renderPass,
                                                     vk::DescriptorSetLayout descriptorSetLayout)
 {
-    auto vertShaderCode = readFile("../source/shaders/vert.spv");
-    auto fragShaderCode = readFile("../source/shaders/frag.spv");
+    const std::vector<uint32_t> vertShaderCode =
+        SpirVShaderCompiler::CompileFromGLSL("../source/shaders/shader.vert");
+    const std::vector<uint32_t> fragShaderCode =
+        SpirVShaderCompiler::CompileFromGLSL("../source/shaders/shader.frag");
 
-    vk::ShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-    vk::ShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+    vk::ShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
+    vk::ShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
 
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo = {};
     vertShaderStageInfo.stage = vk::ShaderStageFlagBits::eVertex;

@@ -25,5 +25,7 @@ const std::map<vk::DescriptorType, uint32_t> VulkanDescriptorPoolSizes = {
     { vk::DescriptorType::eStorageBufferDynamic, 1000 },
 };
 
+constexpr bool dumpGlslSources = false;
+
 }  // namespace Config
 }  // namespace ez

@@ -25,7 +25,7 @@ class VulkanGraphicsPipeline
    private:
     VulkanGraphicsPipeline(vk::Device aLogicalDevice);
 
-    vk::ShaderModule createShaderModule(const std::vector<char>& code);
+    vk::ShaderModule CreateShaderModule(const std::vector<uint32_t>& code);
     bool CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
                                 vk::RenderPass renderPass,
                                 vk::DescriptorSetLayout descriptorSetLayout);
