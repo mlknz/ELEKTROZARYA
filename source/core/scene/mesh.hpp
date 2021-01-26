@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 
+#include "core/scene/material.hpp"
 #include "render/vulkan/vulkan_graphics_pipeline.hpp"
 #include "render/vulkan_include.hpp"
 
@@ -80,15 +81,19 @@ struct Primitive
     uint32_t firstIndex;
     uint32_t indexCount;
     uint32_t vertexCount;
-    // Material &material;
     bool hasIndices;
 
     BoundingBox bb;
+    Material& material;
 
-    Primitive(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexCount
-              /*Material& material*/)
-        : firstIndex(firstIndex), indexCount(indexCount), vertexCount(vertexCount)
-    //, material(material)
+    Primitive(uint32_t firstIndex,
+              uint32_t indexCount,
+              uint32_t vertexCount,
+              Material& material)
+        : firstIndex(firstIndex)
+        , indexCount(indexCount)
+        , vertexCount(vertexCount)
+        , material(material)
     {
         hasIndices = indexCount > 0;
     }
@@ -101,7 +106,7 @@ struct Primitive
     }
 };
 
-struct SubMesh
+struct Mesh
 {
     vk::Device device;
 
@@ -126,7 +131,7 @@ struct SubMesh
         // float jointcount{ 0 };
     } uniformBlock;
 
-    SubMesh(/*vk::Device device,*/ glm::mat4 matrix)
+    Mesh(/*vk::Device device,*/ glm::mat4 matrix)
     {
         // this->device = device;
         this->uniformBlock.matrix = matrix;
@@ -146,7 +151,7 @@ struct SubMesh
         //        uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
     };
 
-    ~SubMesh()
+    ~Mesh()
     {
         //        vkDestroyBuffer(device->logicalDevice, uniformBuffer.buffer, nullptr);
         //        vkFreeMemory(device->logicalDevice, uniformBuffer.memory, nullptr);
@@ -168,7 +173,7 @@ struct Node
     std::vector<std::unique_ptr<Node>> children;
     glm::mat4 matrix;
     std::string name;
-    std::unique_ptr<SubMesh> subMesh;
+    std::unique_ptr<Mesh> mesh;
     glm::vec3 translation{};
     glm::vec3 scale{ 1.0f };
     glm::quat rotation{};
@@ -211,13 +216,13 @@ struct Node
     }
 };
 
-struct Mesh
+struct Model
 {
-    Mesh() = delete;
-    Mesh(const std::string& gltfFilePath);
-    ~Mesh();
-    Mesh(const Mesh& other) = delete;
-    Mesh(Mesh&& other) = default;
+    Model() = delete;
+    Model(const std::string& gltfFilePath);
+    ~Model();
+    Model(const Model& other) = delete;
+    Model(Model&& other) = default;
 
     void SetLogicalDevice(vk::Device device) { logicalDevice = device; }
     bool CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
@@ -232,8 +237,8 @@ struct Mesh
     std::string name;
     std::vector<std::unique_ptr<Node>> nodes;
 
-    std::vector<Vertex> vertices;   // todo: clear after uploading
-    std::vector<uint32_t> indices;  // todo: clear after uploading
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
 
     vk::Device logicalDevice;
 
@@ -251,7 +256,7 @@ struct Mesh
     vk::DescriptorSet descriptorSet;
     std::shared_ptr<VulkanGraphicsPipeline> graphicsPipeline;
 
-    // private:
+   private:
     void LoadNodeFromGLTF(Node* parent,
                           const tinygltf::Node& node,
                           uint32_t nodeIndex,

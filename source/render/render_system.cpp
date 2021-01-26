@@ -313,12 +313,12 @@ void RenderSystem::UpdateGlobalUniforms(std::shared_ptr<Scene> scene,
                       camera->GetProjectionMatrix(),
                       camera->GetViewProjectionMatrix() };
 
-    for (Mesh& mesh : scene->GetMeshesMutable())
+    for (Model& model : scene->GetModelsMutable())
     {
         CheckVkResult(logicalDevice.mapMemory(
-            mesh.uniformBufferMemory, 0, sizeof(ubo), vk::MemoryMapFlags(), &data));
+            model.uniformBufferMemory, 0, sizeof(ubo), vk::MemoryMapFlags(), &data));
         memcpy(data, &ubo, sizeof(ubo));
-        logicalDevice.unmapMemory(mesh.uniformBufferMemory);
+        logicalDevice.unmapMemory(model.uniformBufferMemory);
     }
 }
 
@@ -331,32 +331,32 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
     }
     if (scene->ReadyToRender()) { return; }
 
-    // todo: cleanup old scene meshes
-    std::vector<Mesh>& sceneMeshes = scene->GetMeshesMutable();
-    bool meshesCreateSuccess = true;
-    for (Mesh& mesh : sceneMeshes)
+    // todo: cleanup old scene models
+    std::vector<Model>& sceneModels = scene->GetModelsMutable();
+    bool modelsCreateSuccess = true;
+    for (Model& model : sceneModels)
     {
-        mesh.SetLogicalDevice(GetDevice());
-        meshesCreateSuccess |= mesh.CreateVertexBuffers(
+        model.SetLogicalDevice(GetDevice());
+        modelsCreateSuccess |= model.CreateVertexBuffers(
             GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool());
-        meshesCreateSuccess |= mesh.CreateDescriptorSet(
+        modelsCreateSuccess |= model.CreateDescriptorSet(
             vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
 
         auto vulkanGraphicsPipelineRV =
             vulkanPipelineManager->CreateGraphicsPipeline(GetSwapchainInfo().extent,
                                                           vulkanRenderPass->GetRenderPass(),
-                                                          mesh.descriptorSetLayout);
+                                                          model.descriptorSetLayout);
         if (vulkanGraphicsPipelineRV.result != GraphicsResult::Ok)
         {
-            EZASSERT(false, "Failed to create graphics pipeline for mesh");
-            meshesCreateSuccess = false;
+            EZASSERT(false, "Failed to create graphics pipeline for model");
+            modelsCreateSuccess = false;
         }
         else
         {
-            mesh.graphicsPipeline = vulkanGraphicsPipelineRV.value;
+            model.graphicsPipeline = vulkanGraphicsPipelineRV.value;
         }
     }
-    EZASSERT(meshesCreateSuccess);
+    EZASSERT(modelsCreateSuccess);
     scene->SetReadyToRender(true);
 }
 
@@ -419,29 +419,29 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
 
     curCb.beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 
-    for (const Mesh& mesh : scene->GetMeshesMutable())
+    for (const Model& model : scene->GetModelsMutable())
     {
-        if (!mesh.graphicsPipeline)
+        if (!model.graphicsPipeline)
         {
-            EZASSERT(false, "Invalid Mesh Graphics Pipeline");
+            EZASSERT(false, "Invalid Model Graphics Pipeline");
             continue;
         }
         curCb.bindPipeline(vk::PipelineBindPoint::eGraphics,
-                           mesh.graphicsPipeline->GetPipeline());
+                           model.graphicsPipeline->GetPipeline());
 
-        vk::Buffer vertexBuffers[] = { mesh.vertexBuffer };
+        vk::Buffer vertexBuffers[] = { model.vertexBuffer };
         vk::DeviceSize offsets[] = { 0 };
 
         curCb.bindVertexBuffers(0, 1, vertexBuffers, offsets);
-        curCb.bindIndexBuffer(mesh.indexBuffer, 0, vk::IndexType::eUint32);
+        curCb.bindIndexBuffer(model.indexBuffer, 0, vk::IndexType::eUint32);
 
         curCb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                 mesh.graphicsPipeline->GetPipelineLayout(),
+                                 model.graphicsPipeline->GetPipelineLayout(),
                                  0,
-                                 { mesh.descriptorSet },
+                                 { model.descriptorSet },
                                  {});
 
-        curCb.drawIndexed(static_cast<uint32_t>(mesh.indices.size()), 1, 0, 0, 0);
+        curCb.drawIndexed(static_cast<uint32_t>(model.indices.size()), 1, 0, 0, 0);
     }
 
     ImGui::Render();
@@ -494,7 +494,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
 
 RenderSystem::~RenderSystem()
 {
-    // todo: cleanup all scenes meshes?
+    // todo: cleanup all scenes models?
 
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplSDL2_Shutdown();

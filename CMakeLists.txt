@@ -51,6 +51,8 @@ set(SOURCE_FILES
     ${SOURCES}/core/file_utils.hpp
     ${SOURCES}/core/scene/mesh.cpp
     ${SOURCES}/core/scene/mesh.hpp
+    ${SOURCES}/core/scene/material.cpp
+    ${SOURCES}/core/scene/material.hpp
     ${SOURCES}/core/scene/scene.cpp
     ${SOURCES}/core/scene/scene.hpp
     ${SOURCES}/core/view.cpp

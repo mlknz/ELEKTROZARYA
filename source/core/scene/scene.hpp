@@ -15,13 +15,13 @@ class Scene final
     void SetReadyToRender(bool value) { readyToRender = value; }
     bool ReadyToRender() const { return readyToRender; }
 
-    const std::vector<Mesh>& GetMeshes() { return meshes; }
-    std::vector<Mesh>& GetMeshesMutable() { return meshes; }
+    const std::vector<Model>& GetModels() { return models; }
+    std::vector<Model>& GetModelsMutable() { return models; }
 
     int sceneId = 0;
 
    private:
-    std::vector<Mesh> meshes;
+    std::vector<Model> models;
 
     bool loaded = false;
     bool readyToRender = false;

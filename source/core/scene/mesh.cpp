@@ -39,7 +39,7 @@ BoundingBox BoundingBox::GetAABB(glm::mat4 m)
     return BoundingBox(min, max);
 }
 
-Mesh::Mesh(const std::string& gltfFilePath)
+Model::Model(const std::string& gltfFilePath)
 {
     EZLOG("loading gltf file", gltfFilePath);
     tinygltf::Model gltfModel;
@@ -64,12 +64,12 @@ Mesh::Mesh(const std::string& gltfFilePath)
     }
 }
 
-void Mesh::LoadNodeFromGLTF(Node* parent,
-                            const tinygltf::Node& node,
-                            uint32_t nodeIndex,
-                            const tinygltf::Model& model,
-                            std::vector<uint32_t>& indexBuffer,
-                            std::vector<Vertex>& vertexBuffer)
+void Model::LoadNodeFromGLTF(Node* parent,
+                             const tinygltf::Node& node,
+                             uint32_t nodeIndex,
+                             const tinygltf::Model& model,
+                             std::vector<uint32_t>& indexBuffer,
+                             std::vector<Vertex>& vertexBuffer)
 {
     std::unique_ptr<Node> newNode = std::make_unique<Node>();
     newNode->index = nodeIndex;
@@ -116,7 +116,7 @@ void Mesh::LoadNodeFromGLTF(Node* parent,
     if (node.mesh > -1)
     {
         const tinygltf::Mesh mesh = model.meshes[node.mesh];
-        newNode->subMesh = std::make_unique<SubMesh>(newNode->matrix);
+        newNode->mesh = std::make_unique<Mesh>(newNode->matrix);
         for (size_t j = 0; j < mesh.primitives.size(); j++)
         {
             const tinygltf::Primitive& primitive = mesh.primitives[j];
@@ -274,22 +274,24 @@ void Mesh::LoadNodeFromGLTF(Node* parent,
                         return;
                 }
             }
-            std::unique_ptr<Primitive> newPrimitive = std::make_unique<Primitive>(
-                indexStart, indexCount, vertexCount
-                /*primitive.material > -1 ? materials[primitive.material] : materials.back()*/);
+            // Material& mat = primitive.material > -1 ? materials[primitive.material] :
+            // materials.back();
+            Material mat;
+            std::unique_ptr<Primitive> newPrimitive =
+                std::make_unique<Primitive>(indexStart, indexCount, vertexCount, mat);
             newPrimitive->setBoundingBox(posMin, posMax);
-            newNode->subMesh->primitives.push_back(std::move(newPrimitive));
+            newNode->mesh->primitives.push_back(std::move(newPrimitive));
         }
         // Mesh BB from BBs of primitives
-        for (auto& p : newNode->subMesh->primitives)
+        for (auto& p : newNode->mesh->primitives)
         {
-            if (p->bb.valid && !newNode->subMesh->bb.valid)
+            if (p->bb.valid && !newNode->mesh->bb.valid)
             {
-                newNode->subMesh->bb = p->bb;
-                newNode->subMesh->bb.valid = true;
+                newNode->mesh->bb = p->bb;
+                newNode->mesh->bb.valid = true;
             }
-            newNode->subMesh->bb.min = glm::min(newNode->subMesh->bb.min, p->bb.min);
-            newNode->subMesh->bb.max = glm::max(newNode->subMesh->bb.max, p->bb.max);
+            newNode->mesh->bb.min = glm::min(newNode->mesh->bb.min, p->bb.min);
+            newNode->mesh->bb.max = glm::max(newNode->mesh->bb.max, p->bb.max);
         }
     }
     if (parent) { parent->children.push_back(std::move(newNode)); }
@@ -299,7 +301,7 @@ void Mesh::LoadNodeFromGLTF(Node* parent,
     }
 }
 
-Mesh::~Mesh()
+Model::~Model()
 {
     if (logicalDevice)
     {
@@ -314,9 +316,9 @@ Mesh::~Mesh()
     }
 }
 
-bool Mesh::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
-                               vk::Queue graphicsQueue,
-                               vk::CommandPool graphicsCommandPool)
+bool Model::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
+                                vk::Queue graphicsQueue,
+                                vk::CommandPool graphicsCommandPool)
 {
     assert(logicalDevice);
     vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
@@ -350,7 +352,7 @@ bool Mesh::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
 
     vk::DebugUtilsObjectNameInfoEXT nameInfo;
     nameInfo.objectType = vk::ObjectType::eDeviceMemory;
-    nameInfo.setPObjectName("MESH_GLOBAL_UBO_MEMORY");
+    nameInfo.setPObjectName("MODEL_GLOBAL_UBO_MEMORY");
     const uint64_t objectHandle =
         reinterpret_cast<uint64_t>(uniformBufferMemory.operator VkDeviceMemory());
     nameInfo.objectHandle = objectHandle;
@@ -375,9 +377,9 @@ bool Mesh::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
     return true;
 }
 
-bool Mesh::CreateDescriptorSet(vk::DescriptorPool descriptorPool,
-                               vk::DescriptorSetLayout aDescriptorSetLayout,
-                               size_t hardcodedGlobalUBOSize)
+bool Model::CreateDescriptorSet(vk::DescriptorPool descriptorPool,
+                                vk::DescriptorSetLayout aDescriptorSetLayout,
+                                size_t hardcodedGlobalUBOSize)
 {
     EZASSERT(logicalDevice);
     descriptorSetLayout = aDescriptorSetLayout;

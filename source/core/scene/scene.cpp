@@ -4,7 +4,7 @@ namespace ez
 {
 bool Scene::Load()
 {
-    meshes.emplace_back("../assets/DamagedHelmet/glTF/DamagedHelmet.gltf");
+    models.emplace_back("../assets/DamagedHelmet/glTF/DamagedHelmet.gltf");
 
     readyToRender = false;
     loaded = true;
