@@ -1,14 +1,9 @@
 #include "mesh.hpp"
 
 #include "core/log_assert.hpp"
+#include "core/scene/tiny_gltf_include.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
-
-#define TINYGLTF_IMPLEMENTATION
-#define TINYGLTF_USE_CPP14
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include <tinygltf/tiny_gltf.h>
 
 namespace ez
 {
@@ -52,6 +47,11 @@ Model::Model(const std::string& gltfFilePath)
     EZASSERT(fileLoaded, "Failed to load file");
 
     name = gltfFilePath;
+
+    for (const tinygltf::Sampler& gltfSampler : gltfModel.samplers)
+    {
+        textureSamplers.push_back(TextureSampler::FromGltfSampler(gltfSampler));
+    }
     indices = {};
     vertices = {};
 

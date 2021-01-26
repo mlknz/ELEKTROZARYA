@@ -53,6 +53,8 @@ set(SOURCE_FILES
     ${SOURCES}/core/scene/mesh.hpp
     ${SOURCES}/core/scene/material.cpp
     ${SOURCES}/core/scene/material.hpp
+    ${SOURCES}/core/scene/texture_sampler.cpp
+    ${SOURCES}/core/scene/texture_sampler.hpp
     ${SOURCES}/core/scene/scene.cpp
     ${SOURCES}/core/scene/scene.hpp
     ${SOURCES}/core/view.cpp
@@ -62,6 +64,7 @@ set(SOURCE_FILES
     ${SOURCES}/core/input/input.cpp
     ${SOURCES}/core/input/input.hpp
     ${SOURCES}/core/log_assert.hpp
+    ${SOURCES}/core/scene/tiny_gltf_include.hpp
 
     ${SOURCES}/gameplay/gameplay.cpp
     ${SOURCES}/gameplay/gameplay.hpp
