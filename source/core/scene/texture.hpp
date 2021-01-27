@@ -3,11 +3,6 @@
 #include "core/scene/texture_sampler.hpp"
 #include "render/vulkan_include.hpp"
 
-namespace tinygltf
-{
-struct Image;
-}
-
 namespace ez
 {
 struct TextureCreationInfo final
@@ -23,8 +18,11 @@ struct TextureCreationInfo final
     uint32_t height = 0;
     uint32_t mipLevels = 0;
 
-    static TextureCreationInfo FromGltfImage(tinygltf::Image& gltfImage,
-                                             const TextureSampler& textureSampler);
+    static TextureCreationInfo CreateFromData(unsigned char* data,
+                                              uint32_t width,
+                                              uint32_t height,
+                                              uint32_t channelsCount,
+                                              const TextureSampler& textureSampler);
 
     bool IsValid() const;
 };

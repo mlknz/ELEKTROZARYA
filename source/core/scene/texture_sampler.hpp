@@ -2,15 +2,14 @@
 
 #include "render/vulkan_include.hpp"
 
-namespace tinygltf
-{
-struct Sampler;
-}
 namespace ez
 {
 struct TextureSampler final
 {
-    static TextureSampler FromGltfSampler(const tinygltf::Sampler& gltfSampler);
+    static TextureSampler FromGltfSampler(int32_t gltfMagFilter,
+                                          int32_t gltfMinFilter,
+                                          int32_t gltfWrapS,
+                                          int32_t gltfWrapT);
 
     vk::Filter magFilter = vk::Filter::eLinear;
     vk::Filter minFilter = vk::Filter::eLinear;

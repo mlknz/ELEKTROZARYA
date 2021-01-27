@@ -1,9 +1,14 @@
 #include "mesh.hpp"
 
 #include "core/log_assert.hpp"
-#include "core/scene/tiny_gltf_include.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
+
+#define TINYGLTF_IMPLEMENTATION
+#define TINYGLTF_USE_CPP14
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <tinygltf/tiny_gltf.h>
 
 namespace ez
 {
@@ -50,7 +55,10 @@ Model::Model(const std::string& gltfFilePath)
 
     for (const tinygltf::Sampler& gltfSampler : gltfModel.samplers)
     {
-        textureSamplers.push_back(TextureSampler::FromGltfSampler(gltfSampler));
+        textureSamplers.push_back(TextureSampler::FromGltfSampler(gltfSampler.magFilter,
+                                                                  gltfSampler.minFilter,
+                                                                  gltfSampler.wrapS,
+                                                                  gltfSampler.wrapT));
     }
     for (tinygltf::Texture& tex : gltfModel.textures)
     {
@@ -62,8 +70,12 @@ Model::Model(const std::string& gltfFilePath)
             (tex.sampler >= 0) ? textureSamplers.at(samplerIndex) : TextureSampler{};
 
         TextureCreationInfo textureCI =
-            TextureCreationInfo::FromGltfImage(gltfImage, textureSampler);
-        textures.push_back(Texture(std::move(textureCI)));  // textures are loaded to GPU later
+            TextureCreationInfo::CreateFromData(&gltfImage.image.at(0),
+                                                static_cast<uint32_t>(gltfImage.width),
+                                                static_cast<uint32_t>(gltfImage.height),
+                                                static_cast<uint32_t>(gltfImage.component),
+                                                textureSampler);
+        textures.emplace_back(std::move(textureCI));  // textures are loaded to GPU later
     }
     // loadMaterials(gltfModel);
 

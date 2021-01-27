@@ -66,7 +66,6 @@ set(SOURCE_FILES
     ${SOURCES}/core/input/input.cpp
     ${SOURCES}/core/input/input.hpp
     ${SOURCES}/core/log_assert.hpp
-    ${SOURCES}/core/scene/tiny_gltf_include.hpp
 
     ${SOURCES}/gameplay/gameplay.cpp
     ${SOURCES}/gameplay/gameplay.hpp

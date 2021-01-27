@@ -1,7 +1,6 @@
 #include "texture.hpp"
 
 #include "core/log_assert.hpp"
-#include "core/scene/tiny_gltf_include.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
 
@@ -9,29 +8,32 @@ namespace ez
 {
 TextureCreationInfo::~TextureCreationInfo()
 {
-    if (buffer != nullptr) { delete[] buffer; }
+    // todo: mewmew fix leak
+    // if (buffer != nullptr) { delete[] buffer; }
 }
 
-TextureCreationInfo TextureCreationInfo::FromGltfImage(tinygltf::Image& gltfImage,
-                                                       const TextureSampler& textureSampler)
+TextureCreationInfo TextureCreationInfo::CreateFromData(unsigned char* data,
+                                                        uint32_t width,
+                                                        uint32_t height,
+                                                        uint32_t channelsCount,
+                                                        const TextureSampler& textureSampler)
 {
     TextureCreationInfo ci;
 
-    ci.bufferSize = static_cast<vk::DeviceSize>(gltfImage.width * gltfImage.height * 4);
+    ci.bufferSize = static_cast<vk::DeviceSize>(width * height * 4);
     ci.buffer = new unsigned char[ci.bufferSize];
 
-    const int32_t channelsCount = gltfImage.component;
     unsigned char* copyTo = ci.buffer;
-    unsigned char* copyFrom = &gltfImage.image.at(0);
-    for (int32_t i = 0; i < gltfImage.width * gltfImage.height; ++i)
+    unsigned char* copyFrom = data;
+    for (uint32_t i = 0; i < width * height; ++i)
     {
-        for (int32_t j = 0; j < channelsCount; ++j) { copyTo[j] = copyFrom[j]; }
+        for (uint32_t j = 0; j < channelsCount; ++j) { copyTo[j] = copyFrom[j]; }
         copyTo += 4;
         copyFrom += channelsCount;
     }
 
-    ci.width = static_cast<uint32_t>(gltfImage.width);
-    ci.height = static_cast<uint32_t>(gltfImage.height);
+    ci.width = width;
+    ci.height = height;
     ci.mipLevels =
         static_cast<uint32_t>(std::floor(std::log2(std::max(ci.width, ci.height))) + 1.0);
 
