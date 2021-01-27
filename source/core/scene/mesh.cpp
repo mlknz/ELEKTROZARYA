@@ -52,6 +52,21 @@ Model::Model(const std::string& gltfFilePath)
     {
         textureSamplers.push_back(TextureSampler::FromGltfSampler(gltfSampler));
     }
+    for (tinygltf::Texture& tex : gltfModel.textures)
+    {
+        const size_t imageIndex = static_cast<size_t>(tex.source);
+        const size_t samplerIndex = static_cast<size_t>(tex.sampler);
+
+        tinygltf::Image gltfImage = gltfModel.images.at(imageIndex);
+        TextureSampler textureSampler =
+            (tex.sampler >= 0) ? textureSamplers.at(samplerIndex) : TextureSampler{};
+
+        TextureCreationInfo textureCI =
+            TextureCreationInfo::FromGltfImage(gltfImage, textureSampler);
+        textures.push_back(Texture(std::move(textureCI)));  // textures are loaded to GPU later
+    }
+    // loadMaterials(gltfModel);
+
     indices = {};
     vertices = {};
 
@@ -314,6 +329,9 @@ Model::~Model()
         logicalDevice.destroyBuffer(vertexBuffer);
         logicalDevice.freeMemory(vertexBufferMemory);
     }
+
+    textures = {};
+    textureSamplers = {};
 }
 
 bool Model::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,

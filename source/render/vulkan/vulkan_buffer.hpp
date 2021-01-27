@@ -29,5 +29,9 @@ class VulkanBuffer
                            vk::Buffer dstBuffer,
                            vk::DeviceSize size,
                            void* data);
+
+    static uint32_t FindMemoryType(vk::PhysicalDevice physicalDevice,
+                                   uint32_t typeFilter,
+                                   vk::MemoryPropertyFlags properties);
 };
 }  // namespace ez

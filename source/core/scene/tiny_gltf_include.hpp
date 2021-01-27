@@ -1,4 +1,4 @@
-#pragma_once
+#pragma once
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_USE_CPP14

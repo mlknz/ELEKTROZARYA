@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "core/scene/material.hpp"
+#include "core/scene/texture.hpp"
 #include "core/scene/texture_sampler.hpp"
 #include "render/vulkan/vulkan_graphics_pipeline.hpp"
 #include "render/vulkan_include.hpp"
@@ -258,6 +259,8 @@ struct Model
     std::shared_ptr<VulkanGraphicsPipeline> graphicsPipeline;
 
     std::vector<TextureSampler> textureSamplers;
+    std::vector<Texture> textures;
+
    private:
     void LoadNodeFromGLTF(Node* parent,
                           const tinygltf::Node& node,

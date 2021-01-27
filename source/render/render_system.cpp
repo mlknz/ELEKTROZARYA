@@ -342,6 +342,17 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
         modelsCreateSuccess |= model.CreateDescriptorSet(
             vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
 
+        for (Texture& tex : model.textures)
+        {
+            if (!tex.IsLoadedToGPU())
+            {
+                modelsCreateSuccess |= tex.LoadToGpu(GetDevice(),
+                                                     GetPhysicalDevice(),
+                                                     vulkanDevice->GetGraphicsQueue(),
+                                                     vulkanDevice->GetGraphicsCommandPool());
+            }
+        }
+
         auto vulkanGraphicsPipelineRV =
             vulkanPipelineManager->CreateGraphicsPipeline(GetSwapchainInfo().extent,
                                                           vulkanRenderPass->GetRenderPass(),

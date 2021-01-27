@@ -53,6 +53,8 @@ set(SOURCE_FILES
     ${SOURCES}/core/scene/mesh.hpp
     ${SOURCES}/core/scene/material.cpp
     ${SOURCES}/core/scene/material.hpp
+    ${SOURCES}/core/scene/texture.cpp
+    ${SOURCES}/core/scene/texture.hpp
     ${SOURCES}/core/scene/texture_sampler.cpp
     ${SOURCES}/core/scene/texture_sampler.hpp
     ${SOURCES}/core/scene/scene.cpp

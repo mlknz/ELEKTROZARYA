@@ -1,6 +1,7 @@
 #include "texture_sampler.hpp"
 
 #include "core/log_assert.hpp"
+#include "core/scene/tiny_gltf_include.hpp"
 
 namespace ez
 {

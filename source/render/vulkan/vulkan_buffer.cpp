@@ -7,9 +7,9 @@
 
 namespace ez
 {
-uint32_t findMemoryType(vk::PhysicalDevice physicalDevice,
-                        uint32_t typeFilter,
-                        vk::MemoryPropertyFlags properties)
+uint32_t VulkanBuffer::FindMemoryType(vk::PhysicalDevice physicalDevice,
+                                      uint32_t typeFilter,
+                                      vk::MemoryPropertyFlags properties)
 {
     vk::PhysicalDeviceMemoryProperties memProperties;
     physicalDevice.getMemoryProperties(&memProperties);
@@ -52,7 +52,7 @@ bool VulkanBuffer::createBuffer(vk::Device logicalDevice,
     vk::MemoryAllocateInfo allocInfo = {};
     allocInfo.allocationSize = memRequirements.size;
     allocInfo.memoryTypeIndex =
-        findMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
+        FindMemoryType(physicalDevice, memRequirements.memoryTypeBits, properties);
 
     if (logicalDevice.allocateMemory(&allocInfo, nullptr, &bufferMemory) !=
         vk::Result::eSuccess)
@@ -72,7 +72,7 @@ void VulkanBuffer::copyBuffer(vk::Device logicalDevice,
                               vk::Buffer dstBuffer,
                               vk::DeviceSize size)
 {
-    vk::CommandBufferAllocateInfo allocInfo = {};
+    vk::CommandBufferAllocateInfo allocInfo = {};  // todo: one-time CB create-submit helper
     allocInfo.level = vk::CommandBufferLevel::ePrimary;
     allocInfo.commandPool = commandPool;
     allocInfo.commandBufferCount = 1;
