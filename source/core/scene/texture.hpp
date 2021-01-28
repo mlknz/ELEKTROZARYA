@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "core/scene/texture_sampler.hpp"
 #include "render/vulkan_include.hpp"
 
@@ -7,17 +9,6 @@ namespace ez
 {
 struct TextureCreationInfo final
 {
-    ~TextureCreationInfo();
-    // CPU data to load to GPU
-    unsigned char* buffer = nullptr;
-    vk::DeviceSize bufferSize = 0;
-    TextureSampler textureSampler;
-
-    // other
-    uint32_t width = 0;
-    uint32_t height = 0;
-    uint32_t mipLevels = 0;
-
     static TextureCreationInfo CreateFromData(unsigned char* data,
                                               uint32_t width,
                                               uint32_t height,
@@ -25,6 +16,16 @@ struct TextureCreationInfo final
                                               const TextureSampler& textureSampler);
 
     bool IsValid() const;
+
+    // CPU data to load to GPU
+    std::vector<unsigned char> buffer;
+    vk::DeviceSize bufferSize = 0;
+    TextureSampler textureSampler;
+
+    // other
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t mipLevels = 0;
 };
 
 class Texture

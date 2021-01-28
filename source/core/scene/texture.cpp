@@ -6,12 +6,6 @@
 
 namespace ez
 {
-TextureCreationInfo::~TextureCreationInfo()
-{
-    // todo: mewmew fix leak
-    // if (buffer != nullptr) { delete[] buffer; }
-}
-
 TextureCreationInfo TextureCreationInfo::CreateFromData(unsigned char* data,
                                                         uint32_t width,
                                                         uint32_t height,
@@ -21,9 +15,9 @@ TextureCreationInfo TextureCreationInfo::CreateFromData(unsigned char* data,
     TextureCreationInfo ci;
 
     ci.bufferSize = static_cast<vk::DeviceSize>(width * height * 4);
-    ci.buffer = new unsigned char[ci.bufferSize];
+    ci.buffer.resize(ci.bufferSize);
 
-    unsigned char* copyTo = ci.buffer;
+    unsigned char* copyTo = ci.buffer.data();
     unsigned char* copyFrom = data;
     for (uint32_t i = 0; i < width * height; ++i)
     {
@@ -44,7 +38,7 @@ TextureCreationInfo TextureCreationInfo::CreateFromData(unsigned char* data,
 
 bool TextureCreationInfo::IsValid() const
 {
-    return width > 0 && height > 0 && bufferSize > 0 && buffer != nullptr;
+    return width > 0 && height > 0 && bufferSize > 0 && !buffer.empty();
 }
 
 bool Texture::LoadToGpu(vk::Device aLogicalDevice,
@@ -108,7 +102,7 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     uint8_t* data;
     CheckVkResult(logicalDevice.mapMemory(
         stagingMemory, 0, memReqs.size, vk::MemoryMapFlags{}, reinterpret_cast<void**>(&data)));
-    memcpy(data, creationInfo.buffer, creationInfo.bufferSize);
+    memcpy(data, creationInfo.buffer.data(), creationInfo.bufferSize);
     logicalDevice.unmapMemory(stagingMemory);
 
     // /////////////////////////////
