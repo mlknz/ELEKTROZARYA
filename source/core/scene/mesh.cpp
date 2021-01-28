@@ -77,7 +77,7 @@ Model::Model(const std::string& gltfFilePath)
                                                 textureSampler);
         textures.emplace_back(std::move(textureCI));  // textures are loaded to GPU later
     }
-    // loadMaterials(gltfModel);
+    LoadMaterials(gltfModel);
 
     indices = {};
     vertices = {};
@@ -301,9 +301,8 @@ void Model::LoadNodeFromGLTF(Node* parent,
                         return;
                 }
             }
-            // Material& mat = primitive.material > -1 ? materials[primitive.material] :
-            // materials.back();
-            Material mat;
+            Material& mat =
+                primitive.material > -1 ? materials[primitive.material] : materials.back();
             std::unique_ptr<Primitive> newPrimitive =
                 std::make_unique<Primitive>(indexStart, indexCount, vertexCount, mat);
             newPrimitive->setBoundingBox(posMin, posMax);
@@ -326,6 +325,61 @@ void Model::LoadNodeFromGLTF(Node* parent,
     {
         nodes.push_back(std::move(newNode));
     }
+}
+
+void Model::LoadMaterials(tinygltf::Model& gltfModel)
+{
+    for (tinygltf::Material& mat : gltfModel.materials)
+    {
+        Material material{};
+        if (mat.values.find("baseColorTexture") != mat.values.end())
+        {
+            material.textures.baseColor =
+                &textures[mat.values["baseColorTexture"].TextureIndex()];
+            material.texCoordSets.baseColor = mat.values["baseColorTexture"].TextureTexCoord();
+        }
+        if (mat.values.find("metallicRoughnessTexture") != mat.values.end())
+        {
+            material.textures.metallicRoughness =
+                &textures[mat.values["metallicRoughnessTexture"].TextureIndex()];
+            material.texCoordSets.metallicRoughness =
+                mat.values["metallicRoughnessTexture"].TextureTexCoord();
+        }
+
+        if (mat.additionalValues.find("normalTexture") != mat.additionalValues.end())
+        {
+            material.textures.normal =
+                &textures[mat.additionalValues["normalTexture"].TextureIndex()];
+            material.texCoordSets.normal =
+                mat.additionalValues["normalTexture"].TextureTexCoord();
+        }
+        if (mat.additionalValues.find("emissiveTexture") != mat.additionalValues.end())
+        {
+            material.textures.emission =
+                &textures[mat.additionalValues["emissiveTexture"].TextureIndex()];
+            material.texCoordSets.emissive =
+                mat.additionalValues["emissiveTexture"].TextureTexCoord();
+        }
+        if (mat.additionalValues.find("occlusionTexture") != mat.additionalValues.end())
+        {
+            material.textures.occlusion =
+                &textures[mat.additionalValues["occlusionTexture"].TextureIndex()];
+            material.texCoordSets.occlusion =
+                mat.additionalValues["occlusionTexture"].TextureTexCoord();
+        }
+        if (mat.additionalValues.find("alphaMode") != mat.additionalValues.end())
+        {
+            tinygltf::Parameter param = mat.additionalValues["alphaMode"];
+            if (param.string_value == "BLEND") { material.blendMode = BlendMode::eAlphaBlend; }
+            if (param.string_value == "MASK")
+            {
+                material.alphaCutoff = 0.5f;
+                material.blendMode = BlendMode::eAlphaMask;
+            }
+        }
+        materials.push_back(material);
+    }
+    materials.push_back(Material{});  // default
 }
 
 Model::~Model()

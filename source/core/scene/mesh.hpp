@@ -260,6 +260,7 @@ struct Model
 
     std::vector<TextureSampler> textureSamplers;
     std::vector<Texture> textures;
+    std::vector<Material> materials;
 
    private:
     void LoadNodeFromGLTF(Node* parent,
@@ -268,6 +269,8 @@ struct Model
                           const tinygltf::Model& model,
                           std::vector<uint32_t>& indexBuffer,
                           std::vector<Vertex>& vertexBuffer);
+
+    void LoadMaterials(tinygltf::Model& model);
 };
 
 }  // namespace ez
