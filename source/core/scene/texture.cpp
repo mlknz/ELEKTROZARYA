@@ -214,147 +214,144 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
 
     // //////////////////////////////////////////////
 
-    /*
     // Generate the mip chain (glTF uses jpg and png, so we need to create this manually)
-    VkCommandBuffer blitCmd =
-        device->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, true);
+    vk::CommandBuffer blitCmd;
+    CheckVkResult(logicalDevice.allocateCommandBuffers(&allocInfo, &blitCmd));
+    CheckVkResult(blitCmd.begin(&beginInfo));
+
     for (uint32_t i = 1; i < mipLevels; i++)
     {
-        VkImageBlit imageBlit{};
+        vk::ImageBlit imageBlit{};
 
-        imageBlit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        imageBlit.srcSubresource.layerCount = 1;
-        imageBlit.srcSubresource.mipLevel = i - 1;
-        imageBlit.srcOffsets[1].x = int32_t(width >> (i - 1));
-        imageBlit.srcOffsets[1].y = int32_t(height >> (i - 1));
-        imageBlit.srcOffsets[1].z = 1;
+        imageBlit.srcSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor);
+        imageBlit.srcSubresource.setLayerCount(1);
+        imageBlit.srcSubresource.setMipLevel(i - 1);
+        imageBlit.setSrcOffsets(
+            { vk::Offset3D{},
+              vk::Offset3D(int32_t(width >> (i - 1)), int32_t(height >> (i - 1)), 1) });
 
-        imageBlit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        imageBlit.dstSubresource.layerCount = 1;
-        imageBlit.dstSubresource.mipLevel = i;
-        imageBlit.dstOffsets[1].x = int32_t(width >> i);
-        imageBlit.dstOffsets[1].y = int32_t(height >> i);
-        imageBlit.dstOffsets[1].z = 1;
+        imageBlit.dstSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor);
+        imageBlit.dstSubresource.setLayerCount(1);
+        imageBlit.dstSubresource.setMipLevel(i);
+        imageBlit.setDstOffsets(
+            { vk::Offset3D{}, vk::Offset3D(int32_t(width >> i), int32_t(height >> i), 1) });
 
-        VkImageSubresourceRange mipSubRange = {};
-        mipSubRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        mipSubRange.baseMipLevel = i;
-        mipSubRange.levelCount = 1;
-        mipSubRange.layerCount = 1;
+        vk::ImageSubresourceRange mipSubRange = {};
+        mipSubRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
+        mipSubRange.setBaseMipLevel(i);
+        mipSubRange.setLevelCount(1);
+        mipSubRange.setLayerCount(1);
 
         {
-            VkImageMemoryBarrier imageMemoryBarrier{};
-            imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            imageMemoryBarrier.srcAccessMask = 0;
-            imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            imageMemoryBarrier.image = image;
-            imageMemoryBarrier.subresourceRange = mipSubRange;
-            vkCmdPipelineBarrier(blitCmd,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 0,
-                                 0,
-                                 nullptr,
-                                 0,
-                                 nullptr,
-                                 1,
-                                 &imageMemoryBarrier);
+            vk::ImageMemoryBarrier imageMemoryBarrier{};
+            imageMemoryBarrier.setOldLayout(vk::ImageLayout::eUndefined);
+            imageMemoryBarrier.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
+            imageMemoryBarrier.setSrcAccessMask(vk::AccessFlags{});
+            imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
+            imageMemoryBarrier.setImage(image);
+            imageMemoryBarrier.setSubresourceRange(mipSubRange);
+            blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                                    vk::PipelineStageFlagBits::eTransfer,
+                                    vk::DependencyFlags{},
+                                    0,
+                                    nullptr,
+                                    0,
+                                    nullptr,
+                                    1,
+                                    &imageMemoryBarrier);
         }
-
-        vkCmdBlitImage(blitCmd,
-                       image,
-                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       image,
-                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                       1,
-                       &imageBlit,
-                       VK_FILTER_LINEAR);
+        blitCmd.blitImage(image,
+                          vk::ImageLayout::eTransferSrcOptimal,
+                          image,
+                          vk::ImageLayout::eTransferDstOptimal,
+                          1,
+                          &imageBlit,
+                          vk::Filter::eLinear);
 
         {
-            VkImageMemoryBarrier imageMemoryBarrier{};
-            imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-            imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-            imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-            imageMemoryBarrier.image = image;
-            imageMemoryBarrier.subresourceRange = mipSubRange;
-            vkCmdPipelineBarrier(blitCmd,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                 0,
-                                 0,
-                                 nullptr,
-                                 0,
-                                 nullptr,
-                                 1,
-                                 &imageMemoryBarrier);
+            vk::ImageMemoryBarrier imageMemoryBarrier{};
+            imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
+            imageMemoryBarrier.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
+            imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
+            imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
+            imageMemoryBarrier.setImage(image);
+            imageMemoryBarrier.setSubresourceRange(mipSubRange);
+
+            blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                                    vk::PipelineStageFlagBits::eTransfer,
+                                    vk::DependencyFlags{},
+                                    0,
+                                    nullptr,
+                                    0,
+                                    nullptr,
+                                    1,
+                                    &imageMemoryBarrier);
         }
     }
 
-    subresourceRange.levelCount = mipLevels;
-    imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    subresourceRange.setLevelCount(mipLevels);
+    imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
     {
-        VkImageMemoryBarrier imageMemoryBarrier{};
-        imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        imageMemoryBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        imageMemoryBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        imageMemoryBarrier.image = image;
-        imageMemoryBarrier.subresourceRange = subresourceRange;
-        vkCmdPipelineBarrier(blitCmd,
-                             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                             VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                             0,
-                             0,
-                             nullptr,
-                             0,
-                             nullptr,
-                             1,
-                             &imageMemoryBarrier);
+        vk::ImageMemoryBarrier imageMemoryBarrier{};
+        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferSrcOptimal);
+        imageMemoryBarrier.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+        imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
+        imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
+        imageMemoryBarrier.setImage(image);
+        imageMemoryBarrier.setSubresourceRange(subresourceRange);
+        blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
+                                vk::PipelineStageFlagBits::eAllCommands,
+                                vk::DependencyFlags{},
+                                0,
+                                nullptr,
+                                0,
+                                nullptr,
+                                1,
+                                &imageMemoryBarrier);
     }
 
-    device->flushCommandBuffer(blitCmd, copyQueue, true);
+    CheckVkResult(blitCmd.end());
 
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = textureSampler.magFilter;
-    samplerInfo.minFilter = textureSampler.minFilter;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.addressModeU = textureSampler.addressModeU;
-    samplerInfo.addressModeV = textureSampler.addressModeV;
-    samplerInfo.addressModeW = textureSampler.addressModeW;
-    samplerInfo.compareOp = VK_COMPARE_OP_NEVER;
-    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    samplerInfo.maxAnisotropy = 1.0;
-    samplerInfo.anisotropyEnable = VK_FALSE;
-    samplerInfo.maxLod = (float)mipLevels;
-    samplerInfo.maxAnisotropy = 8.0f;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    VK_CHECK_RESULT(vkCreateSampler(device->logicalDevice, &samplerInfo, nullptr, &sampler));
+    submitInfo = vk::SubmitInfo{};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &blitCmd;
 
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = image;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = format;
-    viewInfo.components = { VK_COMPONENT_SWIZZLE_R,
-                            VK_COMPONENT_SWIZZLE_G,
-                            VK_COMPONENT_SWIZZLE_B,
-                            VK_COMPONENT_SWIZZLE_A };
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.layerCount = 1;
-    viewInfo.subresourceRange.levelCount = mipLevels;
-    VK_CHECK_RESULT(vkCreateImageView(device->logicalDevice, &viewInfo, nullptr, &view));
+    CheckVkResult(graphicsQueue.submit(1, &submitInfo, nullptr));
+    CheckVkResult(graphicsQueue.waitIdle());
+
+    logicalDevice.freeCommandBuffers(graphicsCommandPool, 1, &blitCmd);
+
+    vk::SamplerCreateInfo samplerInfo{};
+    samplerInfo.setMagFilter(creationInfo.textureSampler.magFilter);
+    samplerInfo.setMinFilter(creationInfo.textureSampler.minFilter);
+    samplerInfo.setMipmapMode(vk::SamplerMipmapMode::eLinear);
+    samplerInfo.setAddressModeU(creationInfo.textureSampler.addressModeU);
+    samplerInfo.setAddressModeV(creationInfo.textureSampler.addressModeV);
+    samplerInfo.setAddressModeW(creationInfo.textureSampler.addressModeW);
+    samplerInfo.setCompareOp(vk::CompareOp::eNever);
+    samplerInfo.setBorderColor(vk::BorderColor::eFloatOpaqueWhite);
+    samplerInfo.setMaxAnisotropy(1.0);
+    samplerInfo.setAnisotropyEnable(VK_FALSE);
+    samplerInfo.setMaxLod(static_cast<float>(mipLevels));
+    samplerInfo.setMaxAnisotropy(8.0f);
+    samplerInfo.setAnisotropyEnable(VK_TRUE);
+    CheckVkResult(logicalDevice.createSampler(&samplerInfo, nullptr, &sampler));
+
+    vk::ImageViewCreateInfo viewInfo{};
+    viewInfo.setImage(image);
+    viewInfo.setViewType(vk::ImageViewType::e2D);
+    viewInfo.setFormat(format);
+    viewInfo.setComponents(vk::ComponentMapping{});  // swizzling .rgba
+    viewInfo.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    viewInfo.subresourceRange.setLayerCount(1);
+    viewInfo.subresourceRange.setLevelCount(mipLevels);
+    CheckVkResult(logicalDevice.createImageView(&viewInfo, nullptr, &imageView));
 
     descriptor.sampler = sampler;
-    descriptor.imageView = view;
+    descriptor.imageView = imageView;
     descriptor.imageLayout = imageLayout;
-*/
+
     loadedToGpu = true;
     return true;
 }

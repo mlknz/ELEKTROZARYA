@@ -134,7 +134,11 @@ bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR su
                             !swapChainSupport.value.presentModes.empty();
     }
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate;
+    vk::PhysicalDeviceFeatures supportedFeatures;
+    device.getFeatures(&supportedFeatures);
+
+    return indices.isComplete() && extensionsSupported && swapChainAdequate &&
+           supportedFeatures.samplerAnisotropy;
 }
 
 ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance instance,
@@ -185,6 +189,7 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
     }
 
     vk::PhysicalDeviceFeatures deviceFeatures = {};
+    deviceFeatures.samplerAnisotropy = VK_TRUE;  // request for anisotropy
 
     vk::DeviceCreateInfo createInfo = {};
 
