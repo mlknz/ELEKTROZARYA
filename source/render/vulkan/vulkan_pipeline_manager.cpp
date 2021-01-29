@@ -13,12 +13,13 @@ VulkanPipelineManager::VulkanPipelineManager(vk::Device aLogicalDevice)
 VulkanPipelineManager::~VulkanPipelineManager() {}
 
 ResultValue<std::shared_ptr<VulkanGraphicsPipeline>>
-VulkanPipelineManager::CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
-                                              vk::RenderPass renderPass,
-                                              vk::DescriptorSetLayout descriptorSetLayout)
+VulkanPipelineManager::CreateGraphicsPipeline(
+    vk::Extent2D swapchainExtent,
+    vk::RenderPass renderPass,
+    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts)
 {
     auto vulkanGraphicsPipeline = VulkanGraphicsPipeline::CreateVulkanGraphicsPipeline(
-        logicalDevice, swapchainExtent, renderPass, descriptorSetLayout);
+        logicalDevice, swapchainExtent, renderPass, descriptorSetLayouts);
     if (vulkanGraphicsPipeline)
     {
         return { GraphicsResult::Ok, std::move(vulkanGraphicsPipeline) };

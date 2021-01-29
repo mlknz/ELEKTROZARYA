@@ -17,7 +17,7 @@ class VulkanPipelineManager
     ResultValue<std::shared_ptr<VulkanGraphicsPipeline>> CreateGraphicsPipeline(
         vk::Extent2D swapchainExtent,
         vk::RenderPass renderPass,
-        vk::DescriptorSetLayout descriptorSetLayout);
+        const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts);
 
    private:
     vk::Device logicalDevice;

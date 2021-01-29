@@ -36,10 +36,10 @@ std::shared_ptr<VulkanGraphicsPipeline> VulkanGraphicsPipeline::CreateVulkanGrap
     vk::Device logicalDevice,
     vk::Extent2D swapchainExtent,
     vk::RenderPass renderPass,
-    vk::DescriptorSetLayout descriptorSetLayout)
+    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts)
 {
     VulkanGraphicsPipeline obj{ logicalDevice };
-    if (obj.CreateGraphicsPipeline(swapchainExtent, renderPass, descriptorSetLayout))
+    if (obj.CreateGraphicsPipeline(swapchainExtent, renderPass, descriptorSetLayouts))
     {
         return std::make_shared<VulkanGraphicsPipeline>(std::move(obj));
     }
@@ -62,9 +62,10 @@ vk::ShaderModule VulkanGraphicsPipeline::CreateShaderModule(const std::vector<ui
     return shaderModule;
 }
 
-bool VulkanGraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
-                                                    vk::RenderPass renderPass,
-                                                    vk::DescriptorSetLayout descriptorSetLayout)
+bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
+    vk::Extent2D swapchainExtent,
+    vk::RenderPass renderPass,
+    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts)
 {
     const std::vector<uint32_t> vertShaderCode =
         SpirVShaderCompiler::CompileFromGLSL("../source/shaders/shader.vert");
@@ -150,9 +151,10 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(vk::Extent2D swapchainExtent
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    vk::PipelineLayoutCreateInfo pipelineLayoutInfo = {};
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout;
+    vk::PipelineLayoutCreateInfo pipelineLayoutInfo(
+        vk::PipelineLayoutCreateFlags{},
+        static_cast<uint32_t>(descriptorSetLayouts.size()),
+        descriptorSetLayouts.data());
 
     if (logicalDevice.createPipelineLayout(&pipelineLayoutInfo, nullptr, &pipelineLayout) !=
         vk::Result::eSuccess)

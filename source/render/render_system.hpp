@@ -33,6 +33,7 @@ struct RenderSystemCreateInfo
 
     FrameSemaphores frameSemaphores;
     vk::DescriptorSetLayout descriptorSetLayout;
+    vk::DescriptorSetLayout samplersDescriptorSetLayout;
     std::vector<vk::CommandBuffer> commandBuffers;
 };
 
@@ -80,6 +81,7 @@ class RenderSystem
     std::unique_ptr<VulkanPipelineManager> vulkanPipelineManager = nullptr;
 
     vk::DescriptorSetLayout descriptorSetLayout;
+    vk::DescriptorSetLayout samplersDescriptorSetLayout;
     FrameSemaphores frameSemaphores;
 
     std::vector<vk::CommandBuffer> commandBuffers;

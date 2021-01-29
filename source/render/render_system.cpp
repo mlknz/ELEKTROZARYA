@@ -99,6 +99,28 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
     }
     ci.descriptorSetLayout = *dsLayoutPtr;
 
+    // create material image sampler descriptor sets
+    // clang-format off
+    const std::vector<vk::DescriptorSetLayoutBinding> setLayoutBindings = {
+        { 0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr },
+        { 1, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr },
+        { 2, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr },
+        { 3, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr },
+        { 4, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr },
+    };
+    // clang-format on
+    vk::DescriptorSetLayoutCreateInfo descriptorSetLayoutCI{};
+    descriptorSetLayoutCI.pBindings = setLayoutBindings.data();
+    descriptorSetLayoutCI.bindingCount = static_cast<uint32_t>(setLayoutBindings.size());
+    auto rv =
+        ci.vulkanDevice->GetDevice().createDescriptorSetLayout(descriptorSetLayoutCI, nullptr);
+    if (rv.result == vk::Result::eSuccess) { ci.samplersDescriptorSetLayout = rv.value; }
+    else
+    {
+        EZLOG("Failed to create samplers DescriptorSetLayout");
+        return GraphicsResult::Error;
+    }
+
     ci.vulkanPipelineManager =
         std::make_unique<VulkanPipelineManager>(ci.vulkanDevice->GetDevice());
 
@@ -127,6 +149,7 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     , vulkanRenderPass(std::move(ci.vulkanRenderPass))
     , vulkanPipelineManager(std::move(ci.vulkanPipelineManager))
     , descriptorSetLayout(std::move(ci.descriptorSetLayout))
+    , samplersDescriptorSetLayout(std::move(ci.samplersDescriptorSetLayout))
     , frameSemaphores(std::move(ci.frameSemaphores))
     , commandBuffers(std::move(ci.commandBuffers))
 {
@@ -353,10 +376,48 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
             }
         }
 
-        auto vulkanGraphicsPipelineRV =
-            vulkanPipelineManager->CreateGraphicsPipeline(GetSwapchainInfo().extent,
-                                                          vulkanRenderPass->GetRenderPass(),
-                                                          model.descriptorSetLayout);
+        for (Material& material : model.materials)
+        {
+            if (material.textures.baseColor == nullptr) { continue; }
+            vk::DescriptorSetAllocateInfo descriptorSetAllocInfo{};
+            descriptorSetAllocInfo.descriptorPool = vulkanDevice->GetDescriptorPool();
+            descriptorSetAllocInfo.pSetLayouts = &samplersDescriptorSetLayout;
+            descriptorSetAllocInfo.descriptorSetCount = 1;
+            CheckVkResult(GetDevice().allocateDescriptorSets(&descriptorSetAllocInfo,
+                                                             &material.descriptorSet));
+            // todo: handle missing textures (empty descriptor)
+            const std::vector<vk::DescriptorImageInfo> imageDescriptors = {
+                material.textures.baseColor->descriptor,
+                material.textures.metallicRoughness->descriptor,
+                material.textures.normal->descriptor,
+                material.textures.occlusion->descriptor,
+                material.textures.emission->descriptor
+            };
+
+            std::array<vk::WriteDescriptorSet, 5> writeDescriptorSets{};
+            for (size_t i = 0; i < imageDescriptors.size(); i++)
+            {
+                writeDescriptorSets[i].descriptorType =
+                    vk::DescriptorType::eCombinedImageSampler;
+                writeDescriptorSets[i].descriptorCount = 1;
+                writeDescriptorSets[i].dstSet = material.descriptorSet;
+                writeDescriptorSets[i].dstBinding = static_cast<uint32_t>(i);
+                writeDescriptorSets[i].pImageInfo = &imageDescriptors[i];
+            }
+
+            GetDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptorSets.size()),
+                                             writeDescriptorSets.data(),
+                                             0,
+                                             nullptr);
+        }
+
+        std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
+            model.descriptorSetLayout, samplersDescriptorSetLayout
+            // todo: global UBO as separate descriptor set
+            // todo: textures descriptor set
+        };
+        auto vulkanGraphicsPipelineRV = vulkanPipelineManager->CreateGraphicsPipeline(
+            GetSwapchainInfo().extent, vulkanRenderPass->GetRenderPass(), descriptorSetLayouts);
         if (vulkanGraphicsPipelineRV.result != GraphicsResult::Ok)
         {
             EZASSERT(false, "Failed to create graphics pipeline for model");
@@ -446,13 +507,24 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
         curCb.bindVertexBuffers(0, 1, vertexBuffers, offsets);
         curCb.bindIndexBuffer(model.indexBuffer, 0, vk::IndexType::eUint32);
 
-        curCb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
-                                 model.graphicsPipeline->GetPipelineLayout(),
-                                 0,
-                                 { model.descriptorSet },
-                                 {});
+        // mewmew start here. Descriptor sets per mesh (local
+        // transform, textures set), globalUbo for time, ViewMatrix
 
-        curCb.drawIndexed(static_cast<uint32_t>(model.indices.size()), 1, 0, 0, 0);
+        for (const std::unique_ptr<Node>& node : model.nodes)
+        {
+            if (!node->mesh) continue;
+            for (const std::unique_ptr<Primitive>& primitive : node->mesh->primitives)
+            {
+                curCb.bindDescriptorSets(
+                    vk::PipelineBindPoint::eGraphics,
+                    model.graphicsPipeline->GetPipelineLayout(),
+                    0,
+                    { model.descriptorSet, primitive->material.descriptorSet },
+                    {});
+
+                curCb.drawIndexed(primitive->indexCount, 1, 0, 0, 0);
+            }
+        }
     }
 
     ImGui::Render();

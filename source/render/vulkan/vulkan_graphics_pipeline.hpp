@@ -20,15 +20,16 @@ class VulkanGraphicsPipeline
         vk::Device logicalDevice,
         vk::Extent2D swapchainExtent,
         vk::RenderPass renderPass,
-        vk::DescriptorSetLayout descriptorSetLayout);
+        const std::vector<vk::DescriptorSetLayout>& descriptorSetLayout);
 
    private:
     VulkanGraphicsPipeline(vk::Device aLogicalDevice);
 
     vk::ShaderModule CreateShaderModule(const std::vector<uint32_t>& code);
-    bool CreateGraphicsPipeline(vk::Extent2D swapchainExtent,
-                                vk::RenderPass renderPass,
-                                vk::DescriptorSetLayout descriptorSetLayout);
+    bool CreateGraphicsPipeline(
+        vk::Extent2D swapchainExtent,
+        vk::RenderPass renderPass,
+        const std::vector<vk::DescriptorSetLayout>& descriptorSetLayout);
 
     vk::Device logicalDevice;
     vk::PipelineLayout pipelineLayout;
