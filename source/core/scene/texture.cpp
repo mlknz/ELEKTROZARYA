@@ -114,7 +114,6 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     imageCreateInfo.setArrayLayers(1);
     imageCreateInfo.setSamples(vk::SampleCountFlagBits::e1);
     imageCreateInfo.setTiling(vk::ImageTiling::eOptimal);
-    imageCreateInfo.setUsage(vk::ImageUsageFlagBits::eSampled);
     imageCreateInfo.setSharingMode(vk::SharingMode::eExclusive);
     imageCreateInfo.setInitialLayout(vk::ImageLayout::eUndefined);
     imageCreateInfo.setExtent(vk::Extent3D(width, height, 1));

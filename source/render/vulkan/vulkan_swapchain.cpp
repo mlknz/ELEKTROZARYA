@@ -5,8 +5,10 @@
 #include <algorithm>
 
 #include "core/log_assert.hpp"
+#include "render/config.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/utils.hpp"
+#include "render/vulkan/vulkan_buffer.hpp"
 
 using namespace ez;
 
@@ -51,6 +53,36 @@ ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapc
 {
     ResultValue<VulkanSwapchainInfo> vulkanSwapchainInfo = CreateSwapchain(ci);
     if (vulkanSwapchainInfo.result != GraphicsResult::Ok) { return vulkanSwapchainInfo.result; }
+
+    // todo: Image and ImageView creation to separate file
+    vk::ImageCreateInfo imageCreateInfo{};
+    imageCreateInfo.setImageType(vk::ImageType::e2D);
+    imageCreateInfo.setFormat(Config::DepthAttachmentFormat);
+    imageCreateInfo.setMipLevels(1);
+    imageCreateInfo.setArrayLayers(1);
+    imageCreateInfo.setSamples(vk::SampleCountFlagBits::e1);
+    imageCreateInfo.setTiling(vk::ImageTiling::eOptimal);
+    imageCreateInfo.setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
+    imageCreateInfo.setSharingMode(vk::SharingMode::eExclusive);
+    imageCreateInfo.setInitialLayout(vk::ImageLayout::eUndefined);
+    imageCreateInfo.setExtent(vk::Extent3D(
+        vulkanSwapchainInfo.value.extent.width, vulkanSwapchainInfo.value.extent.height, 1));
+
+    CheckVkResult(ci.logicalDevice.createImage(
+        &imageCreateInfo, nullptr, &vulkanSwapchainInfo.value.depthImage));
+
+    vk::MemoryRequirements memReqs{};
+    vk::MemoryAllocateInfo memAllocInfo{};
+    ci.logicalDevice.getImageMemoryRequirements(vulkanSwapchainInfo.value.depthImage, &memReqs);
+    const uint32_t imageLocalMemoryTypeIndex = VulkanBuffer::FindMemoryType(
+        ci.physicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    memAllocInfo.allocationSize = memReqs.size;
+    memAllocInfo.memoryTypeIndex = imageLocalMemoryTypeIndex;
+    CheckVkResult(ci.logicalDevice.allocateMemory(
+        &memAllocInfo, nullptr, &vulkanSwapchainInfo.value.depthImageMemory));
+    CheckVkResult(ci.logicalDevice.bindImageMemory(
+        vulkanSwapchainInfo.value.depthImage, vulkanSwapchainInfo.value.depthImageMemory, 0));
+
     GraphicsResult imageViewsResult =
         CreateImageViews(ci.logicalDevice, vulkanSwapchainInfo.value);
     if (imageViewsResult != GraphicsResult::Ok) { return imageViewsResult; }
@@ -207,10 +239,7 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice,
         createInfo.image = info.images[i];
         createInfo.viewType = vk::ImageViewType::e2D;
         createInfo.format = info.imageFormat;
-        createInfo.components.r = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.g = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.b = vk::ComponentSwizzle::eIdentity;
-        createInfo.components.a = vk::ComponentSwizzle::eIdentity;
+        createInfo.components = vk::ComponentMapping{};
         createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
         createInfo.subresourceRange.baseMipLevel = 0;
         createInfo.subresourceRange.levelCount = 1;
@@ -224,6 +253,23 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice,
             return GraphicsResult::Error;
         }
     }
+
+    vk::ImageViewCreateInfo createInfo = {};
+    createInfo.image = info.depthImage;
+    createInfo.viewType = vk::ImageViewType::e2D;
+    createInfo.format = Config::DepthAttachmentFormat;
+    createInfo.components = vk::ComponentMapping{};
+    createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
+    createInfo.subresourceRange.baseMipLevel = 0;
+    createInfo.subresourceRange.levelCount = 1;
+    createInfo.subresourceRange.baseArrayLayer = 0;
+    createInfo.subresourceRange.layerCount = 1;
+    if (logicalDevice.createImageView(&createInfo, nullptr, &info.depthImageView) !=
+        vk::Result::eSuccess)
+    {
+        EZLOG("Failed to create image views!");
+        return GraphicsResult::Error;
+    }
     return GraphicsResult::Ok;
 }
 
@@ -233,11 +279,11 @@ GraphicsResult VulkanSwapchain::CreateFramebuffersForRenderPass(vk::RenderPass v
 
     for (size_t i = 0; i < info.imageViews.size(); i++)
     {
-        vk::ImageView attachments[] = { info.imageViews[i] };
+        vk::ImageView attachments[] = { info.imageViews[i], info.depthImageView };
 
         vk::FramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.renderPass = vkRenderPass;
-        framebufferInfo.attachmentCount = 1;
+        framebufferInfo.attachmentCount = 2;
         framebufferInfo.pAttachments = attachments;
         framebufferInfo.width = info.extent.width;
         framebufferInfo.height = info.extent.height;
@@ -264,6 +310,7 @@ VulkanSwapchain::~VulkanSwapchain()
     {
         logicalDevice.destroyImageView(info.imageViews[i], nullptr);
     }
+    logicalDevice.destroyImageView(info.depthImageView, nullptr);
 
     logicalDevice.destroySwapchainKHR(info.swapchain);
     info = {};

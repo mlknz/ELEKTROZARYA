@@ -89,7 +89,7 @@ ResultValue<std::unique_ptr<VulkanInstance>> VulkanInstance::CreateVulkanInstanc
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "ELEKTROZARYA Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_MAKE_VERSION(1, 1, 0);
+    appInfo.apiVersion = VK_MAKE_VERSION(1, 2, 0);
 
     auto extPropsResultValue = vk::enumerateInstanceExtensionProperties();
 

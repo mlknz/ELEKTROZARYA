@@ -485,9 +485,10 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
     renderPassInfo.renderArea.offset = vk::Offset2D{ 0, 0 };
     renderPassInfo.renderArea.extent = swapchainInfo.extent;
 
-    vk::ClearValue clearColorVal = vk::ClearColorValue(clearColor);
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColorVal;
+    std::array<vk::ClearValue, 2> clearValues = { vk::ClearColorValue(clearColor),
+                                                  vk::ClearDepthStencilValue(1.0f, 0) };
+    renderPassInfo.clearValueCount = clearValues.size();
+    renderPassInfo.pClearValues = clearValues.data();
 
     curCb.beginRenderPass(&renderPassInfo, vk::SubpassContents::eInline);
 

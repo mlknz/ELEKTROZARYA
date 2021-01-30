@@ -151,6 +151,11 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
+    vk::PipelineDepthStencilStateCreateInfo depthStencilState = {};
+    depthStencilState.depthWriteEnable = true;
+    depthStencilState.depthTestEnable = true;
+    depthStencilState.depthCompareOp = vk::CompareOp::eLess;
+
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo(
         vk::PipelineLayoutCreateFlags{},
         static_cast<uint32_t>(descriptorSetLayouts.size()),
@@ -172,6 +177,7 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDepthStencilState = &depthStencilState;
     pipelineInfo.layout = pipelineLayout;
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;

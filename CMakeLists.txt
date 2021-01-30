@@ -73,7 +73,7 @@ set(SOURCE_FILES
 
 add_executable(ELEKTROZARYA ${SOURCE_FILES})
 
-target_compile_definitions(ELEKTROZARYA PRIVATE GLM_FORCE_RADIANS=1)
+target_compile_definitions(ELEKTROZARYA PRIVATE GLM_FORCE_RADIANS=1 GLM_FORCE_DEPTH_ZERO_TO_ONE=1)
 target_precompile_headers(ELEKTROZARYA PRIVATE ${SOURCES}/render/vulkan_include.hpp)
 
 set(IMGUI_SOURCE_FILES

@@ -25,6 +25,10 @@ struct VulkanSwapchainInfo
     vk::Extent2D extent;
     std::vector<vk::ImageView> imageViews;
     std::vector<vk::Framebuffer> framebuffers;
+
+    vk::Image depthImage;
+    vk::DeviceMemory depthImageMemory;
+    vk::ImageView depthImageView;
 };
 
 struct SwapChainSupportDetails

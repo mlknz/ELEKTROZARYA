@@ -191,12 +191,16 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
     vk::PhysicalDeviceFeatures deviceFeatures = {};
     deviceFeatures.samplerAnisotropy = VK_TRUE;  // request for anisotropy
 
-    vk::DeviceCreateInfo createInfo = {};
+    vk::PhysicalDeviceVulkan12Features device12Features = {};
+    device12Features.separateDepthStencilLayouts =
+        VK_TRUE;  // request for separate depth-stencil
 
+    vk::DeviceCreateInfo createInfo = {};
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
     createInfo.pEnabledFeatures = &deviceFeatures;
+    createInfo.pNext = &device12Features;
 
     createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.size());
     createInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
