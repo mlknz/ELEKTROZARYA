@@ -9,6 +9,7 @@
 #include "render/graphics_result.hpp"
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
+#include "render/vulkan/vulkan_image.hpp"
 
 using namespace ez;
 
@@ -54,22 +55,15 @@ ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapc
     ResultValue<VulkanSwapchainInfo> vulkanSwapchainInfo = CreateSwapchain(ci);
     if (vulkanSwapchainInfo.result != GraphicsResult::Ok) { return vulkanSwapchainInfo.result; }
 
-    // todo: Image and ImageView creation to separate file
-    vk::ImageCreateInfo imageCreateInfo{};
-    imageCreateInfo.setImageType(vk::ImageType::e2D);
-    imageCreateInfo.setFormat(Config::DepthAttachmentFormat);
-    imageCreateInfo.setMipLevels(1);
-    imageCreateInfo.setArrayLayers(1);
-    imageCreateInfo.setSamples(vk::SampleCountFlagBits::e1);
-    imageCreateInfo.setTiling(vk::ImageTiling::eOptimal);
-    imageCreateInfo.setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment);
-    imageCreateInfo.setSharingMode(vk::SharingMode::eExclusive);
-    imageCreateInfo.setInitialLayout(vk::ImageLayout::eUndefined);
-    imageCreateInfo.setExtent(vk::Extent3D(
-        vulkanSwapchainInfo.value.extent.width, vulkanSwapchainInfo.value.extent.height, 1));
-
-    CheckVkResult(ci.logicalDevice.createImage(
-        &imageCreateInfo, nullptr, &vulkanSwapchainInfo.value.depthImage));
+    ResultValue<vk::Image> imageRV =
+        Image::CreateImage2D(ci.logicalDevice,
+                             Config::DepthAttachmentFormat,
+                             vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                             1,
+                             vulkanSwapchainInfo.value.extent.width,
+                             vulkanSwapchainInfo.value.extent.height);
+    if (imageRV.result != GraphicsResult::Ok) { return imageRV.result; }
+    vulkanSwapchainInfo.value.depthImage = imageRV.value;
 
     vk::MemoryRequirements memReqs{};
     vk::MemoryAllocateInfo memAllocInfo{};
@@ -235,41 +229,25 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice,
 
     for (size_t i = 0; i < info.images.size(); i++)
     {
-        vk::ImageViewCreateInfo createInfo = {};
-        createInfo.image = info.images[i];
-        createInfo.viewType = vk::ImageViewType::e2D;
-        createInfo.format = info.imageFormat;
-        createInfo.components = vk::ComponentMapping{};
-        createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eColor;
-        createInfo.subresourceRange.baseMipLevel = 0;
-        createInfo.subresourceRange.levelCount = 1;
-        createInfo.subresourceRange.baseArrayLayer = 0;
-        createInfo.subresourceRange.layerCount = 1;
-
-        if (logicalDevice.createImageView(&createInfo, nullptr, &info.imageViews[i]) !=
-            vk::Result::eSuccess)
-        {
-            EZLOG("Failed to create image views!");
-            return GraphicsResult::Error;
-        }
+        ResultValue<vk::ImageView> imageViewRV =
+            Image::CreateImageView2D(logicalDevice,
+                                     info.images[i],
+                                     info.imageFormat,
+                                     vk::ImageAspectFlagBits::eColor,
+                                     1);
+        if (imageViewRV.result != GraphicsResult::Ok) { return imageViewRV.result; }
+        info.imageViews[i] = imageViewRV.value;
     }
 
-    vk::ImageViewCreateInfo createInfo = {};
-    createInfo.image = info.depthImage;
-    createInfo.viewType = vk::ImageViewType::e2D;
-    createInfo.format = Config::DepthAttachmentFormat;
-    createInfo.components = vk::ComponentMapping{};
-    createInfo.subresourceRange.aspectMask = vk::ImageAspectFlagBits::eDepth;
-    createInfo.subresourceRange.baseMipLevel = 0;
-    createInfo.subresourceRange.levelCount = 1;
-    createInfo.subresourceRange.baseArrayLayer = 0;
-    createInfo.subresourceRange.layerCount = 1;
-    if (logicalDevice.createImageView(&createInfo, nullptr, &info.depthImageView) !=
-        vk::Result::eSuccess)
-    {
-        EZLOG("Failed to create image views!");
-        return GraphicsResult::Error;
-    }
+    ResultValue<vk::ImageView> depthImageViewRV =
+        Image::CreateImageView2D(logicalDevice,
+                                 info.depthImage,
+                                 Config::DepthAttachmentFormat,
+                                 vk::ImageAspectFlagBits::eDepth,
+                                 1);
+    if (depthImageViewRV.result != GraphicsResult::Ok) { return depthImageViewRV.result; }
+    info.depthImageView = depthImageViewRV.value;
+
     return GraphicsResult::Ok;
 }
 

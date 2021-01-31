@@ -39,6 +39,8 @@ set(SOURCE_FILES
     ${SOURCES}/render/vulkan/vulkan_render_pass.hpp
     ${SOURCES}/render/vulkan/vulkan_buffer.cpp
     ${SOURCES}/render/vulkan/vulkan_buffer.hpp
+    ${SOURCES}/render/vulkan/vulkan_image.cpp
+    ${SOURCES}/render/vulkan/vulkan_image.hpp
     ${SOURCES}/render/vulkan/vulkan_graphics_pipeline.cpp
     ${SOURCES}/render/vulkan/vulkan_graphics_pipeline.hpp
     ${SOURCES}/render/vulkan/vulkan_shader_compiler.cpp

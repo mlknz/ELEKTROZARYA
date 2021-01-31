@@ -3,6 +3,7 @@
 #include "core/log_assert.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
+#include "render/vulkan/vulkan_image.hpp"
 
 namespace ez
 {
@@ -107,21 +108,16 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
 
     // /////////////////////////////
 
-    vk::ImageCreateInfo imageCreateInfo{};
-    imageCreateInfo.setImageType(vk::ImageType::e2D);
-    imageCreateInfo.setFormat(format);
-    imageCreateInfo.setMipLevels(creationInfo.mipLevels);
-    imageCreateInfo.setArrayLayers(1);
-    imageCreateInfo.setSamples(vk::SampleCountFlagBits::e1);
-    imageCreateInfo.setTiling(vk::ImageTiling::eOptimal);
-    imageCreateInfo.setSharingMode(vk::SharingMode::eExclusive);
-    imageCreateInfo.setInitialLayout(vk::ImageLayout::eUndefined);
-    imageCreateInfo.setExtent(vk::Extent3D(width, height, 1));
-    imageCreateInfo.setUsage(vk::ImageUsageFlagBits::eTransferDst |
-                             vk::ImageUsageFlagBits::eTransferSrc |
-                             vk::ImageUsageFlagBits::eSampled);
-
-    CheckVkResult(logicalDevice.createImage(&imageCreateInfo, nullptr, &image));
+    ResultValue<vk::Image> imageRV = Image::CreateImage2D(
+        logicalDevice,
+        format,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
+            vk::ImageUsageFlagBits::eSampled,
+        creationInfo.mipLevels,
+        width,
+        height);
+    if (imageRV.result != GraphicsResult::Ok) { return false; }
+    image = imageRV.value;
 
     logicalDevice.getImageMemoryRequirements(image, &memReqs);
     const uint32_t imageLocalMemoryTypeIndex = VulkanBuffer::FindMemoryType(
@@ -330,25 +326,17 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     samplerInfo.setAddressModeW(creationInfo.textureSampler.addressModeW);
     samplerInfo.setCompareOp(vk::CompareOp::eNever);
     samplerInfo.setBorderColor(vk::BorderColor::eFloatOpaqueWhite);
-    samplerInfo.setMaxAnisotropy(1.0);
-    samplerInfo.setAnisotropyEnable(VK_FALSE);
     samplerInfo.setMaxLod(static_cast<float>(mipLevels));
     samplerInfo.setMaxAnisotropy(8.0f);
     samplerInfo.setAnisotropyEnable(VK_TRUE);
     CheckVkResult(logicalDevice.createSampler(&samplerInfo, nullptr, &sampler));
 
-    vk::ImageViewCreateInfo viewInfo{};
-    viewInfo.setImage(image);
-    viewInfo.setViewType(vk::ImageViewType::e2D);
-    viewInfo.setFormat(format);
-    viewInfo.setComponents(vk::ComponentMapping{});  // swizzling .rgba
-    viewInfo.subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
-    viewInfo.subresourceRange.setLayerCount(1);
-    viewInfo.subresourceRange.setLevelCount(mipLevels);
-    CheckVkResult(logicalDevice.createImageView(&viewInfo, nullptr, &imageView));
+    ResultValue<vk::ImageView> imageViewRV = Image::CreateImageView2D(
+        logicalDevice, image, format, vk::ImageAspectFlagBits::eColor, mipLevels);
+    if (imageViewRV.result != GraphicsResult::Ok) { return false; }
 
     descriptor.sampler = sampler;
-    descriptor.imageView = imageView;
+    descriptor.imageView = imageViewRV.value;
     descriptor.imageLayout = imageLayout;
 
     loadedToGpu = true;
