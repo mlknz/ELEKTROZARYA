@@ -5,19 +5,21 @@
 #include <vector>
 
 #include "render/graphics_result.hpp"
+#include "render/vulkan/utils.hpp"
 #include "render/vulkan_include.hpp"
 
 namespace ez
 {
-struct VulkanSwapchainCreateInfo
+struct VulkanSwapchainCreateInfo final
 {
     vk::Device logicalDevice;
     vk::PhysicalDevice physicalDevice;
     vk::SurfaceKHR surface;
     SDL_Window* window;
+    const QueueFamilyIndices& queueFamilyIndices;
 };
 
-struct VulkanSwapchainInfo
+struct VulkanSwapchainInfo final
 {
     vk::SwapchainKHR swapchain;
     std::vector<vk::Image> images;
@@ -31,14 +33,14 @@ struct VulkanSwapchainInfo
     vk::ImageView depthImageView;
 };
 
-struct SwapChainSupportDetails
+struct SwapChainSupportDetails final
 {
     vk::SurfaceCapabilitiesKHR capabilities;
     std::vector<vk::SurfaceFormatKHR> formats;
     std::vector<vk::PresentModeKHR> presentModes;
 };
 
-class VulkanSwapchain
+class VulkanSwapchain final
 {
    public:
     VulkanSwapchain() = delete;

@@ -16,12 +16,16 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-struct QueueFamilyIndices
+struct QueueFamilyIndices final
 {
-    int graphicsFamily = -1;
-    int presentFamily = -1;
+    uint32_t graphicsFamily = std::numeric_limits<uint32_t>::max();
+    uint32_t presentFamily = std::numeric_limits<uint32_t>::max();
 
-    bool isComplete() { return graphicsFamily >= 0 && presentFamily >= 0; }
+    bool IsComplete()
+    {
+        return graphicsFamily < std::numeric_limits<uint32_t>::max() &&
+               presentFamily < std::numeric_limits<uint32_t>::max();
+    }
 };
 
 inline QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface)
@@ -29,7 +33,7 @@ inline QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device, vk::Surfa
     QueueFamilyIndices result;
     std::vector<vk::QueueFamilyProperties> queueFamilies = device.getQueueFamilyProperties();
 
-    int i = 0;
+    uint32_t i = 0;
     for (const auto& queueFamily : queueFamilies)
     {
         if (queueFamily.queueCount > 0 && queueFamily.queueFlags & vk::QueueFlagBits::eGraphics)
@@ -38,12 +42,11 @@ inline QueueFamilyIndices FindQueueFamilies(vk::PhysicalDevice device, vk::Surfa
         }
 
         VkBool32 presentSupport = false;
-        CheckVkResult(
-            device.getSurfaceSupportKHR(static_cast<uint32_t>(i), surface, &presentSupport));
+        CheckVkResult(device.getSurfaceSupportKHR(i, surface, &presentSupport));
 
         if (queueFamily.queueCount > 0 && presentSupport) { result.presentFamily = i; }
 
-        if (result.isComplete()) { break; }
+        if (result.IsComplete()) { break; }
 
         i++;
     }

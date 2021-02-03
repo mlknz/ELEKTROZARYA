@@ -8,7 +8,6 @@
 
 #include "core/log_assert.hpp"
 #include "render/config.hpp"
-#include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_swapchain.hpp"
 
 using namespace ez;
@@ -47,15 +46,17 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(
         return physicalDeviceRV.result;
     }
 
-    auto deviceRV = CreateDevice(physicalDeviceRV.value, surface);
+    const QueueFamilyIndices queueFamilyIndices =
+        FindQueueFamilies(physicalDeviceRV.value, surface);
+
+    auto deviceRV = CreateDevice(physicalDeviceRV.value, queueFamilyIndices);
     if (deviceRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to create device");
         return deviceRV.result;
     }
 
-    auto graphicsCommandPoolRV =
-        CreateGraphicsCommandPool(physicalDeviceRV.value, deviceRV.value, surface);
+    auto graphicsCommandPoolRV = CreateGraphicsCommandPool(deviceRV.value, queueFamilyIndices);
     if (graphicsCommandPoolRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to create graphics command pool");
@@ -76,7 +77,8 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(
                                             graphicsCommandPoolRV.value,
                                             descriptorPoolRV.value,
                                             window,
-                                            surface) };
+                                            surface,
+                                            queueFamilyIndices) };
 }
 
 VulkanDevice::VulkanDevice(vk::Instance aInstance,
@@ -85,7 +87,8 @@ VulkanDevice::VulkanDevice(vk::Instance aInstance,
                            vk::CommandPool aGraphicsCommandPool,
                            vk::DescriptorPool aDescriptorPool,
                            SDL_Window* aWindow,
-                           vk::SurfaceKHR aSurface)
+                           vk::SurfaceKHR aSurface,
+                           QueueFamilyIndices aQueueFamilyIndices)
     : instance(aInstance)
     , physicalDevice(aPhysicalDevice)
     , device(aDevice)
@@ -93,13 +96,10 @@ VulkanDevice::VulkanDevice(vk::Instance aInstance,
     , surface(aSurface)
     , graphicsCommandPool(aGraphicsCommandPool)
     , descriptorPool(aDescriptorPool)
+    , queueFamilyIndices(aQueueFamilyIndices)
 {
-    QueueFamilyIndices indices = FindQueueFamilies(
-        physicalDevice,
-        surface);  // todo: find once and use elsewhere instead of FindQueueFamilies calls
-
-    device.getQueue(indices.graphicsFamily, 0, &graphicsQueue);
-    device.getQueue(indices.presentFamily, 0, &presentQueue);
+    device.getQueue(queueFamilyIndices.graphicsFamily, 0, &graphicsQueue);
+    device.getQueue(queueFamilyIndices.presentFamily, 0, &presentQueue);
 }
 
 bool VulkanDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
@@ -137,7 +137,7 @@ bool VulkanDevice::IsDeviceSuitable(vk::PhysicalDevice device, vk::SurfaceKHR su
     vk::PhysicalDeviceFeatures supportedFeatures;
     device.getFeatures(&supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate &&
+    return indices.IsComplete() && extensionsSupported && swapChainAdequate &&
            supportedFeatures.samplerAnisotropy;
 }
 
@@ -171,15 +171,14 @@ ResultValue<vk::PhysicalDevice> VulkanDevice::PickPhysicalDevice(vk::Instance in
 }
 
 ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDevice,
-                                                   vk::SurfaceKHR surface)
+                                                   const QueueFamilyIndices& queueFamilyIndices)
 {
-    QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
-
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-    std::set<int> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily };
+    std::set<uint32_t> uniqueQueueFamilies = { queueFamilyIndices.graphicsFamily,
+                                               queueFamilyIndices.presentFamily };
 
     float queuePriority = 1.0f;
-    for (int queueFamily : uniqueQueueFamilies)
+    for (uint32_t queueFamily : uniqueQueueFamilies)
     {
         vk::DeviceQueueCreateInfo queueCreateInfo = {};
         queueCreateInfo.queueFamilyIndex = queueFamily;
@@ -226,10 +225,9 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
 }
 
 ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(
-    vk::PhysicalDevice physicalDevice, vk::Device device, vk::SurfaceKHR surface)
+    vk::Device device, const QueueFamilyIndices& queueFamilyIndices)
 {
     vk::CommandPool commandPool;
-    ez::QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice, surface);
 
     vk::CommandPoolCreateInfo poolInfo = {};
     poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;

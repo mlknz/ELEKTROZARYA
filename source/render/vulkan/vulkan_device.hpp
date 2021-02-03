@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "render/graphics_result.hpp"
+#include "render/vulkan/utils.hpp"
 #include "render/vulkan_include.hpp"
 
 namespace ez
@@ -22,7 +23,8 @@ class VulkanDevice
                  vk::CommandPool,
                  vk::DescriptorPool,
                  SDL_Window*,
-                 vk::SurfaceKHR);
+                 vk::SurfaceKHR,
+                 QueueFamilyIndices);
     ~VulkanDevice();
 
     vk::Device GetDevice() { return device; }
@@ -30,8 +32,10 @@ class VulkanDevice
     vk::SurfaceKHR GetSurface() { return surface; }
     SDL_Window* GetWindow() { return window; }
 
+    const QueueFamilyIndices& GetQueueFamilyIndices() const { return queueFamilyIndices; }
     vk::Queue GetGraphicsQueue() { return graphicsQueue; }
     vk::Queue GetPresentQueue() { return presentQueue; }
+
     vk::CommandPool GetGraphicsCommandPool() { return graphicsCommandPool; }
     vk::DescriptorPool GetDescriptorPool() { return descriptorPool; }
 
@@ -43,10 +47,9 @@ class VulkanDevice
     static bool IsDeviceSuitable(vk::PhysicalDevice, vk::SurfaceKHR);
     static bool CheckDeviceExtensionSupport(vk::PhysicalDevice);
 
-    static ResultValue<vk::Device> CreateDevice(vk::PhysicalDevice, vk::SurfaceKHR);
-    static ResultValue<vk::CommandPool> CreateGraphicsCommandPool(vk::PhysicalDevice,
-                                                                  vk::Device device,
-                                                                  vk::SurfaceKHR);
+    static ResultValue<vk::Device> CreateDevice(vk::PhysicalDevice, const QueueFamilyIndices&);
+    static ResultValue<vk::CommandPool> CreateGraphicsCommandPool(vk::Device,
+                                                                  const QueueFamilyIndices&);
     static ResultValue<vk::DescriptorPool> CreateDescriptorPool(vk::Device device);
 
     vk::Instance instance;
@@ -60,6 +63,8 @@ class VulkanDevice
 
     vk::CommandPool graphicsCommandPool;
     vk::DescriptorPool descriptorPool;
+
+    QueueFamilyIndices queueFamilyIndices;
 };
 
 }  // namespace ez

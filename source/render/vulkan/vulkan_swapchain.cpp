@@ -7,7 +7,6 @@
 #include "core/log_assert.hpp"
 #include "render/config.hpp"
 #include "render/graphics_result.hpp"
-#include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
 #include "render/vulkan/vulkan_image.hpp"
 
@@ -118,11 +117,10 @@ ResultValue<VulkanSwapchainInfo> VulkanSwapchain::CreateSwapchain(
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
 
-    QueueFamilyIndices indices = FindQueueFamilies(ci.physicalDevice, ci.surface);
-    uint32_t queueFamilyIndices[] = { (uint32_t)indices.graphicsFamily,
-                                      (uint32_t)indices.presentFamily };
+    uint32_t queueFamilyIndices[] = { ci.queueFamilyIndices.graphicsFamily,
+                                      ci.queueFamilyIndices.presentFamily };
 
-    if (indices.graphicsFamily != indices.presentFamily)
+    if (ci.queueFamilyIndices.graphicsFamily != ci.queueFamilyIndices.presentFamily)
     {
         createInfo.imageSharingMode = vk::SharingMode::eConcurrent;
         createInfo.queueFamilyIndexCount = 2;

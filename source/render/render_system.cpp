@@ -53,7 +53,8 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
         VulkanSwapchain::CreateVulkanSwapchain({ ci.vulkanDevice->GetDevice(),
                                                  ci.vulkanDevice->GetPhysicalDevice(),
                                                  ci.vulkanDevice->GetSurface(),
-                                                 ci.vulkanDevice->GetWindow() });
+                                                 ci.vulkanDevice->GetWindow(),
+                                                 ci.vulkanDevice->GetQueueFamilyIndices() });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to create VulkanSwapchain");
@@ -211,14 +212,11 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
 
     ImGui_ImplSDL2_InitForVulkan(ci.vulkanDevice->GetWindow());
 
-    QueueFamilyIndices indices =
-        FindQueueFamilies(ci.vulkanDevice->GetPhysicalDevice(), ci.vulkanDevice->GetSurface());
-
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance = ci.vulkanInstance->GetInstance();
     init_info.PhysicalDevice = ci.vulkanDevice->GetPhysicalDevice();
     init_info.Device = ci.vulkanDevice->GetDevice();
-    init_info.QueueFamily = indices.graphicsFamily;
+    init_info.QueueFamily = ci.vulkanDevice->GetQueueFamilyIndices().graphicsFamily;
     init_info.Queue = ci.vulkanDevice->GetGraphicsQueue();
     init_info.PipelineCache = nullptr;
     init_info.DescriptorPool = ci.vulkanDevice->GetDescriptorPool();
@@ -290,7 +288,8 @@ void RenderSystem::RecreateTotalPipeline()
         VulkanSwapchain::CreateVulkanSwapchain({ vulkanDevice->GetDevice(),
                                                  vulkanDevice->GetPhysicalDevice(),
                                                  vulkanDevice->GetSurface(),
-                                                 vulkanDevice->GetWindow() });
+                                                 vulkanDevice->GetWindow(),
+                                                 vulkanDevice->GetQueueFamilyIndices() });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to Recreate VulkanSwapchain");
