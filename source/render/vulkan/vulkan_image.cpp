@@ -62,4 +62,134 @@ ResultValue<vk::ImageView> CreateImageView2D(vk::Device logicalDevice,
     return { GraphicsResult::Ok, imageView };
 }
 
+bool GenerateMipsForImage(vk::Device logicalDevice,
+                          vk::Queue graphicsQueue,
+                          vk::CommandPool graphicsCommandPool,
+                          vk::Image image,
+                          uint32_t width,
+                          uint32_t height,
+                          uint32_t mipLevels)
+{
+    vk::ImageSubresourceRange subresourceRange = {};
+    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
+    subresourceRange.setLevelCount(1);
+    subresourceRange.setLayerCount(1);
+
+    vk::CommandBufferAllocateInfo allocInfo = {};  // todo: one-time CB create-submit helper
+    allocInfo.level = vk::CommandBufferLevel::ePrimary;
+    allocInfo.commandPool = graphicsCommandPool;
+    allocInfo.commandBufferCount = 1;
+
+    vk::CommandBufferBeginInfo beginInfo = {};
+    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
+
+    vk::CommandBuffer blitCmd;
+    CheckVkResult(logicalDevice.allocateCommandBuffers(&allocInfo, &blitCmd));
+    CheckVkResult(blitCmd.begin(&beginInfo));
+
+    for (uint32_t i = 1; i < mipLevels; i++)
+    {
+        vk::ImageBlit imageBlit{};
+
+        imageBlit.srcSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor);
+        imageBlit.srcSubresource.setLayerCount(1);
+        imageBlit.srcSubresource.setMipLevel(i - 1);
+        imageBlit.setSrcOffsets(
+            { vk::Offset3D{},
+              vk::Offset3D(int32_t(width >> (i - 1)), int32_t(height >> (i - 1)), 1) });
+
+        imageBlit.dstSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor);
+        imageBlit.dstSubresource.setLayerCount(1);
+        imageBlit.dstSubresource.setMipLevel(i);
+        imageBlit.setDstOffsets(
+            { vk::Offset3D{}, vk::Offset3D(int32_t(width >> i), int32_t(height >> i), 1) });
+
+        vk::ImageSubresourceRange mipSubRange = {};
+        mipSubRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
+        mipSubRange.setBaseMipLevel(i);
+        mipSubRange.setLevelCount(1);
+        mipSubRange.setLayerCount(1);
+
+        {
+            vk::ImageMemoryBarrier imageMemoryBarrier{};
+            imageMemoryBarrier.setOldLayout(vk::ImageLayout::eUndefined);
+            imageMemoryBarrier.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
+            imageMemoryBarrier.setSrcAccessMask(vk::AccessFlags{});
+            imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
+            imageMemoryBarrier.setImage(image);
+            imageMemoryBarrier.setSubresourceRange(mipSubRange);
+            blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                                    vk::PipelineStageFlagBits::eTransfer,
+                                    vk::DependencyFlags{},
+                                    0,
+                                    nullptr,
+                                    0,
+                                    nullptr,
+                                    1,
+                                    &imageMemoryBarrier);
+        }
+        blitCmd.blitImage(image,
+                          vk::ImageLayout::eTransferSrcOptimal,
+                          image,
+                          vk::ImageLayout::eTransferDstOptimal,
+                          1,
+                          &imageBlit,
+                          vk::Filter::eLinear);
+
+        {
+            vk::ImageMemoryBarrier imageMemoryBarrier{};
+            imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
+            imageMemoryBarrier.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
+            imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
+            imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
+            imageMemoryBarrier.setImage(image);
+            imageMemoryBarrier.setSubresourceRange(mipSubRange);
+
+            blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                                    vk::PipelineStageFlagBits::eTransfer,
+                                    vk::DependencyFlags{},
+                                    0,
+                                    nullptr,
+                                    0,
+                                    nullptr,
+                                    1,
+                                    &imageMemoryBarrier);
+        }
+    }
+
+    subresourceRange.setLevelCount(mipLevels);
+
+    {
+        vk::ImageMemoryBarrier imageMemoryBarrier{};
+        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferSrcOptimal);
+        imageMemoryBarrier.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+        imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
+        imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
+        imageMemoryBarrier.setImage(image);
+        imageMemoryBarrier.setSubresourceRange(subresourceRange);
+        blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
+                                vk::PipelineStageFlagBits::eAllCommands,
+                                vk::DependencyFlags{},
+                                0,
+                                nullptr,
+                                0,
+                                nullptr,
+                                1,
+                                &imageMemoryBarrier);
+    }
+
+    CheckVkResult(blitCmd.end());
+
+    vk::SubmitInfo submitInfo = vk::SubmitInfo{};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &blitCmd;
+
+    CheckVkResult(graphicsQueue.submit(1, &submitInfo, nullptr));
+    CheckVkResult(graphicsQueue.waitIdle());
+
+    logicalDevice.freeCommandBuffers(graphicsCommandPool, 1, &blitCmd);
+
+    return true;
+}
+
 }  // namespace ez::Image

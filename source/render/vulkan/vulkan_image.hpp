@@ -17,4 +17,12 @@ ResultValue<vk::ImageView> CreateImageView2D(vk::Device logicalDevice,
                                              vk::ImageAspectFlagBits aspectMask,
                                              uint32_t mipLevelsCount);
 
+bool GenerateMipsForImage(vk::Device logicalDevice,
+                          vk::Queue graphicsQueue,
+                          vk::CommandPool graphicsCommandPool,
+                          vk::Image image,
+                          uint32_t width,
+                          uint32_t height,
+                          uint32_t mipLevels);
+
 }  // namespace ez::Image
