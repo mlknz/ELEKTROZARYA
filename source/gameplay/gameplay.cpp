@@ -30,6 +30,8 @@ void Gameplay::Update(int64_t deltaTimeMcs)
     glm::vec3 cameraMovement = glm::vec3(0.0f, 0.0f, 0.0f);
     if (input->IsKeyPressed(SDLK_a)) { cameraMovement.x += 1.0f; }
     if (input->IsKeyPressed(SDLK_d)) { cameraMovement.x -= 1.0f; }
+    if (input->IsKeyPressed(SDLK_q)) { cameraMovement.y -= 1.0f; }
+    if (input->IsKeyPressed(SDLK_e)) { cameraMovement.y += 1.0f; }
     if (input->IsKeyPressed(SDLK_s)) { cameraMovement.z -= 1.0f; }
     if (input->IsKeyPressed(SDLK_w)) { cameraMovement.z += 1.0f; }
 
@@ -65,6 +67,8 @@ void Gameplay::Update(int64_t deltaTimeMcs)
     // ImGui::Text("Hello, %d", 42);
     // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
     ImGui::End();
+
+    if (view && view->GetScene()) { view->GetScene()->Update(); }
 }
 
 void Gameplay::ReloadScene()

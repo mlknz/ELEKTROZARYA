@@ -100,7 +100,7 @@ struct Primitive
         hasIndices = indexCount > 0;
     }
 
-    void setBoundingBox(glm::vec3 min, glm::vec3 max)
+    void SetBoundingBox(glm::vec3 min, glm::vec3 max)
     {
         bb.min = min;
         bb.max = max;
@@ -117,6 +117,12 @@ struct Mesh
     BoundingBox bb;
     BoundingBox aabb;
 
+    struct PushConstantsBlock final
+    {
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
+    } pushConstantsBlock;
+    static constexpr uint32_t PushConstantsBlockSize = sizeof(Mesh::PushConstantsBlock);
+
     struct UniformBuffer
     {
         vk::Buffer buffer;
@@ -126,39 +132,7 @@ struct Mesh
         void* mapped;
     } uniformBuffer;
 
-    struct UniformBlock
-    {
-        glm::mat4 matrix;
-        // glm::mat4 jointMatrix[MAX_NUM_JOINTS]{};
-        // float jointcount{ 0 };
-    } uniformBlock;
-
-    Mesh(/*vk::Device device,*/ glm::mat4 matrix)
-    {
-        // this->device = device;
-        this->uniformBlock.matrix = matrix;
-        //        VK_CHECK_RESULT(device->createBuffer(
-        //            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        //            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-        //            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, sizeof(uniformBlock),
-        //            &uniformBuffer.buffer,
-        //            &uniformBuffer.memory,
-        //            &uniformBlock));
-        //        VK_CHECK_RESULT(vkMapMemory(device->logicalDevice,
-        //                                    uniformBuffer.memory,
-        //                                    0,
-        //                                    sizeof(uniformBlock),
-        //                                    0,
-        //                                    &uniformBuffer.mapped));
-        //        uniformBuffer.descriptor = { uniformBuffer.buffer, 0, sizeof(uniformBlock) };
-    };
-
-    ~Mesh()
-    {
-        //        vkDestroyBuffer(device->logicalDevice, uniformBuffer.buffer, nullptr);
-        //        vkFreeMemory(device->logicalDevice, uniformBuffer.memory, nullptr);
-        // for (Primitive* p : primitives) delete p;
-    }
+    Mesh(const glm::mat4& matrix) { this->pushConstantsBlock.modelMatrix = matrix; }
 
     void SetBoundingBox(glm::vec3 min, glm::vec3 max)
     {
@@ -170,7 +144,7 @@ struct Mesh
 
 struct Node
 {
-    Node* parent;
+    Node* parent = nullptr;
     uint32_t index;
     std::vector<std::unique_ptr<Node>> children;
     glm::mat4 matrix;
@@ -181,13 +155,13 @@ struct Node
     glm::quat rotation{};
     BoundingBox aabb;
 
-    glm::mat4 ConstructLocalMatrix()
+    inline glm::mat4 ConstructLocalMatrix()
     {
         return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) *
                glm::scale(glm::mat4(1.0f), scale) * matrix;
     }
 
-    glm::mat4 GetMatrix()
+    inline glm::mat4 GetMatrix()
     {
         glm::mat4 m = ConstructLocalMatrix();
         Node* p = parent;
@@ -201,30 +175,20 @@ struct Node
 
     void Update()
     {
-        /*
-        if (mesh)
-        {
-            glm::mat4 m = GetMatrix();
-            memcpy(mesh->uniformBuffer.mapped, &m, sizeof(glm::mat4));
-        }
+        if (mesh) { mesh->pushConstantsBlock.modelMatrix = glm::mat4(1.0f); /*GetMatrix()*/ }
 
         for (auto& child : children) { child->Update(); }
-        */
-    }
-
-    ~Node()
-    {
-        // if (subMesh) { delete subMesh; }
     }
 };
 
 struct Model
 {
     Model() = delete;
-    Model(const std::string& gltfFilePath);
-    ~Model();
     Model(const Model& other) = delete;
+
+    Model(const std::string& gltfFilePath);
     Model(Model&& other) = default;
+    ~Model();
 
     void SetLogicalDevice(vk::Device device) { logicalDevice = device; }
     bool CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
@@ -239,20 +203,11 @@ struct Model
     std::string name;
     std::vector<std::unique_ptr<Node>> nodes;
 
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
-
-    vk::Device logicalDevice;
-
     vk::Buffer vertexBuffer;
     vk::Buffer indexBuffer;
     vk::Buffer uniformBuffer;
 
-    vk::DeviceMemory vertexBufferMemory;
-    vk::DeviceMemory indexBufferMemory;
     vk::DeviceMemory uniformBufferMemory;
-
-    uint32_t uniformBufferMaxHackSize = 192;
 
     vk::DescriptorSetLayout descriptorSetLayout;
     vk::DescriptorSet descriptorSet;
@@ -271,6 +226,16 @@ struct Model
                           std::vector<Vertex>& vertexBuffer);
 
     void LoadMaterials(tinygltf::Model& model);
+
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+
+    vk::Device logicalDevice;
+
+    vk::DeviceMemory vertexBufferMemory;
+    vk::DeviceMemory indexBufferMemory;
+
+    uint32_t uniformBufferMaxHackSize = 192;
 };
 
 }  // namespace ez

@@ -13,8 +13,8 @@ Camera::Camera()
 {
     _fov = glm::radians(45.0f);
     _near = 0.1f;
-    _far = 10.0f;
-    _position = glm::vec3(0.0f, 4.0f, 3.0f);
+    _far = 40.0f;
+    _position = glm::vec3(0.0f, 4.0f, 4.0f);
     _targetPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 

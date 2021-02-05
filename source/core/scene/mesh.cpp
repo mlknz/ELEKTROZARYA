@@ -105,22 +105,19 @@ void Model::LoadNodeFromGLTF(Node* parent,
     newNode->matrix = glm::mat4(1.0f);
 
     // Generate local node matrix
-    glm::vec3 translation = glm::vec3(0.0f);
     if (node.translation.size() == 3)
     {
-        translation = glm::make_vec3(node.translation.data());
+        glm::vec3 translation = glm::make_vec3(node.translation.data());
         newNode->translation = translation;
     }
-    glm::mat4 rotation = glm::mat4(1.0f);
     if (node.rotation.size() == 4)
     {
         glm::quat q = glm::make_quat(node.rotation.data());
         newNode->rotation = glm::mat4(q);
     }
-    glm::vec3 scale = glm::vec3(1.0f);
     if (node.scale.size() == 3)
     {
-        scale = glm::make_vec3(node.scale.data());
+        glm::vec3 scale = glm::make_vec3(node.scale.data());
         newNode->scale = scale;
     }
     if (node.matrix.size() == 16) { newNode->matrix = glm::make_mat4x4(node.matrix.data()); }
@@ -130,9 +127,10 @@ void Model::LoadNodeFromGLTF(Node* parent,
     {
         for (size_t i = 0; i < node.children.size(); i++)
         {
+            uint32_t childIndex = uint32_t(node.children[i]);
             LoadNodeFromGLTF(newNode.get(),
-                             model.nodes[node.children[i]],
-                             node.children[i],
+                             model.nodes.at(childIndex),
+                             childIndex,
                              model,
                              indexBuffer,
                              vertexBuffer);
@@ -305,7 +303,7 @@ void Model::LoadNodeFromGLTF(Node* parent,
                 primitive.material > -1 ? materials[primitive.material] : materials.back();
             std::unique_ptr<Primitive> newPrimitive =
                 std::make_unique<Primitive>(indexStart, indexCount, vertexCount, mat);
-            newPrimitive->setBoundingBox(posMin, posMax);
+            newPrimitive->SetBoundingBox(posMin, posMax);
             newNode->mesh->primitives.push_back(std::move(newPrimitive));
         }
         // Mesh BB from BBs of primitives

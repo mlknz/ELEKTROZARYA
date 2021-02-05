@@ -15,6 +15,8 @@ class Scene final
     void SetReadyToRender(bool value) { readyToRender = value; }
     bool ReadyToRender() const { return readyToRender; }
 
+    void Update();
+
     const std::vector<Model>& GetModels() { return models; }
     std::vector<Model>& GetModelsMutable() { return models; }
 

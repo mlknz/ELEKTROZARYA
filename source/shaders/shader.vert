@@ -15,12 +15,16 @@ layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
     mat4 viewProjectionMatrix;
 } globalUniforms;
 
+layout(push_constant) uniform PushConstantsObject {
+  mat4 modelMatrix;
+} pushConstants;
+
 out gl_PerVertex {
     vec4 gl_Position;
 };
 
 void main() {
-    gl_Position = globalUniforms.viewProjectionMatrix * vec4(inPosition, 1.0);
+    gl_Position = pushConstants.modelMatrix * globalUniforms.viewProjectionMatrix * vec4(inPosition, 1.0);
     fragColor = vec3(1.0, 1.0, 0.0);
     uv = inUv0;
 }

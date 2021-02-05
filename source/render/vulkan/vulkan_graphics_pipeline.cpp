@@ -156,10 +156,16 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
     depthStencilState.depthTestEnable = true;
     depthStencilState.depthCompareOp = vk::CompareOp::eLess;
 
+    static_assert(Mesh::PushConstantsBlockSize <= 128);
+    vk::PushConstantRange pushConstantRange(
+        vk::ShaderStageFlagBits::eVertex, 0, Mesh::PushConstantsBlockSize);
+
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo(
         vk::PipelineLayoutCreateFlags{},
         static_cast<uint32_t>(descriptorSetLayouts.size()),
-        descriptorSetLayouts.data());
+        descriptorSetLayouts.data(),
+        1,
+        &pushConstantRange);
 
     if (logicalDevice.createPipelineLayout(&pipelineLayoutInfo, nullptr, &pipelineLayout) !=
         vk::Result::eSuccess)

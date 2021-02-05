@@ -12,4 +12,13 @@ bool Scene::Load()
     return loaded;
 }
 
+void Scene::Update()
+{
+    if (!IsLoaded()) { return; }
+    for (Model& model : models)
+    {
+        for (std::unique_ptr<Node>& node : model.nodes) { node->Update(); }
+    }
+}
+
 }  // namespace ez

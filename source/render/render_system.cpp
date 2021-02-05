@@ -507,9 +507,6 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
         curCb.bindVertexBuffers(0, 1, vertexBuffers, offsets);
         curCb.bindIndexBuffer(model.indexBuffer, 0, vk::IndexType::eUint32);
 
-        // mewmew start here. Descriptor sets per mesh (local
-        // transform, textures set), globalUbo for time, ViewMatrix
-
         for (const std::unique_ptr<Node>& node : model.nodes)
         {
             if (!node->mesh) continue;
@@ -521,6 +518,12 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
                     0,
                     { model.descriptorSet, primitive->material.descriptorSet },
                     {});
+
+                curCb.pushConstants(model.graphicsPipeline->GetPipelineLayout(),
+                                    vk::ShaderStageFlagBits::eVertex,
+                                    0,
+                                    Mesh::PushConstantsBlockSize,
+                                    &node->mesh->pushConstantsBlock);
 
                 curCb.drawIndexed(primitive->indexCount, 1, 0, 0, 0);
             }
