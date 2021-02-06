@@ -384,13 +384,23 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
             descriptorSetAllocInfo.descriptorSetCount = 1;
             CheckVkResult(GetDevice().allocateDescriptorSets(&descriptorSetAllocInfo,
                                                              &material.descriptorSet));
-            // todo: handle missing textures (empty descriptor)
+            // todo: handle missing textures - create white and black tex
+            vk::DescriptorImageInfo defaultWhiteTexture =
+                material.textures.baseColor->descriptor;
+            vk::DescriptorImageInfo defaultBlackTexture =
+                material.textures.baseColor->descriptor;
             const std::vector<vk::DescriptorImageInfo> imageDescriptors = {
-                material.textures.baseColor->descriptor,
-                material.textures.metallicRoughness->descriptor,
-                material.textures.normal->descriptor,
-                material.textures.occlusion->descriptor,
-                material.textures.emission->descriptor
+                material.textures.baseColor ? material.textures.baseColor->descriptor
+                                            : defaultWhiteTexture,
+                material.textures.metallicRoughness
+                    ? material.textures.metallicRoughness->descriptor
+                    : defaultBlackTexture,
+                material.textures.normal ? material.textures.normal->descriptor
+                                         : defaultWhiteTexture,
+                material.textures.occlusion ? material.textures.occlusion->descriptor
+                                            : defaultWhiteTexture,
+                material.textures.emission ? material.textures.emission->descriptor
+                                           : defaultBlackTexture
             };
 
             std::array<vk::WriteDescriptorSet, 5> writeDescriptorSets{};
@@ -429,6 +439,36 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
     }
     EZASSERT(modelsCreateSuccess);
     scene->SetReadyToRender(true);
+}
+
+static void DrawNodeRecursive(const Model& model,
+                              const std::unique_ptr<Node>& node,
+                              vk::CommandBuffer& curCb)
+{
+    if (node->mesh)
+    {
+        for (const std::unique_ptr<Primitive>& primitive : node->mesh->primitives)
+        {
+            curCb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
+                                     model.graphicsPipeline->GetPipelineLayout(),
+                                     0,
+                                     { model.descriptorSet, primitive->material.descriptorSet },
+                                     {});
+
+            curCb.pushConstants(model.graphicsPipeline->GetPipelineLayout(),
+                                vk::ShaderStageFlagBits::eVertex,
+                                0,
+                                Mesh::PushConstantsBlockSize,
+                                &node->mesh->pushConstantsBlock);
+
+            curCb.drawIndexed(primitive->indexCount, 1, 0, 0, 0);
+        }
+    }
+
+    for (const std::unique_ptr<Node>& child : node->children)
+    {
+        DrawNodeRecursive(model, child, curCb);
+    }
 }
 
 void RenderSystem::Draw(const std::unique_ptr<View>& view,
@@ -509,24 +549,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
 
         for (const std::unique_ptr<Node>& node : model.nodes)
         {
-            if (!node->mesh) continue;
-            for (const std::unique_ptr<Primitive>& primitive : node->mesh->primitives)
-            {
-                curCb.bindDescriptorSets(
-                    vk::PipelineBindPoint::eGraphics,
-                    model.graphicsPipeline->GetPipelineLayout(),
-                    0,
-                    { model.descriptorSet, primitive->material.descriptorSet },
-                    {});
-
-                curCb.pushConstants(model.graphicsPipeline->GetPipelineLayout(),
-                                    vk::ShaderStageFlagBits::eVertex,
-                                    0,
-                                    Mesh::PushConstantsBlockSize,
-                                    &node->mesh->pushConstantsBlock);
-
-                curCb.drawIndexed(primitive->indexCount, 1, 0, 0, 0);
-            }
+            DrawNodeRecursive(model, node, curCb);
         }
     }
 

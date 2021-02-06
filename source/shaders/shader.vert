@@ -24,7 +24,7 @@ out gl_PerVertex {
 };
 
 void main() {
-    gl_Position = pushConstants.modelMatrix * globalUniforms.viewProjectionMatrix * vec4(inPosition, 1.0);
+    gl_Position = globalUniforms.viewProjectionMatrix * pushConstants.modelMatrix * vec4(inPosition, 1.0);
     fragColor = vec3(1.0, 1.0, 0.0);
     uv = inUv0;
 }

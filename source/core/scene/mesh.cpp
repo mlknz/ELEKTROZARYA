@@ -102,7 +102,6 @@ void Model::LoadNodeFromGLTF(Node* parent,
     newNode->index = nodeIndex;
     newNode->parent = parent;
     newNode->name = node.name;
-    newNode->matrix = glm::mat4(1.0f);
 
     // Generate local node matrix
     if (node.translation.size() == 3)
@@ -151,7 +150,6 @@ void Model::LoadNodeFromGLTF(Node* parent,
             uint32_t vertexCount = 0;
             glm::vec3 posMin{};
             glm::vec3 posMax{};
-            bool hasSkin = false;
             bool hasIndices = primitive.indices > -1;
             // Vertices
             {

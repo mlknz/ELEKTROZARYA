@@ -28,12 +28,12 @@ void Gameplay::Update(int64_t deltaTimeMcs)
 {
     double deltaTimeSeconds = static_cast<double>(deltaTimeMcs) / (1000 * 1000);
     glm::vec3 cameraMovement = glm::vec3(0.0f, 0.0f, 0.0f);
-    if (input->IsKeyPressed(SDLK_a)) { cameraMovement.x += 1.0f; }
-    if (input->IsKeyPressed(SDLK_d)) { cameraMovement.x -= 1.0f; }
-    if (input->IsKeyPressed(SDLK_q)) { cameraMovement.y -= 1.0f; }
-    if (input->IsKeyPressed(SDLK_e)) { cameraMovement.y += 1.0f; }
-    if (input->IsKeyPressed(SDLK_s)) { cameraMovement.z -= 1.0f; }
-    if (input->IsKeyPressed(SDLK_w)) { cameraMovement.z += 1.0f; }
+    if (input->IsKeyPressed(SDLK_a)) { cameraMovement.x -= 1.0f; }
+    if (input->IsKeyPressed(SDLK_d)) { cameraMovement.x += 1.0f; }
+    if (input->IsKeyPressed(SDLK_q)) { cameraMovement.z += 1.0f; }
+    if (input->IsKeyPressed(SDLK_e)) { cameraMovement.z -= 1.0f; }
+    if (input->IsKeyPressed(SDLK_s)) { cameraMovement.y -= 1.0f; }
+    if (input->IsKeyPressed(SDLK_w)) { cameraMovement.y += 1.0f; }
 
     cameraMovement *= deltaTimeSeconds;
 

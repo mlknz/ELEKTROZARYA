@@ -115,22 +115,12 @@ struct Mesh
     std::vector<std::unique_ptr<Primitive>> primitives;
 
     BoundingBox bb;
-    BoundingBox aabb;
 
     struct PushConstantsBlock final
     {
         glm::mat4 modelMatrix = glm::mat4(1.0f);
     } pushConstantsBlock;
     static constexpr uint32_t PushConstantsBlockSize = sizeof(Mesh::PushConstantsBlock);
-
-    struct UniformBuffer
-    {
-        vk::Buffer buffer;
-        vk::DeviceMemory memory;
-        vk::DescriptorBufferInfo descriptor;
-        vk::DescriptorSet descriptorSet;
-        void* mapped;
-    } uniformBuffer;
 
     Mesh(const glm::mat4& matrix) { this->pushConstantsBlock.modelMatrix = matrix; }
 
@@ -145,20 +135,23 @@ struct Mesh
 struct Node
 {
     Node* parent = nullptr;
-    uint32_t index;
-    std::vector<std::unique_ptr<Node>> children;
-    glm::mat4 matrix;
+
     std::string name;
+    uint32_t index;
     std::unique_ptr<Mesh> mesh;
-    glm::vec3 translation{};
+    std::vector<std::unique_ptr<Node>> children;
+
+    glm::mat4 matrix{ 1.0f };
+    glm::vec3 translation{ 0.0f };
     glm::vec3 scale{ 1.0f };
-    glm::quat rotation{};
+    glm::mat4 rotation{ 1.0f };
     BoundingBox aabb;
 
     inline glm::mat4 ConstructLocalMatrix()
     {
-        return glm::translate(glm::mat4(1.0f), translation) * glm::mat4(rotation) *
-               glm::scale(glm::mat4(1.0f), scale) * matrix;
+        glm::mat4 tr = glm::translate(glm::mat4(1.0f), translation);
+        glm::mat4 sc = glm::scale(glm::mat4(1.0f), scale);
+        return tr * rotation * sc * matrix;
     }
 
     inline glm::mat4 GetMatrix()
@@ -175,9 +168,9 @@ struct Node
 
     void Update()
     {
-        if (mesh) { mesh->pushConstantsBlock.modelMatrix = glm::mat4(1.0f); /*GetMatrix()*/ }
+        if (mesh) { mesh->pushConstantsBlock.modelMatrix = GetMatrix(); }
 
-        for (auto& child : children) { child->Update(); }
+        for (std::unique_ptr<Node>& child : children) { child->Update(); }
     }
 };
 

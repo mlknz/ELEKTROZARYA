@@ -11,10 +11,10 @@ const float kSmallFloat = 0.000000001f;
 
 Camera::Camera()
 {
-    _fov = glm::radians(45.0f);
+    _fov = glm::radians(60.0f);
     _near = 0.1f;
     _far = 40.0f;
-    _position = glm::vec3(0.0f, 4.0f, 4.0f);
+    _position = glm::vec3(1.5f, 0.0f, 2.5f);
     _targetPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
@@ -40,7 +40,7 @@ void Camera::MovePreserveDirection(const glm::vec3& offset)
 void Camera::Recalc()
 {
     float aspectRatio = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
-    viewMatrix = glm::lookAt(_position, _targetPosition, glm::vec3(0.0f, 0.0f, 1.0f));
+    viewMatrix = glm::lookAt(_position, _targetPosition, glm::vec3(0.0f, 1.0f, 0.0f));
     projectionMatrix = glm::perspective(_fov, aspectRatio, _near, _far);
     projectionMatrix[1][1] *= -1;
 
