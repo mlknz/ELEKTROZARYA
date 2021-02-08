@@ -14,6 +14,9 @@ constexpr glm::vec3 position{ 1.5f, 0.0f, 2.5f };
 
 constexpr glm::vec3 targetPosition{ 0.0f, 0.0f, 0.0f };
 constexpr glm::vec3 up{ 0.0f, 1.0f, 0.0f };
+constexpr float moveSpeed = 1.4f;
+constexpr float rotateXSpeed = 1.5f;
+constexpr float rotateYSpeed = 1.0f;
 
 constexpr bool invertProjection = true;
 

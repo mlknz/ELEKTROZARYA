@@ -36,11 +36,13 @@ int main(int, char*[])
     bool run = true;
     while (run)
     {
+        gameplay->GetInput()->OnNewFrame();
+
         SDL_Event evt;
         while (SDL_PollEvent(&evt))
         {
             if (evt.type == SDL_QUIT) { run = false; }
-            gameplay->GetInput()->ProcessSDLEvent(evt);
+            gameplay->GetInput()->ProcessSDLEvent(renderSystem->GetWindow(), evt);
         }
 
         std::chrono::time_point currentTime = std::chrono::high_resolution_clock::now();

@@ -12,9 +12,14 @@ class Camera
     const glm::mat4& GetViewMatrix() const { return viewMatrix; }
     const glm::mat4& GetProjectionMatrix() const { return projectionMatrix; }
     const glm::mat4& GetViewProjectionMatrix() const { return viewProjectionMatrix; }
+    uint32_t GetViewportWidth() const { return viewportWidth; }
+    uint32_t GetViewportHeight() const { return viewportHeight; }
 
     void SetViewportExtent(uint32_t width, uint32_t height);
-    void MovePreserveDirection(const glm::vec3& offset);
+
+    void MoveLocal(const glm::vec3& offsetLocal);
+    void RotateLocal(const glm::vec2& anglesLocal);
+    void ResetToDefault();
 
    private:
     void Recalc();
