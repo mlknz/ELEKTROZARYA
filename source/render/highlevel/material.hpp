@@ -2,7 +2,7 @@
 
 #include <glm/glm.hpp>
 
-#include "core/scene/texture.hpp"
+#include "render/highlevel/texture.hpp"
 #include "render/vulkan_include.hpp"
 
 namespace ez

@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "core/scene/texture_sampler.hpp"
+#include "render/highlevel/texture_sampler.hpp"
 #include "render/vulkan_include.hpp"
 
 namespace ez

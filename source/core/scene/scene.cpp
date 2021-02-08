@@ -1,10 +1,12 @@
-#include "core/scene/scene.hpp"
+#include "scene.hpp"
+
+#include "core/config.hpp"
 
 namespace ez
 {
 bool Scene::Load()
 {
-    models.emplace_back("../assets/DamagedHelmet/glTF/DamagedHelmet.gltf");
+    models.emplace_back(SceneConfig::startupModel);
 
     readyToRender = false;
     loaded = true;

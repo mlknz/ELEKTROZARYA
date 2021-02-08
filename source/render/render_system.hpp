@@ -5,9 +5,9 @@
 #include <optional>
 
 #include "core/camera/camera.hpp"
-#include "core/scene/mesh.hpp"
 #include "core/scene/scene.hpp"
 #include "render/graphics_result.hpp"
+#include "render/highlevel/mesh.hpp"
 #include "render/vulkan/vulkan_device.hpp"
 #include "render/vulkan/vulkan_instance.hpp"
 #include "render/vulkan/vulkan_pipeline_manager.hpp"

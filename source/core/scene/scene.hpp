@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "core/scene/mesh.hpp"
+#include "render/highlevel/mesh.hpp"
 
 namespace ez
 {

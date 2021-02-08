@@ -6,8 +6,7 @@ layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUv0;
 layout(location = 3) in vec2 inUv1;
 
-layout(location = 0) out vec3 fragColor;
-layout(location = 1) out vec2 uv;
+layout(location = 0) out vec2 uv;
 
 layout(set = 0, binding = 0) uniform GlobalUniformBufferObject {
     mat4 viewMatrix;
@@ -25,6 +24,5 @@ out gl_PerVertex {
 
 void main() {
     gl_Position = globalUniforms.viewProjectionMatrix * pushConstants.modelMatrix * vec4(inPosition, 1.0);
-    fragColor = vec3(1.0, 1.0, 0.0);
     uv = inUv0;
 }

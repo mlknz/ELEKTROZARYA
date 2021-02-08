@@ -29,6 +29,15 @@ set(SOURCE_FILES
     ${SOURCES}/render/graphics_result.hpp
     ${SOURCES}/render/vulkan_include.hpp
 
+    ${SOURCES}/render/highlevel/mesh.cpp
+    ${SOURCES}/render/highlevel/mesh.hpp
+    ${SOURCES}/render/highlevel/material.cpp
+    ${SOURCES}/render/highlevel/material.hpp
+    ${SOURCES}/render/highlevel/texture.cpp
+    ${SOURCES}/render/highlevel/texture.hpp
+    ${SOURCES}/render/highlevel/texture_sampler.cpp
+    ${SOURCES}/render/highlevel/texture_sampler.hpp
+
     ${SOURCES}/render/vulkan/vulkan_instance.cpp
     ${SOURCES}/render/vulkan/vulkan_instance.hpp
     ${SOURCES}/render/vulkan/vulkan_device.cpp
@@ -47,18 +56,10 @@ set(SOURCE_FILES
     ${SOURCES}/render/vulkan/vulkan_shader_compiler.hpp
     ${SOURCES}/render/vulkan/vulkan_pipeline_manager.cpp
     ${SOURCES}/render/vulkan/vulkan_pipeline_manager.hpp
-    ${SOURCES}/render/vulkan/utils.hpp
+    ${SOURCES}/render/vulkan/utils.hpp    
 
     ${SOURCES}/core/file_utils.cpp
     ${SOURCES}/core/file_utils.hpp
-    ${SOURCES}/core/scene/mesh.cpp
-    ${SOURCES}/core/scene/mesh.hpp
-    ${SOURCES}/core/scene/material.cpp
-    ${SOURCES}/core/scene/material.hpp
-    ${SOURCES}/core/scene/texture.cpp
-    ${SOURCES}/core/scene/texture.hpp
-    ${SOURCES}/core/scene/texture_sampler.cpp
-    ${SOURCES}/core/scene/texture_sampler.hpp
     ${SOURCES}/core/scene/scene.cpp
     ${SOURCES}/core/scene/scene.hpp
     ${SOURCES}/core/view.cpp
@@ -68,6 +69,7 @@ set(SOURCE_FILES
     ${SOURCES}/core/input/input.cpp
     ${SOURCES}/core/input/input.hpp
     ${SOURCES}/core/log_assert.hpp
+    ${SOURCES}/core/config.hpp
 
     ${SOURCES}/gameplay/gameplay.cpp
     ${SOURCES}/gameplay/gameplay.hpp
@@ -75,7 +77,7 @@ set(SOURCE_FILES
 
 add_executable(ELEKTROZARYA ${SOURCE_FILES})
 
-target_compile_definitions(ELEKTROZARYA PRIVATE GLM_FORCE_RADIANS=1 GLM_FORCE_DEPTH_ZERO_TO_ONE=1)
+target_compile_definitions(ELEKTROZARYA PRIVATE GLM_FORCE_RADIANS=1 GLM_FORCE_DEPTH_ZERO_TO_ONE=1 GLM_ENABLE_EXPERIMENTAL=1)
 target_precompile_headers(ELEKTROZARYA PRIVATE ${SOURCES}/render/vulkan_include.hpp)
 
 set(IMGUI_SOURCE_FILES

@@ -2,7 +2,7 @@
 
 #include "core/file_utils.hpp"
 #include "core/log_assert.hpp"
-#include "core/scene/mesh.hpp"
+#include "render/highlevel/mesh.hpp"
 #include "render/vulkan/vulkan_shader_compiler.hpp"
 
 namespace ez

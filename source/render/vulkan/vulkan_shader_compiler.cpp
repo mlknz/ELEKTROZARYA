@@ -8,7 +8,6 @@
 
 #include "core/file_utils.hpp"
 #include "core/log_assert.hpp"
-#include "core/scene/mesh.hpp"
 #include "render/config.hpp"
 
 namespace ez::SpirVShaderCompiler

@@ -1,16 +1,15 @@
 #pragma once
 
 #include <array>
-//#include <gli/gli.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <memory>
 #include <vector>
 
-#include "core/scene/material.hpp"
-#include "core/scene/texture.hpp"
-#include "core/scene/texture_sampler.hpp"
+#include "render/highlevel/material.hpp"
+#include "render/highlevel/texture.hpp"
+#include "render/highlevel/texture_sampler.hpp"
 #include "render/vulkan/vulkan_graphics_pipeline.hpp"
 #include "render/vulkan_include.hpp"
 

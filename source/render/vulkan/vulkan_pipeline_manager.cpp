@@ -1,7 +1,6 @@
 #include "vulkan_pipeline_manager.hpp"
 
 #include "core/log_assert.hpp"
-#include "core/scene/mesh.hpp"
 
 namespace ez
 {
