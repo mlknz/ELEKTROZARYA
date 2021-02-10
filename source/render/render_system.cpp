@@ -16,13 +16,6 @@
 
 namespace ez
 {
-struct GlobalUBO
-{
-    glm::mat4 viewMatrix;
-    glm::mat4 projectionMatrix;
-    glm::mat4 viewProjectionMatrix;
-};
-
 static void check_vk_result_imgui(VkResult err)
 {
     if (err == 0) return;
@@ -92,15 +85,17 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
         return framebuffersResult;
     }
 
-    auto dsLayoutPtr = CreateDescriptorSetLayout(ci.vulkanDevice->GetDevice());
-    if (!dsLayoutPtr.has_value())
+    auto globalUBO = CreateGlobalUBO(ci.vulkanDevice->GetDevice(),
+                                     ci.vulkanDevice->GetPhysicalDevice(),
+                                     ci.vulkanDevice->GetDescriptorPool());
+    if (!globalUBO.has_value())
     {
-        EZLOG("Failed to create default vk::DescriptorSetLayout");
+        EZLOG("Failed to create default GlobalUBO");
         return GraphicsResult::Error;
     }
-    ci.descriptorSetLayout = *dsLayoutPtr;
+    ci.globalUBO = *globalUBO;
 
-    // create material image sampler descriptor sets
+    // Create material image sampler descriptor sets
     // clang-format off
     const std::vector<vk::DescriptorSetLayoutBinding> setLayoutBindings = {
         { 0, vk::DescriptorType::eCombinedImageSampler, 1, vk::ShaderStageFlagBits::eFragment, nullptr },
@@ -149,16 +144,19 @@ RenderSystem::RenderSystem(RenderSystemCreateInfo& ci)
     , vulkanSwapchain(std::move(ci.vulkanSwapchain))
     , vulkanRenderPass(std::move(ci.vulkanRenderPass))
     , vulkanPipelineManager(std::move(ci.vulkanPipelineManager))
-    , descriptorSetLayout(std::move(ci.descriptorSetLayout))
+    , globalUBO(std::move(ci.globalUBO))
     , samplersDescriptorSetLayout(std::move(ci.samplersDescriptorSetLayout))
     , frameSemaphores(std::move(ci.frameSemaphores))
     , commandBuffers(std::move(ci.commandBuffers))
 {
 }
 
-std::optional<vk::DescriptorSetLayout> RenderSystem::CreateDescriptorSetLayout(
-    vk::Device vkDevice)
+std::optional<GlobalUBO> RenderSystem::CreateGlobalUBO(vk::Device vkDevice,
+                                                       vk::PhysicalDevice physicalDevice,
+                                                       vk::DescriptorPool descriptorPool)
 {
+    GlobalUBO ubo;
+
     vk::DescriptorSetLayoutBinding uboLayoutBinding = {};
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorCount = 1;
@@ -170,14 +168,62 @@ std::optional<vk::DescriptorSetLayout> RenderSystem::CreateDescriptorSetLayout(
     layoutInfo.bindingCount = 1;
     layoutInfo.pBindings = &uboLayoutBinding;
 
-    vk::DescriptorSetLayout dsLayout;
-    vk::Result result = vkDevice.createDescriptorSetLayout(&layoutInfo, nullptr, &dsLayout);
+    vk::Result result =
+        vkDevice.createDescriptorSetLayout(&layoutInfo, nullptr, &ubo.descriptorSetLayout);
     if (result != vk::Result::eSuccess)
     {
-        EZLOG("Failed to create descriptor set layout!");
+        EZLOG("Failed to create descriptor set layout for GlobalUBO");
         return {};
     }
-    return dsLayout;
+
+    vk::DescriptorSetLayout layouts[] = { ubo.descriptorSetLayout };
+    vk::DescriptorSetAllocateInfo allocInfo = {};
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = layouts;
+
+    vk::Result allocResult = vkDevice.allocateDescriptorSets(&allocInfo, &ubo.descriptorSet);
+    if (allocResult != vk::Result::eSuccess)
+    {
+        EZASSERT(false, "Failed to allocate descriptor set for GlobalUBO");
+        return {};
+    }
+
+    VulkanBuffer::createBuffer(vkDevice,
+                               physicalDevice,
+                               sizeof(GlobalUBO::Data),
+                               vk::BufferUsageFlagBits::eUniformBuffer,
+                               vk::MemoryPropertyFlagBits::eHostVisible |
+                                   vk::MemoryPropertyFlagBits::eHostCoherent |
+                                   vk::MemoryPropertyFlagBits::eDeviceLocal,
+                               ubo.uniformBuffer,
+                               ubo.uniformBufferMemory);
+
+    vk::DebugUtilsObjectNameInfoEXT nameInfo;
+    nameInfo.objectType = vk::ObjectType::eDeviceMemory;
+    nameInfo.setPObjectName("MODEL_GLOBAL_UBO_MEMORY");
+    const uint64_t objectHandle =
+        reinterpret_cast<uint64_t>(ubo.uniformBufferMemory.operator VkDeviceMemory());
+    nameInfo.objectHandle = objectHandle;
+
+    CheckVkResult(vkDevice.setDebugUtilsObjectNameEXT(nameInfo));
+
+    vk::DescriptorBufferInfo bufferInfo = {};
+    bufferInfo.buffer = ubo.uniformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(GlobalUBO::Data);
+
+    vk::WriteDescriptorSet descriptorWrite = {};
+    descriptorWrite.dstSet = ubo.descriptorSet;
+    descriptorWrite.dstBinding = 0;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pBufferInfo = &bufferInfo;
+
+    vkDevice.updateDescriptorSets({ descriptorWrite }, {});
+
+    return ubo;
 }
 
 std::vector<vk::CommandBuffer> RenderSystem::CreateCommandBuffers(
@@ -325,23 +371,22 @@ void RenderSystem::RecreateTotalPipeline()
     needRecreateResources = true;
 }
 
-void RenderSystem::UpdateGlobalUniforms(std::shared_ptr<Scene> scene,
-                                        const std::unique_ptr<Camera>& camera)
+void RenderSystem::UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera)
 {
     vk::Device logicalDevice = vulkanDevice->GetDevice();
 
     void* data;
-    GlobalUBO ubo = { camera->GetViewMatrix(),
-                      camera->GetProjectionMatrix(),
-                      camera->GetViewProjectionMatrix() };
+    GlobalUBO::Data globalUBOUpdatedData = { camera->GetViewMatrix(),
+                                             camera->GetProjectionMatrix(),
+                                             camera->GetViewProjectionMatrix() };
 
-    for (Model& model : scene->GetModelsMutable())
-    {
-        CheckVkResult(logicalDevice.mapMemory(
-            model.uniformBufferMemory, 0, sizeof(ubo), vk::MemoryMapFlags(), &data));
-        memcpy(data, &ubo, sizeof(ubo));
-        logicalDevice.unmapMemory(model.uniformBufferMemory);
-    }
+    CheckVkResult(logicalDevice.mapMemory(globalUBO.uniformBufferMemory,
+                                          0,
+                                          sizeof(GlobalUBO::Data),
+                                          vk::MemoryMapFlags(),
+                                          &data));
+    memcpy(data, &globalUBOUpdatedData, sizeof(globalUBOUpdatedData));
+    logicalDevice.unmapMemory(globalUBO.uniformBufferMemory);
 }
 
 void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
@@ -361,8 +406,6 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
         model.SetLogicalDevice(GetDevice());
         modelsCreateSuccess |= model.CreateVertexBuffers(
             GetPhysicalDevice(), GetGraphicsQueue(), vulkanDevice->GetGraphicsCommandPool());
-        modelsCreateSuccess |= model.CreateDescriptorSet(
-            vulkanDevice->GetDescriptorPool(), descriptorSetLayout, sizeof(GlobalUBO));
 
         for (Texture& tex : model.textures)
         {
@@ -421,9 +464,7 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
         }
 
         std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
-            model.descriptorSetLayout, samplersDescriptorSetLayout
-            // todo: global UBO as separate descriptor set
-            // todo: textures descriptor set
+            globalUBO.descriptorSetLayout, samplersDescriptorSetLayout
         };
         auto vulkanGraphicsPipelineRV = vulkanPipelineManager->CreateGraphicsPipeline(
             GetSwapchainInfo().extent, vulkanRenderPass->GetRenderPass(), descriptorSetLayouts);
@@ -443,6 +484,7 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
 
 static void DrawNodeRecursive(const Model& model,
                               const std::unique_ptr<Node>& node,
+                              const vk::DescriptorSet& globalDescriptorSet,
                               vk::CommandBuffer& curCb)
 {
     if (node->mesh)
@@ -452,7 +494,7 @@ static void DrawNodeRecursive(const Model& model,
             curCb.bindDescriptorSets(vk::PipelineBindPoint::eGraphics,
                                      model.graphicsPipeline->GetPipelineLayout(),
                                      0,
-                                     { model.descriptorSet, primitive->material.descriptorSet },
+                                     { globalDescriptorSet, primitive->material.descriptorSet },
                                      {});
 
             curCb.pushConstants(model.graphicsPipeline->GetPipelineLayout(),
@@ -467,7 +509,7 @@ static void DrawNodeRecursive(const Model& model,
 
     for (const std::unique_ptr<Node>& child : node->children)
     {
-        DrawNodeRecursive(model, child, curCb);
+        DrawNodeRecursive(model, child, globalDescriptorSet, curCb);
     }
 }
 
@@ -475,7 +517,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
                         const std::unique_ptr<Camera>& camera)
 {
     std::shared_ptr<Scene> scene = view->GetScene();
-    UpdateGlobalUniforms(scene, camera);
+    UpdateGlobalUniforms(camera);
 
     vk::Device logicalDevice = vulkanDevice->GetDevice();
 
@@ -549,7 +591,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
 
         for (const std::unique_ptr<Node>& node : model.nodes)
         {
-            DrawNodeRecursive(model, node, curCb);
+            DrawNodeRecursive(model, node, globalUBO.descriptorSet, curCb);
         }
     }
 
@@ -614,7 +656,9 @@ RenderSystem::~RenderSystem()
     vk::Device logicalDevice = vulkanDevice->GetDevice();
     CheckVkResult(logicalDevice.waitIdle());
 
-    logicalDevice.destroyDescriptorSetLayout(descriptorSetLayout);
+    logicalDevice.destroyDescriptorSetLayout(globalUBO.descriptorSetLayout);
+    logicalDevice.destroyBuffer(globalUBO.uniformBuffer);
+    logicalDevice.freeMemory(globalUBO.uniformBufferMemory);
 
     logicalDevice.destroySemaphore(frameSemaphores.renderFinishedSemaphore);
     logicalDevice.destroySemaphore(frameSemaphores.imageAvailableSemaphore);

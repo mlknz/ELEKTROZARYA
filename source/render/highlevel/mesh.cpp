@@ -382,9 +382,6 @@ Model::~Model()
 {
     if (logicalDevice)
     {
-        logicalDevice.destroyBuffer(uniformBuffer);
-        logicalDevice.freeMemory(uniformBufferMemory);
-
         logicalDevice.destroyBuffer(indexBuffer);
         logicalDevice.freeMemory(indexBufferMemory);
 
@@ -420,24 +417,6 @@ bool Model::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
         vk::MemoryPropertyFlagBits::eDeviceLocal,
         indexBuffer,
         indexBufferMemory);
-    VulkanBuffer::createBuffer(logicalDevice,
-                               physicalDevice,
-                               uniformBufferMaxHackSize,
-                               vk::BufferUsageFlagBits::eUniformBuffer,
-                               vk::MemoryPropertyFlagBits::eHostVisible |
-                                   vk::MemoryPropertyFlagBits::eHostCoherent |
-                                   vk::MemoryPropertyFlagBits::eDeviceLocal,
-                               uniformBuffer,
-                               uniformBufferMemory);
-
-    vk::DebugUtilsObjectNameInfoEXT nameInfo;
-    nameInfo.objectType = vk::ObjectType::eDeviceMemory;
-    nameInfo.setPObjectName("MODEL_GLOBAL_UBO_MEMORY");
-    const uint64_t objectHandle =
-        reinterpret_cast<uint64_t>(uniformBufferMemory.operator VkDeviceMemory());
-    nameInfo.objectHandle = objectHandle;
-
-    CheckVkResult(logicalDevice.setDebugUtilsObjectNameEXT(nameInfo));
 
     VulkanBuffer::uploadData(logicalDevice,
                              physicalDevice,
@@ -453,44 +432,6 @@ bool Model::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
                              indexBuffer,
                              indexBufferSize,
                              indices.data());
-
-    return true;
-}
-
-bool Model::CreateDescriptorSet(vk::DescriptorPool descriptorPool,
-                                vk::DescriptorSetLayout aDescriptorSetLayout,
-                                size_t hardcodedGlobalUBOSize)
-{
-    EZASSERT(logicalDevice);
-    descriptorSetLayout = aDescriptorSetLayout;
-
-    vk::DescriptorSetLayout layouts[] = { descriptorSetLayout };
-    vk::DescriptorSetAllocateInfo allocInfo = {};
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = 1;
-    allocInfo.pSetLayouts = layouts;
-
-    vk::Result allocResult = logicalDevice.allocateDescriptorSets(&allocInfo, &descriptorSet);
-    if (allocResult != vk::Result::eSuccess)
-    {
-        EZASSERT(false, "Failed to allocate descriptor set!");
-        return false;
-    }
-
-    vk::DescriptorBufferInfo bufferInfo = {};
-    bufferInfo.buffer = uniformBuffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = hardcodedGlobalUBOSize;
-
-    vk::WriteDescriptorSet descriptorWrite = {};
-    descriptorWrite.dstSet = descriptorSet;
-    descriptorWrite.dstBinding = 0;
-    descriptorWrite.dstArrayElement = 0;
-    descriptorWrite.descriptorType = vk::DescriptorType::eUniformBuffer;
-    descriptorWrite.descriptorCount = 1;
-    descriptorWrite.pBufferInfo = &bufferInfo;
-
-    logicalDevice.updateDescriptorSets({ descriptorWrite }, {});
 
     return true;
 }

@@ -186,23 +186,13 @@ struct Model
     bool CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
                              vk::Queue graphicsQueue,
                              vk::CommandPool graphicsCommandPool);
-    bool CreateDescriptorSet(vk::DescriptorPool descriptorPool,
-                             vk::DescriptorSetLayout aDescriptorSetLayout,
-                             size_t hardcodedGlobalUBOSize);
-
-    vk::DescriptorSetLayout GetDescriptorSetLayout() const { return descriptorSetLayout; }
 
     std::string name;
     std::vector<std::unique_ptr<Node>> nodes;
 
     vk::Buffer vertexBuffer;
     vk::Buffer indexBuffer;
-    vk::Buffer uniformBuffer;
 
-    vk::DeviceMemory uniformBufferMemory;
-
-    vk::DescriptorSetLayout descriptorSetLayout;
-    vk::DescriptorSet descriptorSet;
     std::shared_ptr<VulkanGraphicsPipeline> graphicsPipeline;
 
     std::vector<TextureSampler> textureSamplers;
@@ -226,8 +216,6 @@ struct Model
 
     vk::DeviceMemory vertexBufferMemory;
     vk::DeviceMemory indexBufferMemory;
-
-    uint32_t uniformBufferMaxHackSize = 192;
 };
 
 }  // namespace ez
