@@ -64,8 +64,7 @@ class RenderSystem
     static ResultValue<std::unique_ptr<RenderSystem>> Create();
 
     void PrepareToRender(std::shared_ptr<Scene> scene);
-    void Draw(const std::unique_ptr<View>& view,
-              const std::unique_ptr<Camera>& camera);  // todo: mewmew move Camera to View
+    void Draw(const std::unique_ptr<View>& view, const std::unique_ptr<Camera>& camera);
 
     vk::Device GetDevice() { return vulkanDevice->GetDevice(); }
     vk::PhysicalDevice GetPhysicalDevice() { return vulkanDevice->GetPhysicalDevice(); }

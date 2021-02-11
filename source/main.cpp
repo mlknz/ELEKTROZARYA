@@ -44,6 +44,9 @@ int main(int, char*[])
             if (evt.type == SDL_QUIT) { run = false; }
             gameplay->GetInput()->ProcessSDLEvent(renderSystem->GetWindow(), evt);
         }
+        uint32_t sdlWindowsFlags = SDL_GetWindowFlags(renderSystem->GetWindow());
+        const bool isWindowMinimized =
+            static_cast<bool>(sdlWindowsFlags & SDL_WINDOW_MINIMIZED);
 
         std::chrono::time_point currentTime = std::chrono::high_resolution_clock::now();
 
@@ -62,19 +65,25 @@ int main(int, char*[])
             EZASSERT(sceneLoadSuccess, "Failed to load Scene");
         }
 
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplSDL2_NewFrame(renderSystem->GetWindow());
+        const vk::Extent2D& swapchainViewportExtent = renderSystem->GetViewportExtent();
+        const bool drawThisFrame = !isWindowMinimized && swapchainViewportExtent.height != 0 &&
+                                   swapchainViewportExtent.width != 0;
 
-        const vk::Extent2D& viewportExtent = renderSystem->GetViewportExtent();
-        if (viewportExtent.height != 0 && viewportExtent.width != 0)
+        if (drawThisFrame)
         {
-            gameplay->SetViewportExtent(viewportExtent.width, viewportExtent.height);
+            ImGui_ImplVulkan_NewFrame();
+            ImGui_ImplSDL2_NewFrame(renderSystem->GetWindow());
+            gameplay->SetViewportExtent(swapchainViewportExtent.width,
+                                        swapchainViewportExtent.height);
         }
 
-        gameplay->Update(deltaTimeMcs);
+        gameplay->Update(deltaTimeMcs, drawThisFrame);
 
-        renderSystem->PrepareToRender(curScene);
-        renderSystem->Draw(curView, gameplay->GetActiveCamera());
+        if (drawThisFrame)
+        {
+            renderSystem->PrepareToRender(curScene);
+            renderSystem->Draw(curView, gameplay->GetActiveCamera());
+        }
     }
 
     gameplay.reset();

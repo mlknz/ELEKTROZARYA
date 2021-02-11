@@ -25,7 +25,7 @@ void Gameplay::SetViewportExtent(uint32_t width, uint32_t height)
     if (camera) { camera->SetViewportExtent(width, height); }
 }
 
-void Gameplay::Update(int64_t deltaTimeMcs)
+void Gameplay::Update(int64_t deltaTimeMcs, bool drawThisFrame)
 {
     double deltaTimeSeconds = static_cast<double>(deltaTimeMcs) / (1000 * 1000);
     glm::vec3 cameraMovementLocal = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -62,20 +62,25 @@ void Gameplay::Update(int64_t deltaTimeMcs)
     const int64_t avgFrameTime =
         frameTimesMcs.empty() ? 0 : frameTimesSum / int64_t(frameTimesMcs.size());
     const double avgDeltaTimeSeconds = static_cast<double>(avgFrameTime) / (1000 * 1000);
-    ImGui::NewFrame();
-    ImGui::Begin("Control Panel");
 
-    ImGui::Text("Frame time (ms): %d.%d", int(avgFrameTime) / 1000, int(avgFrameTime) % 1000);
-    ImGui::Text("FPS: %lf", 1.0 / avgDeltaTimeSeconds);
-    if (ImGui::Button("Reload Scene")) { ReloadScene(); }
-    if (ImGui::Button("Reset Camera")) { camera->ResetToDefault(); }
+    if (drawThisFrame)
+    {
+        ImGui::NewFrame();
+        ImGui::Begin("Control Panel");
 
-    // if (ImGui::Button("Toggle Scene Test")) { view->ToggleSceneTest(); }
+        ImGui::Text(
+            "Frame time (ms): %d.%d", int(avgFrameTime) / 1000, int(avgFrameTime) % 1000);
+        ImGui::Text("FPS: %lf", 1.0 / avgDeltaTimeSeconds);
+        if (ImGui::Button("Reload Scene")) { ReloadScene(); }
+        if (ImGui::Button("Reset Camera")) { camera->ResetToDefault(); }
 
-    // ImGui::ShowDemoWindow();
-    // ImGui::Text("Hello, %d", 42);
-    // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-    ImGui::End();
+        // if (ImGui::Button("Toggle Scene Test")) { view->ToggleSceneTest(); }
+
+        // ImGui::ShowDemoWindow();
+        // ImGui::Text("Hello, %d", 42);
+        // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+        ImGui::End();
+    }
 
     if (view && view->GetScene()) { view->GetScene()->Update(); }
 }

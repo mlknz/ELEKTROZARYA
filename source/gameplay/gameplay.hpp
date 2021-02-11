@@ -20,7 +20,7 @@ class Gameplay
     const std::unique_ptr<Camera>& GetActiveCamera() const { return camera; }
 
     void SetViewportExtent(uint32_t width, uint32_t height);
-    void Update(int64_t deltaTimeMcs);
+    void Update(int64_t deltaTimeMcs, bool drawThisFrame);
 
    private:
     void ReloadScene();
