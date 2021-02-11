@@ -40,7 +40,6 @@ class Texture
                    vk::Queue graphicsQueue,
                    vk::CommandPool graphicsCommandPool);
 
-    vk::ImageView imageView;
     vk::Image image;
     vk::ImageLayout imageLayout;
     vk::DeviceMemory deviceMemory;

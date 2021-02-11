@@ -247,7 +247,7 @@ void Texture::Destroy()
 {
     if (logicalDevice)
     {
-        logicalDevice.destroyImageView(imageView);
+        logicalDevice.destroyImageView(descriptor.imageView);
         logicalDevice.destroyImage(image);
         logicalDevice.freeMemory(deviceMemory);
         logicalDevice.destroySampler(sampler);

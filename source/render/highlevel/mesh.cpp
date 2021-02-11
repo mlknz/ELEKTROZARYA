@@ -60,6 +60,7 @@ Model::Model(const std::string& gltfFilePath)
                                                                   gltfSampler.wrapS,
                                                                   gltfSampler.wrapT));
     }
+    textures.reserve(12);
     for (tinygltf::Texture& tex : gltfModel.textures)
     {
         const size_t imageIndex = static_cast<size_t>(tex.source);

@@ -277,16 +277,18 @@ GraphicsResult VulkanSwapchain::CreateFramebuffersForRenderPass(vk::RenderPass v
 
 VulkanSwapchain::~VulkanSwapchain()
 {
-    for (size_t i = 0; i < info.framebuffers.size(); i++)
+    for (size_t i = 0; i < info.framebuffers.size(); ++i)
     {
         logicalDevice.destroyFramebuffer(info.framebuffers[i], nullptr);
     }
 
-    for (size_t i = 0; i < info.imageViews.size(); i++)
+    for (size_t i = 0; i < info.imageViews.size(); ++i)
     {
         logicalDevice.destroyImageView(info.imageViews[i], nullptr);
     }
     logicalDevice.destroyImageView(info.depthImageView, nullptr);
+    logicalDevice.destroyImage(info.depthImage);
+    logicalDevice.freeMemory(info.depthImageMemory);
 
     logicalDevice.destroySwapchainKHR(info.swapchain);
     info = {};

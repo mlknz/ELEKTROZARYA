@@ -656,6 +656,7 @@ RenderSystem::~RenderSystem()
     vk::Device logicalDevice = vulkanDevice->GetDevice();
     CheckVkResult(logicalDevice.waitIdle());
 
+    logicalDevice.destroyDescriptorSetLayout(samplersDescriptorSetLayout);
     logicalDevice.destroyDescriptorSetLayout(globalUBO.descriptorSetLayout);
     logicalDevice.destroyBuffer(globalUBO.uniformBuffer);
     logicalDevice.freeMemory(globalUBO.uniformBufferMemory);
