@@ -133,7 +133,11 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
         return GraphicsResult::Error;
     }
 
-    if (!InitializeImGui(ci))
+    if (!InitializeImGui(ci.vulkanDevice,
+                         ci.vulkanInstance,
+                         ci.vulkanSwapchain->GetInfo(),
+                         ci.vulkanRenderPass->GetRenderPass(),
+                         ci.commandBuffers.front()))
     {
         EZLOG("Failed to initialize ImGui");
         return GraphicsResult::Error;
@@ -252,7 +256,11 @@ std::vector<vk::CommandBuffer> RenderSystem::CreateCommandBuffers(
     return commandBuffers;
 }
 
-bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
+bool RenderSystem::InitializeImGui(std::unique_ptr<VulkanDevice>& vulkanDevice,
+                                   std::unique_ptr<VulkanInstance>& vulkanInstance,
+                                   const VulkanSwapchainInfo& swapchainInfo,
+                                   vk::RenderPass renderPass,
+                                   vk::CommandBuffer commandBuffer)
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -260,30 +268,30 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
     (void)io;
     ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL2_InitForVulkan(ci.vulkanDevice->GetWindow());
+    ImGui_ImplSDL2_InitForVulkan(vulkanDevice->GetWindow());
 
     ImGui_ImplVulkan_InitInfo init_info = {};
-    init_info.Instance = ci.vulkanInstance->GetInstance();
-    init_info.PhysicalDevice = ci.vulkanDevice->GetPhysicalDevice();
-    init_info.Device = ci.vulkanDevice->GetDevice();
-    init_info.QueueFamily = ci.vulkanDevice->GetQueueFamilyIndices().graphicsFamily;
-    init_info.Queue = ci.vulkanDevice->GetGraphicsQueue();
+    init_info.Instance = vulkanInstance->GetInstance();
+    init_info.PhysicalDevice = vulkanDevice->GetPhysicalDevice();
+    init_info.Device = vulkanDevice->GetDevice();
+    init_info.QueueFamily = vulkanDevice->GetQueueFamilyIndices().graphicsFamily;
+    init_info.Queue = vulkanDevice->GetGraphicsQueue();
     init_info.PipelineCache = nullptr;
-    init_info.DescriptorPool = ci.vulkanDevice->GetDescriptorPool();
+    init_info.DescriptorPool = vulkanDevice->GetDescriptorPool();
     init_info.Allocator = nullptr;
-    init_info.MinImageCount = 2;  // todo: config
-    init_info.ImageCount = static_cast<uint32_t>(ci.vulkanSwapchain->GetInfo().images.size());
+    init_info.MinImageCount = 2;
+    init_info.ImageCount = static_cast<uint32_t>(swapchainInfo.images.size());
     init_info.CheckVkResultFn = check_vk_result_imgui;
     init_info.MSAASamples =
         Config::msaa8xEnabled ? VK_SAMPLE_COUNT_8_BIT : VK_SAMPLE_COUNT_1_BIT;
 
-    ImGui_ImplVulkan_Init(&init_info, ci.vulkanRenderPass->GetRenderPass());
+    ImGui_ImplVulkan_Init(&init_info, renderPass);
 
     // Upload ImGui Fonts
     {
-        vk::Device device = ci.vulkanDevice->GetDevice();
-        vk::CommandPool command_pool = ci.vulkanDevice->GetGraphicsCommandPool();
-        vk::CommandBuffer command_buffer = ci.commandBuffers.front();
+        vk::Device device = vulkanDevice->GetDevice();
+        vk::CommandPool command_pool = vulkanDevice->GetGraphicsCommandPool();
+        vk::CommandBuffer command_buffer = commandBuffer;
 
         device.resetCommandPool(command_pool, vk::CommandPoolResetFlagBits(0));
 
@@ -298,7 +306,7 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
         end_info.pCommandBuffers = &command_buffer;
         CheckVkResult(command_buffer.end());
 
-        if (ci.vulkanDevice->GetGraphicsQueue().submit(1, &end_info, nullptr) !=
+        if (vulkanDevice->GetGraphicsQueue().submit(1, &end_info, nullptr) !=
             vk::Result::eSuccess)
         {
             EZASSERT(false, "Failed to submit draw command buffer (imgui upload fonts)!");
@@ -334,6 +342,8 @@ void RenderSystem::CleanupTotalPipeline()
 void RenderSystem::RecreateTotalPipeline()
 {
     CleanupTotalPipeline();
+
+    if (!vulkanDevice->IsMSAA8xSupported()) { Config::msaa8xEnabled = false; }
 
     // todo: remove duplication with CreateRenderSystem
     auto vulkanSwapchainRV =
@@ -529,7 +539,19 @@ bool RenderSystem::NeedsToRecreateSwapchain() const
 void RenderSystem::Draw(const std::unique_ptr<View>& view,
                         const std::unique_ptr<Camera>& camera)
 {
-    if (NeedsToRecreateSwapchain()) { RecreateTotalPipeline(); }
+    if (NeedsToRecreateSwapchain())
+    {
+        RecreateTotalPipeline();
+        ImGui_ImplVulkan_Shutdown();
+        ImGui_ImplSDL2_Shutdown();
+        ImGui::DestroyContext();
+        InitializeImGui(vulkanDevice,
+                        vulkanInstance,
+                        vulkanSwapchain->GetInfo(),
+                        vulkanRenderPass->GetRenderPass(),
+                        commandBuffers.at(curFrameIndex));
+        return;
+    }
 
     std::shared_ptr<Scene> scene = view->GetScene();
     UpdateGlobalUniforms(camera);

@@ -85,7 +85,11 @@ class RenderSystem
         vk::Device logicalDevice,
         vk::CommandPool graphicsCommandPool,
         ez::VulkanSwapchainInfo& swapchainInfo);
-    static bool InitializeImGui(const RenderSystemCreateInfo& ci);
+    static bool InitializeImGui(std::unique_ptr<VulkanDevice>& vulkanDevice,
+                                std::unique_ptr<VulkanInstance>& vulkanInstance,
+                                const VulkanSwapchainInfo& swapchainInfo,
+                                vk::RenderPass renderPass,
+                                vk::CommandBuffer commandBuffer);
 
     void UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera);
 

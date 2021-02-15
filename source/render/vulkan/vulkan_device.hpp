@@ -39,7 +39,7 @@ class VulkanDevice
     vk::CommandPool GetGraphicsCommandPool() { return graphicsCommandPool; }
     vk::DescriptorPool GetDescriptorPool() { return descriptorPool; }
 
-    bool GetMSAA8xSupported() const { return msaa8xSupported; }
+    bool IsMSAA8xSupported() const { return msaa8xSupported; }
 
     static ResultValue<std::unique_ptr<VulkanDevice>> CreateVulkanDevice(vk::Instance instance);
 

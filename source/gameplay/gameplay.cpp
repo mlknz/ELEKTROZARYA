@@ -75,9 +75,8 @@ void Gameplay::Update(int64_t deltaTimeMcs, bool drawThisFrame)
         if (ImGui::Button("Reload Scene")) { ReloadScene(); }
         if (ImGui::Button("Reset Camera")) { camera->ResetToDefault(); }
         // if (ImGui::Button("Toggle Scene Test")) { view->ToggleSceneTest(); }
-        ImGui::Checkbox(
-            "MSAA 8x",
-            &Config::msaa8xEnabled);  // todo: show only if VulkanDevice::GetMSAA8xSupported
+        ImGui::Checkbox("MSAA 8x",
+                        &Config::msaa8xEnabled);  // will be forced back if not supported
 
         // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
         ImGui::End();
