@@ -75,6 +75,8 @@ class RenderSystem
 
     const vk::Extent2D& GetViewportExtent() const { return vulkanSwapchain->GetInfo().extent; }
 
+    bool NeedsToRecreateSwapchain() const;
+
    private:
     static std::optional<GlobalUBO> CreateGlobalUBO(vk::Device vkDevice,
                                                     vk::PhysicalDevice physicalDevice,
@@ -103,7 +105,7 @@ class RenderSystem
     std::vector<vk::CommandBuffer> commandBuffers;
     size_t curFrameIndex = 0;
 
-    bool needRecreateResources = false;
+    bool needRecreateSceneResources = false;
 };
 
 }  // namespace ez

@@ -17,6 +17,7 @@ struct VulkanSwapchainCreateInfo final
     vk::SurfaceKHR surface;
     SDL_Window* window;
     const QueueFamilyIndices& queueFamilyIndices;
+    bool msaa8xEnabled;
 };
 
 struct VulkanSwapchainInfo final
@@ -31,6 +32,8 @@ struct VulkanSwapchainInfo final
     vk::Image depthImage;
     vk::DeviceMemory depthImageMemory;
     vk::ImageView depthImageView;
+
+    bool msaa8xEnabled;
 };
 
 struct SwapChainSupportDetails final

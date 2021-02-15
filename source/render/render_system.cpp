@@ -10,16 +10,19 @@
 #include "core/log_assert.hpp"
 #include "core/scene/scene.hpp"
 #include "core/view.hpp"
+#include "render/config.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/utils.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
 
 namespace ez
 {
+bool Config::msaa8xEnabled = false;
+
 static void check_vk_result_imgui(VkResult err)
 {
     if (err == 0) return;
-    fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+    EZASSERT(false, "[IMGUI vulkan] Error: VkResult", err);
     if (err < 0) abort();
 }
 
@@ -47,7 +50,8 @@ ResultValue<std::unique_ptr<RenderSystem>> RenderSystem::Create()
                                                  ci.vulkanDevice->GetPhysicalDevice(),
                                                  ci.vulkanDevice->GetSurface(),
                                                  ci.vulkanDevice->GetWindow(),
-                                                 ci.vulkanDevice->GetQueueFamilyIndices() });
+                                                 ci.vulkanDevice->GetQueueFamilyIndices(),
+                                                 Config::msaa8xEnabled });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to create VulkanSwapchain");
@@ -335,7 +339,8 @@ void RenderSystem::RecreateTotalPipeline()
                                                  vulkanDevice->GetPhysicalDevice(),
                                                  vulkanDevice->GetSurface(),
                                                  vulkanDevice->GetWindow(),
-                                                 vulkanDevice->GetQueueFamilyIndices() });
+                                                 vulkanDevice->GetQueueFamilyIndices(),
+                                                 Config::msaa8xEnabled });
     if (vulkanSwapchainRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to Recreate VulkanSwapchain");
@@ -368,7 +373,7 @@ void RenderSystem::RecreateTotalPipeline()
     commandBuffers = CreateCommandBuffers(
         GetDevice(), vulkanDevice->GetGraphicsCommandPool(), GetSwapchainInfo());
 
-    needRecreateResources = true;
+    needRecreateSceneResources = true;
 }
 
 void RenderSystem::UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera)
@@ -391,10 +396,10 @@ void RenderSystem::UpdateGlobalUniforms(const std::unique_ptr<Camera>& camera)
 
 void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
 {
-    if (needRecreateResources)
+    if (needRecreateSceneResources)
     {
         scene->SetReadyToRender(false);
-        needRecreateResources = false;
+        needRecreateSceneResources = false;
     }
     if (scene->ReadyToRender()) { return; }
 
@@ -513,9 +518,17 @@ static void DrawNodeRecursive(const Model& model,
     }
 }
 
+bool RenderSystem::NeedsToRecreateSwapchain() const
+{
+    return !vulkanSwapchain ||
+           vulkanSwapchain->GetInfo().msaa8xEnabled != Config::msaa8xEnabled;
+}
+
 void RenderSystem::Draw(const std::unique_ptr<View>& view,
                         const std::unique_ptr<Camera>& camera)
 {
+    if (NeedsToRecreateSwapchain()) { RecreateTotalPipeline(); }
+
     std::shared_ptr<Scene> scene = view->GetScene();
     UpdateGlobalUniforms(camera);
 

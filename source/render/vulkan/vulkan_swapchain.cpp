@@ -88,6 +88,7 @@ ResultValue<VulkanSwapchainInfo> VulkanSwapchain::CreateSwapchain(
     const VulkanSwapchainCreateInfo& ci)
 {
     VulkanSwapchainInfo info = {};
+    info.msaa8xEnabled = ci.msaa8xEnabled;
     ResultValue<SwapChainSupportDetails> swapchainSupportResult =
         QuerySwapchainSupport(ci.physicalDevice, ci.surface);
     if (swapchainSupportResult.result != GraphicsResult::Ok)

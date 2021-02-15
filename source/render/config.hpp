@@ -29,5 +29,8 @@ constexpr vk::Format DepthAttachmentFormat = vk::Format::eD32Sfloat;
 
 constexpr bool dumpGlslSources = false;
 
+// /////////////////// RUNTIME //////////////////////
+
+extern bool msaa8xEnabled;
 }  // namespace Config
 }  // namespace ez

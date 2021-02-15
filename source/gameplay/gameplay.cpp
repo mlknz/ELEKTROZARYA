@@ -9,6 +9,7 @@
 #include "core/input/input.hpp"
 #include "core/log_assert.hpp"
 #include "core/view.hpp"
+#include "render/config.hpp"
 
 namespace ez
 {
@@ -73,11 +74,11 @@ void Gameplay::Update(int64_t deltaTimeMcs, bool drawThisFrame)
         ImGui::Text("FPS: %lf", 1.0 / avgDeltaTimeSeconds);
         if (ImGui::Button("Reload Scene")) { ReloadScene(); }
         if (ImGui::Button("Reset Camera")) { camera->ResetToDefault(); }
-
         // if (ImGui::Button("Toggle Scene Test")) { view->ToggleSceneTest(); }
+        ImGui::Checkbox(
+            "MSAA 8x",
+            &Config::msaa8xEnabled);  // todo: show only if VulkanDevice::GetMSAA8xSupported
 
-        // ImGui::ShowDemoWindow();
-        // ImGui::Text("Hello, %d", 42);
         // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
         ImGui::End();
     }

@@ -100,6 +100,15 @@ VulkanDevice::VulkanDevice(vk::Instance aInstance,
 {
     device.getQueue(queueFamilyIndices.graphicsFamily, 0, &graphicsQueue);
     device.getQueue(queueFamilyIndices.presentFamily, 0, &presentQueue);
+
+    vk::PhysicalDeviceProperties physicalDeviceProperties = physicalDevice.getProperties();
+    vk::SampleCountFlags maxSamples =
+        physicalDeviceProperties.limits.framebufferColorSampleCounts &
+        physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+    std::string maxSamplesStr = vk::to_string(maxSamples);
+    EZLOG("Color + Depth supported MSAA samples count:", maxSamplesStr);
+
+    msaa8xSupported = (maxSamples & vk::SampleCountFlagBits::e8) == vk::SampleCountFlagBits::e8;
 }
 
 bool VulkanDevice::CheckDeviceExtensionSupport(vk::PhysicalDevice device)
