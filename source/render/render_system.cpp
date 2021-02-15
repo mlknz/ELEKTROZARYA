@@ -274,6 +274,8 @@ bool RenderSystem::InitializeImGui(const RenderSystemCreateInfo& ci)
     init_info.MinImageCount = 2;  // todo: config
     init_info.ImageCount = static_cast<uint32_t>(ci.vulkanSwapchain->GetInfo().images.size());
     init_info.CheckVkResultFn = check_vk_result_imgui;
+    init_info.MSAASamples =
+        Config::msaa8xEnabled ? VK_SAMPLE_COUNT_8_BIT : VK_SAMPLE_COUNT_1_BIT;
 
     ImGui_ImplVulkan_Init(&init_info, ci.vulkanRenderPass->GetRenderPass());
 

@@ -53,35 +53,73 @@ ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapc
 {
     ResultValue<VulkanSwapchainInfo> vulkanSwapchainInfo = CreateSwapchain(ci);
     if (vulkanSwapchainInfo.result != GraphicsResult::Ok) { return vulkanSwapchainInfo.result; }
+    VulkanSwapchainInfo& swapchainInfo = vulkanSwapchainInfo.value;
 
-    ResultValue<vk::Image> imageRV =
+    vk::SampleCountFlagBits samplesCount =
+        swapchainInfo.msaa8xEnabled ? vk::SampleCountFlagBits::e8 : vk::SampleCountFlagBits::e1;
+    if (swapchainInfo.msaa8xEnabled)
+    {
+        ResultValue<vk::Image> multisampledImageRV =
+            Image::CreateImage2D(ci.logicalDevice,
+                                 swapchainInfo.imageFormat,
+                                 vk::ImageUsageFlagBits::eColorAttachment |
+                                     vk::ImageUsageFlagBits::eTransientAttachment,
+                                 1,
+                                 swapchainInfo.extent.width,
+                                 swapchainInfo.extent.height,
+                                 samplesCount);
+        if (multisampledImageRV.result != GraphicsResult::Ok)
+        {
+            return multisampledImageRV.result;
+        }
+        swapchainInfo.multisampledImage = multisampledImageRV.value;
+
+        vk::MemoryRequirements memReqs{};
+        vk::MemoryAllocateInfo memAllocInfo{};
+        ci.logicalDevice.getImageMemoryRequirements(swapchainInfo.multisampledImage, &memReqs);
+        const uint32_t imageLocalMemoryTypeIndex =
+            VulkanBuffer::FindMemoryType(ci.physicalDevice,
+                                         memReqs.memoryTypeBits,
+                                         vk::MemoryPropertyFlagBits::eDeviceLocal);
+        memAllocInfo.allocationSize = memReqs.size;
+        memAllocInfo.memoryTypeIndex = imageLocalMemoryTypeIndex;
+        CheckVkResult(ci.logicalDevice.allocateMemory(
+            &memAllocInfo, nullptr, &swapchainInfo.multisampledImageMemory));
+        CheckVkResult(
+            ci.logicalDevice.bindImageMemory(swapchainInfo.multisampledImage,
+                                             swapchainInfo.multisampledImageMemory,
+                                             0));  // todo: move memalloc to 'CreateImage'
+    }
+
+    ResultValue<vk::Image> depthImageRV =
         Image::CreateImage2D(ci.logicalDevice,
                              Config::DepthAttachmentFormat,
                              vk::ImageUsageFlagBits::eDepthStencilAttachment,
                              1,
-                             vulkanSwapchainInfo.value.extent.width,
-                             vulkanSwapchainInfo.value.extent.height);
-    if (imageRV.result != GraphicsResult::Ok) { return imageRV.result; }
-    vulkanSwapchainInfo.value.depthImage = imageRV.value;
+                             swapchainInfo.extent.width,
+                             swapchainInfo.extent.height,
+                             samplesCount);
+    if (depthImageRV.result != GraphicsResult::Ok) { return depthImageRV.result; }
+    swapchainInfo.depthImage = depthImageRV.value;
 
     vk::MemoryRequirements memReqs{};
     vk::MemoryAllocateInfo memAllocInfo{};
-    ci.logicalDevice.getImageMemoryRequirements(vulkanSwapchainInfo.value.depthImage, &memReqs);
+    ci.logicalDevice.getImageMemoryRequirements(swapchainInfo.depthImage, &memReqs);
     const uint32_t imageLocalMemoryTypeIndex = VulkanBuffer::FindMemoryType(
         ci.physicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
     memAllocInfo.allocationSize = memReqs.size;
     memAllocInfo.memoryTypeIndex = imageLocalMemoryTypeIndex;
     CheckVkResult(ci.logicalDevice.allocateMemory(
-        &memAllocInfo, nullptr, &vulkanSwapchainInfo.value.depthImageMemory));
-    CheckVkResult(ci.logicalDevice.bindImageMemory(
-        vulkanSwapchainInfo.value.depthImage, vulkanSwapchainInfo.value.depthImageMemory, 0));
+        &memAllocInfo, nullptr, &swapchainInfo.depthImageMemory));
+    CheckVkResult(ci.logicalDevice.bindImageMemory(swapchainInfo.depthImage,
+                                                   swapchainInfo.depthImageMemory,
+                                                   0));  // todo: move memalloc to 'CreateImage'
 
-    GraphicsResult imageViewsResult =
-        CreateImageViews(ci.logicalDevice, vulkanSwapchainInfo.value);
+    GraphicsResult imageViewsResult = CreateImageViews(ci.logicalDevice, swapchainInfo);
     if (imageViewsResult != GraphicsResult::Ok) { return imageViewsResult; }
 
     return { GraphicsResult::Ok,
-             std::make_unique<VulkanSwapchain>(ci, std::move(vulkanSwapchainInfo.value)) };
+             std::make_unique<VulkanSwapchain>(ci, std::move(swapchainInfo)) };
 }
 
 ResultValue<VulkanSwapchainInfo> VulkanSwapchain::CreateSwapchain(
@@ -238,6 +276,21 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice,
         info.imageViews[i] = imageViewRV.value;
     }
 
+    if (info.multisampledImage)
+    {
+        ResultValue<vk::ImageView> multisampledImageViewRV =
+            Image::CreateImageView2D(logicalDevice,
+                                     info.multisampledImage,
+                                     info.imageFormat,
+                                     vk::ImageAspectFlagBits::eColor,
+                                     1);
+        if (multisampledImageViewRV.result != GraphicsResult::Ok)
+        {
+            return multisampledImageViewRV.result;
+        }
+        info.multisampledImageView = multisampledImageViewRV.value;
+    }
+
     ResultValue<vk::ImageView> depthImageViewRV =
         Image::CreateImageView2D(logicalDevice,
                                  info.depthImage,
@@ -256,12 +309,20 @@ GraphicsResult VulkanSwapchain::CreateFramebuffersForRenderPass(vk::RenderPass v
 
     for (size_t i = 0; i < info.imageViews.size(); i++)
     {
-        vk::ImageView attachments[] = { info.imageViews[i], info.depthImageView };
+        std::array<vk::ImageView, 3> attachments = { info.imageViews[i],
+                                                     info.depthImageView,
+                                                     {} };
+        if (Config::msaa8xEnabled)
+        {
+            attachments = { info.multisampledImageView,
+                            info.depthImageView,
+                            info.imageViews[i] };
+        }
 
         vk::FramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.renderPass = vkRenderPass;
-        framebufferInfo.attachmentCount = 2;
-        framebufferInfo.pAttachments = attachments;
+        framebufferInfo.attachmentCount = Config::msaa8xEnabled ? 3 : 2;
+        framebufferInfo.pAttachments = attachments.data();
         framebufferInfo.width = info.extent.width;
         framebufferInfo.height = info.extent.height;
         framebufferInfo.layers = 1;
@@ -287,6 +348,14 @@ VulkanSwapchain::~VulkanSwapchain()
     {
         logicalDevice.destroyImageView(info.imageViews[i], nullptr);
     }
+
+    if (info.multisampledImage)
+    {
+        logicalDevice.destroyImageView(info.multisampledImageView, nullptr);
+        logicalDevice.destroyImage(info.multisampledImage);
+        logicalDevice.freeMemory(info.multisampledImageMemory);
+    }
+
     logicalDevice.destroyImageView(info.depthImageView, nullptr);
     logicalDevice.destroyImage(info.depthImage);
     logicalDevice.freeMemory(info.depthImageMemory);

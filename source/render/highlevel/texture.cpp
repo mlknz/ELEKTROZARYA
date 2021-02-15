@@ -115,7 +115,8 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
             vk::ImageUsageFlagBits::eSampled,
         creationInfo.mipLevels,
         width,
-        height);
+        height,
+        vk::SampleCountFlagBits::e1);
     if (imageRV.result != GraphicsResult::Ok) { return false; }
     image = imageRV.value;
 
@@ -125,7 +126,8 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     memAllocInfo.allocationSize = memReqs.size;
     memAllocInfo.memoryTypeIndex = imageLocalMemoryTypeIndex;
     CheckVkResult(logicalDevice.allocateMemory(&memAllocInfo, nullptr, &deviceMemory));
-    CheckVkResult(logicalDevice.bindImageMemory(image, deviceMemory, 0));
+    CheckVkResult(logicalDevice.bindImageMemory(
+        image, deviceMemory, 0));  // todo: move memalloc to CreateImage
 
     vk::CommandBufferAllocateInfo allocInfo = {};  // todo: one-time CB create-submit helper
     allocInfo.level = vk::CommandBufferLevel::ePrimary;

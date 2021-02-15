@@ -9,7 +9,8 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
                                      vk::ImageUsageFlags usage,
                                      uint32_t mipLevels,
                                      uint32_t width,
-                                     uint32_t height)
+                                     uint32_t height,
+                                     vk::SampleCountFlagBits samplesCount)
 {
     vk::Image image;
 
@@ -18,7 +19,7 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
     imageCreateInfo.setFormat(format);
     imageCreateInfo.setMipLevels(mipLevels);
     imageCreateInfo.setArrayLayers(1);
-    imageCreateInfo.setSamples(vk::SampleCountFlagBits::e1);
+    imageCreateInfo.setSamples(samplesCount);
     imageCreateInfo.setTiling(vk::ImageTiling::eOptimal);
     imageCreateInfo.setUsage(usage);
     imageCreateInfo.setSharingMode(vk::SharingMode::eExclusive);

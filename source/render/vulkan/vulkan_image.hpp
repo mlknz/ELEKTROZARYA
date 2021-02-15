@@ -9,7 +9,8 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
                                      vk::ImageUsageFlags usage,
                                      uint32_t mipLevels,
                                      uint32_t width,
-                                     uint32_t height);
+                                     uint32_t height,
+                                     vk::SampleCountFlagBits samplesCount);
 
 ResultValue<vk::ImageView> CreateImageView2D(vk::Device logicalDevice,
                                              vk::Image image,

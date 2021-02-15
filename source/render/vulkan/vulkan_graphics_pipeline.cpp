@@ -2,6 +2,7 @@
 
 #include "core/file_utils.hpp"
 #include "core/log_assert.hpp"
+#include "render/config.hpp"
 #include "render/highlevel/mesh.hpp"
 #include "render/vulkan/vulkan_shader_compiler.hpp"
 
@@ -132,7 +133,8 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
 
     vk::PipelineMultisampleStateCreateInfo multisampling = {};
     multisampling.sampleShadingEnable = VK_FALSE;
-    multisampling.rasterizationSamples = vk::SampleCountFlagBits::e1;
+    multisampling.rasterizationSamples =
+        Config::msaa8xEnabled ? vk::SampleCountFlagBits::e8 : vk::SampleCountFlagBits::e1;
 
     vk::PipelineColorBlendAttachmentState colorBlendAttachment = {};
 

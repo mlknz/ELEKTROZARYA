@@ -26,7 +26,7 @@ class Input
 
     int32_t mouseLeftStartX = 0;
     int32_t mouseLeftStartY = 0;
-    std::optional<glm::vec2> mouseLeftPressedPos;
-    std::optional<glm::vec2> mouseLeftPressedPrevPos;
+    std::optional<glm::vec2> mouseRightPressedPos;
+    std::optional<glm::vec2> mouseRightPressedPrevPos;
 };
 }  // namespace ez

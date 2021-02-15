@@ -29,6 +29,10 @@ struct VulkanSwapchainInfo final
     std::vector<vk::ImageView> imageViews;
     std::vector<vk::Framebuffer> framebuffers;
 
+    vk::Image multisampledImage;
+    vk::DeviceMemory multisampledImageMemory;
+    vk::ImageView multisampledImageView;
+
     vk::Image depthImage;
     vk::DeviceMemory depthImageMemory;
     vk::ImageView depthImageView;
