@@ -108,8 +108,9 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
 
     // /////////////////////////////
 
-    ResultValue<vk::Image> imageRV = Image::CreateImage2D(
+    ResultValue<ImageWithMemory> imageRV = Image::CreateImage2DWithMemory(
         logicalDevice,
+        physicalDevice,
         format,
         vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eTransferSrc |
             vk::ImageUsageFlagBits::eSampled,
@@ -118,16 +119,8 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
         height,
         vk::SampleCountFlagBits::e1);
     if (imageRV.result != GraphicsResult::Ok) { return false; }
-    image = imageRV.value;
-
-    logicalDevice.getImageMemoryRequirements(image, &memReqs);
-    const uint32_t imageLocalMemoryTypeIndex = VulkanBuffer::FindMemoryType(
-        physicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    memAllocInfo.allocationSize = memReqs.size;
-    memAllocInfo.memoryTypeIndex = imageLocalMemoryTypeIndex;
-    CheckVkResult(logicalDevice.allocateMemory(&memAllocInfo, nullptr, &deviceMemory));
-    CheckVkResult(logicalDevice.bindImageMemory(
-        image, deviceMemory, 0));  // todo: move memalloc to CreateImage
+    image = imageRV.value.image;
+    deviceMemory = imageRV.value.imageMemory;
 
     vk::CommandBufferAllocateInfo allocInfo = {};  // todo: one-time CB create-submit helper
     allocInfo.level = vk::CommandBufferLevel::ePrimary;

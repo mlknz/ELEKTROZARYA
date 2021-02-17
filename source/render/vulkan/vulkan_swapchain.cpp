@@ -59,61 +59,36 @@ ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapc
         swapchainInfo.msaa8xEnabled ? vk::SampleCountFlagBits::e8 : vk::SampleCountFlagBits::e1;
     if (swapchainInfo.msaa8xEnabled)
     {
-        ResultValue<vk::Image> multisampledImageRV =
-            Image::CreateImage2D(ci.logicalDevice,
-                                 swapchainInfo.imageFormat,
-                                 vk::ImageUsageFlagBits::eColorAttachment |
-                                     vk::ImageUsageFlagBits::eTransientAttachment,
-                                 1,
-                                 swapchainInfo.extent.width,
-                                 swapchainInfo.extent.height,
-                                 samplesCount);
+        ResultValue<ImageWithMemory> multisampledImageRV =
+            Image::CreateImage2DWithMemory(ci.logicalDevice,
+                                           ci.physicalDevice,
+                                           swapchainInfo.imageFormat,
+                                           vk::ImageUsageFlagBits::eColorAttachment |
+                                               vk::ImageUsageFlagBits::eTransientAttachment,
+                                           1,
+                                           swapchainInfo.extent.width,
+                                           swapchainInfo.extent.height,
+                                           samplesCount);
         if (multisampledImageRV.result != GraphicsResult::Ok)
         {
             return multisampledImageRV.result;
         }
-        swapchainInfo.multisampledImage = multisampledImageRV.value;
-
-        vk::MemoryRequirements memReqs{};
-        vk::MemoryAllocateInfo memAllocInfo{};
-        ci.logicalDevice.getImageMemoryRequirements(swapchainInfo.multisampledImage, &memReqs);
-        const uint32_t imageLocalMemoryTypeIndex =
-            VulkanBuffer::FindMemoryType(ci.physicalDevice,
-                                         memReqs.memoryTypeBits,
-                                         vk::MemoryPropertyFlagBits::eDeviceLocal);
-        memAllocInfo.allocationSize = memReqs.size;
-        memAllocInfo.memoryTypeIndex = imageLocalMemoryTypeIndex;
-        CheckVkResult(ci.logicalDevice.allocateMemory(
-            &memAllocInfo, nullptr, &swapchainInfo.multisampledImageMemory));
-        CheckVkResult(
-            ci.logicalDevice.bindImageMemory(swapchainInfo.multisampledImage,
-                                             swapchainInfo.multisampledImageMemory,
-                                             0));  // todo: move memalloc to 'CreateImage'
+        swapchainInfo.multisampledImage = multisampledImageRV.value.image;
+        swapchainInfo.multisampledImageMemory = multisampledImageRV.value.imageMemory;
     }
 
-    ResultValue<vk::Image> depthImageRV =
-        Image::CreateImage2D(ci.logicalDevice,
-                             Config::DepthAttachmentFormat,
-                             vk::ImageUsageFlagBits::eDepthStencilAttachment,
-                             1,
-                             swapchainInfo.extent.width,
-                             swapchainInfo.extent.height,
-                             samplesCount);
+    ResultValue<ImageWithMemory> depthImageRV =
+        Image::CreateImage2DWithMemory(ci.logicalDevice,
+                                       ci.physicalDevice,
+                                       Config::DepthAttachmentFormat,
+                                       vk::ImageUsageFlagBits::eDepthStencilAttachment,
+                                       1,
+                                       swapchainInfo.extent.width,
+                                       swapchainInfo.extent.height,
+                                       samplesCount);
     if (depthImageRV.result != GraphicsResult::Ok) { return depthImageRV.result; }
-    swapchainInfo.depthImage = depthImageRV.value;
-
-    vk::MemoryRequirements memReqs{};
-    vk::MemoryAllocateInfo memAllocInfo{};
-    ci.logicalDevice.getImageMemoryRequirements(swapchainInfo.depthImage, &memReqs);
-    const uint32_t imageLocalMemoryTypeIndex = VulkanBuffer::FindMemoryType(
-        ci.physicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
-    memAllocInfo.allocationSize = memReqs.size;
-    memAllocInfo.memoryTypeIndex = imageLocalMemoryTypeIndex;
-    CheckVkResult(ci.logicalDevice.allocateMemory(
-        &memAllocInfo, nullptr, &swapchainInfo.depthImageMemory));
-    CheckVkResult(ci.logicalDevice.bindImageMemory(swapchainInfo.depthImage,
-                                                   swapchainInfo.depthImageMemory,
-                                                   0));  // todo: move memalloc to 'CreateImage'
+    swapchainInfo.depthImage = depthImageRV.value.image;
+    swapchainInfo.depthImageMemory = depthImageRV.value.imageMemory;
 
     GraphicsResult imageViewsResult = CreateImageViews(ci.logicalDevice, swapchainInfo);
     if (imageViewsResult != GraphicsResult::Ok) { return imageViewsResult; }

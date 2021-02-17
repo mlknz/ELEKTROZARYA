@@ -1,6 +1,7 @@
 #include "vulkan_image.hpp"
 
 #include "core/log_assert.hpp"
+#include "render/vulkan/vulkan_buffer.hpp"
 
 namespace ez::Image
 {
@@ -33,6 +34,34 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
     }
 
     return { GraphicsResult::Ok, image };
+}
+
+ResultValue<ImageWithMemory> CreateImage2DWithMemory(vk::Device logicalDevice,
+                                                     vk::PhysicalDevice physicalDevice,
+                                                     vk::Format format,
+                                                     vk::ImageUsageFlags usage,
+                                                     uint32_t mipLevels,
+                                                     uint32_t width,
+                                                     uint32_t height,
+                                                     vk::SampleCountFlagBits samplesCount)
+{
+    ResultValue<vk::Image> imageRV =
+        CreateImage2D(logicalDevice, format, usage, mipLevels, width, height, samplesCount);
+    if (imageRV.result != GraphicsResult::Ok) { return imageRV.result; }
+    vk::Image image = imageRV.value;
+    vk::DeviceMemory imageMemory;
+
+    vk::MemoryRequirements memReqs{};
+    vk::MemoryAllocateInfo memAllocInfo{};
+    logicalDevice.getImageMemoryRequirements(image, &memReqs);
+    const uint32_t imageLocalMemoryTypeIndex = VulkanBuffer::FindMemoryType(
+        physicalDevice, memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+    memAllocInfo.allocationSize = memReqs.size;
+    memAllocInfo.memoryTypeIndex = imageLocalMemoryTypeIndex;
+    CheckVkResult(logicalDevice.allocateMemory(&memAllocInfo, nullptr, &imageMemory));
+    CheckVkResult(logicalDevice.bindImageMemory(image, imageMemory, 0));
+
+    return { GraphicsResult::Ok, { image, imageMemory } };
 }
 
 ResultValue<vk::ImageView> CreateImageView2D(vk::Device logicalDevice,

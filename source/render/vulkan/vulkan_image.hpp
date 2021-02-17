@@ -2,6 +2,14 @@
 #include "render/graphics_result.hpp"
 #include "render/vulkan_include.hpp"
 
+namespace ez
+{
+struct ImageWithMemory
+{
+    vk::Image image;
+    vk::DeviceMemory imageMemory;
+};
+}  // namespace ez
 namespace ez::Image
 {
 ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
@@ -11,6 +19,14 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
                                      uint32_t width,
                                      uint32_t height,
                                      vk::SampleCountFlagBits samplesCount);
+ResultValue<ImageWithMemory> CreateImage2DWithMemory(vk::Device logicalDevice,
+                                                     vk::PhysicalDevice physicalDevice,
+                                                     vk::Format format,
+                                                     vk::ImageUsageFlags usage,
+                                                     uint32_t mipLevels,
+                                                     uint32_t width,
+                                                     uint32_t height,
+                                                     vk::SampleCountFlagBits samplesCount);
 
 ResultValue<vk::ImageView> CreateImageView2D(vk::Device logicalDevice,
                                              vk::Image image,
