@@ -2,6 +2,7 @@
 
 #include "core/log_assert.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
+#include "render/vulkan/vulkan_command_buffer.hpp"
 
 namespace ez::Image
 {
@@ -105,17 +106,8 @@ bool GenerateMipsForImage(vk::Device logicalDevice,
     subresourceRange.setLevelCount(1);
     subresourceRange.setLayerCount(1);
 
-    vk::CommandBufferAllocateInfo allocInfo = {};  // todo: one-time CB create-submit helper
-    allocInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocInfo.commandPool = graphicsCommandPool;
-    allocInfo.commandBufferCount = 1;
-
-    vk::CommandBufferBeginInfo beginInfo = {};
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-
-    vk::CommandBuffer blitCmd;
-    CheckVkResult(logicalDevice.allocateCommandBuffers(&allocInfo, &blitCmd));
-    CheckVkResult(blitCmd.begin(&beginInfo));
+    VulkanOneTimeCommandBuffer blitOneTimeCB =
+        VulkanOneTimeCommandBuffer::Start(logicalDevice, graphicsCommandPool);
 
     for (uint32_t i = 1; i < mipLevels; i++)
     {
@@ -148,23 +140,24 @@ bool GenerateMipsForImage(vk::Device logicalDevice,
             imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
             imageMemoryBarrier.setImage(image);
             imageMemoryBarrier.setSubresourceRange(mipSubRange);
-            blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-                                    vk::PipelineStageFlagBits::eTransfer,
-                                    vk::DependencyFlags{},
-                                    0,
-                                    nullptr,
-                                    0,
-                                    nullptr,
-                                    1,
-                                    &imageMemoryBarrier);
+            blitOneTimeCB.GetCommandBuffer().pipelineBarrier(
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::DependencyFlags{},
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &imageMemoryBarrier);
         }
-        blitCmd.blitImage(image,
-                          vk::ImageLayout::eTransferSrcOptimal,
-                          image,
-                          vk::ImageLayout::eTransferDstOptimal,
-                          1,
-                          &imageBlit,
-                          vk::Filter::eLinear);
+        blitOneTimeCB.GetCommandBuffer().blitImage(image,
+                                                   vk::ImageLayout::eTransferSrcOptimal,
+                                                   image,
+                                                   vk::ImageLayout::eTransferDstOptimal,
+                                                   1,
+                                                   &imageBlit,
+                                                   vk::Filter::eLinear);
 
         {
             vk::ImageMemoryBarrier imageMemoryBarrier{};
@@ -175,15 +168,16 @@ bool GenerateMipsForImage(vk::Device logicalDevice,
             imageMemoryBarrier.setImage(image);
             imageMemoryBarrier.setSubresourceRange(mipSubRange);
 
-            blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-                                    vk::PipelineStageFlagBits::eTransfer,
-                                    vk::DependencyFlags{},
-                                    0,
-                                    nullptr,
-                                    0,
-                                    nullptr,
-                                    1,
-                                    &imageMemoryBarrier);
+            blitOneTimeCB.GetCommandBuffer().pipelineBarrier(
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::PipelineStageFlagBits::eTransfer,
+                vk::DependencyFlags{},
+                0,
+                nullptr,
+                0,
+                nullptr,
+                1,
+                &imageMemoryBarrier);
         }
     }
 
@@ -197,27 +191,19 @@ bool GenerateMipsForImage(vk::Device logicalDevice,
         imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
         imageMemoryBarrier.setImage(image);
         imageMemoryBarrier.setSubresourceRange(subresourceRange);
-        blitCmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
-                                vk::PipelineStageFlagBits::eAllCommands,
-                                vk::DependencyFlags{},
-                                0,
-                                nullptr,
-                                0,
-                                nullptr,
-                                1,
-                                &imageMemoryBarrier);
+        blitOneTimeCB.GetCommandBuffer().pipelineBarrier(
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::DependencyFlags{},
+            0,
+            nullptr,
+            0,
+            nullptr,
+            1,
+            &imageMemoryBarrier);
     }
 
-    CheckVkResult(blitCmd.end());
-
-    vk::SubmitInfo submitInfo = vk::SubmitInfo{};
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &blitCmd;
-
-    CheckVkResult(graphicsQueue.submit(1, &submitInfo, nullptr));
-    CheckVkResult(graphicsQueue.waitIdle());
-
-    logicalDevice.freeCommandBuffers(graphicsCommandPool, 1, &blitCmd);
+    blitOneTimeCB.EndSubmitAndWait(graphicsQueue);
 
     return true;
 }

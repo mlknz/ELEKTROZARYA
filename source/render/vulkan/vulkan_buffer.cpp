@@ -4,6 +4,7 @@
 
 #include "core/log_assert.hpp"
 #include "render/graphics_result.hpp"
+#include "render/vulkan/vulkan_command_buffer.hpp"
 
 namespace ez
 {
@@ -72,34 +73,13 @@ void VulkanBuffer::copyBuffer(vk::Device logicalDevice,
                               vk::Buffer dstBuffer,
                               vk::DeviceSize size)
 {
-    vk::CommandBufferAllocateInfo allocInfo = {};  // todo: one-time CB create-submit helper
-    allocInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocInfo.commandPool = commandPool;
-    allocInfo.commandBufferCount = 1;
+    VulkanOneTimeCommandBuffer oneTimeCB =
+        VulkanOneTimeCommandBuffer::Start(logicalDevice, commandPool);
 
-    vk::CommandBuffer commandBuffer;
-    CheckVkResult(logicalDevice.allocateCommandBuffers(&allocInfo, &commandBuffer));
+    vk::BufferCopy copyRegion{ 0, 0, size };
+    oneTimeCB.GetCommandBuffer().copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
 
-    vk::CommandBufferBeginInfo beginInfo = {};
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-
-    CheckVkResult(commandBuffer.begin(&beginInfo));
-
-    vk::BufferCopy copyRegion = {};
-    copyRegion.size = size;
-    copyRegion.dstOffset = 0;  // todo
-    commandBuffer.copyBuffer(srcBuffer, dstBuffer, 1, &copyRegion);
-
-    CheckVkResult(commandBuffer.end());
-
-    vk::SubmitInfo submitInfo = {};
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    CheckVkResult(graphicsQueue.submit(1, &submitInfo, nullptr));
-    CheckVkResult(graphicsQueue.waitIdle());
-
-    logicalDevice.freeCommandBuffers(commandPool, 1, &commandBuffer);
+    oneTimeCB.EndSubmitAndWait(graphicsQueue);
 }
 
 void VulkanBuffer::uploadData(vk::Device logicalDevice,

@@ -3,6 +3,7 @@
 #include "core/log_assert.hpp"
 #include "render/graphics_result.hpp"
 #include "render/vulkan/vulkan_buffer.hpp"
+#include "render/vulkan/vulkan_command_buffer.hpp"
 #include "render/vulkan/vulkan_image.hpp"
 
 namespace ez
@@ -122,17 +123,8 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     image = imageRV.value.image;
     deviceMemory = imageRV.value.imageMemory;
 
-    vk::CommandBufferAllocateInfo allocInfo = {};  // todo: one-time CB create-submit helper
-    allocInfo.level = vk::CommandBufferLevel::ePrimary;
-    allocInfo.commandPool = graphicsCommandPool;
-    allocInfo.commandBufferCount = 1;
-
-    vk::CommandBuffer copyCmd;
-    CheckVkResult(logicalDevice.allocateCommandBuffers(&allocInfo, &copyCmd));
-
-    vk::CommandBufferBeginInfo beginInfo = {};
-    beginInfo.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit;
-    CheckVkResult(copyCmd.begin(&beginInfo));
+    VulkanOneTimeCommandBuffer copyOneTimeCB =
+        VulkanOneTimeCommandBuffer::Start(logicalDevice, graphicsCommandPool);
 
     vk::ImageSubresourceRange subresourceRange = {};
     subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
@@ -147,15 +139,16 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
         imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
         imageMemoryBarrier.setImage(image);
         imageMemoryBarrier.setSubresourceRange(subresourceRange);
-        copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
-                                vk::PipelineStageFlagBits::eAllCommands,
-                                vk::DependencyFlags{},
-                                0,
-                                nullptr,
-                                0,
-                                nullptr,
-                                1,
-                                &imageMemoryBarrier);
+        copyOneTimeCB.GetCommandBuffer().pipelineBarrier(
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::DependencyFlags{},
+            0,
+            nullptr,
+            0,
+            nullptr,
+            1,
+            &imageMemoryBarrier);
     }
 
     vk::BufferImageCopy bufferCopyRegion = {};
@@ -167,7 +160,7 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     bufferCopyRegion.imageExtent.setHeight(height);
     bufferCopyRegion.imageExtent.setDepth(1);
 
-    copyCmd.copyBufferToImage(
+    copyOneTimeCB.GetCommandBuffer().copyBufferToImage(
         stagingBuffer, image, vk::ImageLayout::eTransferDstOptimal, 1, &bufferCopyRegion);
 
     {
@@ -178,27 +171,20 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
         imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
         imageMemoryBarrier.setImage(image);
         imageMemoryBarrier.setSubresourceRange(subresourceRange);
-        copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eAllCommands,
-                                vk::PipelineStageFlagBits::eAllCommands,
-                                vk::DependencyFlags{},
-                                0,
-                                nullptr,
-                                0,
-                                nullptr,
-                                1,
-                                &imageMemoryBarrier);
+        copyOneTimeCB.GetCommandBuffer().pipelineBarrier(
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::PipelineStageFlagBits::eAllCommands,
+            vk::DependencyFlags{},
+            0,
+            nullptr,
+            0,
+            nullptr,
+            1,
+            &imageMemoryBarrier);
     }
 
-    CheckVkResult(copyCmd.end());
+    copyOneTimeCB.EndSubmitAndWait(graphicsQueue);
 
-    vk::SubmitInfo submitInfo = {};
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &copyCmd;
-
-    CheckVkResult(graphicsQueue.submit(1, &submitInfo, nullptr));
-    CheckVkResult(graphicsQueue.waitIdle());
-
-    logicalDevice.freeCommandBuffers(graphicsCommandPool, 1, &copyCmd);
     logicalDevice.destroyBuffer(stagingBuffer);
     logicalDevice.freeMemory(stagingMemory);
 
