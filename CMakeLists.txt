@@ -15,7 +15,6 @@ include_directories(
     ${Vulkan_INCLUDE_DIRS}
     external
     external/glm
-    external/gli
     external/tinygltf
     external/imgui
     external/glslang
