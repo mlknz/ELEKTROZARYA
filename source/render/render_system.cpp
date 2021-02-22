@@ -415,6 +415,17 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
     }
     if (scene->ReadyToRender()) { return; }
 
+    Texture* panoramaHdrTexture = scene->GetPanoramaHdrTexture();
+    if (panoramaHdrTexture != nullptr && !panoramaHdrTexture->IsLoadedToGPU())
+    {
+        bool loadSuccess =
+            panoramaHdrTexture->LoadToGpu(GetDevice(),
+                                          GetPhysicalDevice(),
+                                          vulkanDevice->GetGraphicsQueue(),
+                                          vulkanDevice->GetGraphicsCommandPool());
+        EZASSERT(loadSuccess, "Hdr panorama loading failed");
+    }
+
     // todo: cleanup old scene models
     std::vector<Model>& sceneModels = scene->GetModelsMutable();
     bool modelsCreateSuccess = true;

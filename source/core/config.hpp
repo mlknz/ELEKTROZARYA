@@ -25,6 +25,7 @@ constexpr bool invertProjection = true;
 namespace SceneConfig
 {
 const std::string startupModel{ "../assets/DamagedHelmet/glTF/DamagedHelmet.gltf" };
-}
+const std::string panorama{ "../assets/panoramas/container_free_Ref.hdr" };
+}  // namespace SceneConfig
 
 }  // namespace ez

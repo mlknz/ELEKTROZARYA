@@ -75,6 +75,7 @@ Model::Model(const std::string& gltfFilePath)
                                                 static_cast<uint32_t>(gltfImage.width),
                                                 static_cast<uint32_t>(gltfImage.height),
                                                 static_cast<uint32_t>(gltfImage.component),
+                                                true,
                                                 textureSampler);
         textures.emplace_back(std::move(textureCI));  // textures are loaded to GPU later
     }
@@ -436,4 +437,20 @@ bool Model::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
 
     return true;
 }
+
+namespace StbImageLoader
+{
+StbImageWrapper::~StbImageWrapper()
+{
+    if (isHdr) { stbi_image_free(hdrData); }
+}
+StbImageWrapper LoadHDRImage(char const* path)
+{
+    StbImageWrapper result;
+    result.isHdr = true;
+
+    result.hdrData = stbi_loadf(path, &result.width, &result.height, &result.channelsCount, 0);
+    return result;
+}
+}  // namespace StbImageLoader
 }  // namespace ez

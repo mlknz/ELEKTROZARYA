@@ -8,40 +8,70 @@
 
 namespace ez
 {
-TextureCreationInfo TextureCreationInfo::CreateFromData(unsigned char* data,
+TextureCreationInfo TextureCreationInfo::CreateFromData(uint8_t* data,
                                                         uint32_t width,
                                                         uint32_t height,
-                                                        uint32_t channelsCount,
+                                                        uint32_t dataChannelsCount,
+                                                        bool needMips,
                                                         const TextureSampler& textureSampler)
 {
     TextureCreationInfo ci;
+    ci.format = vk::Format::eR8G8B8A8Unorm;
+    ci.channelsCount = 4;
 
-    ci.bufferSize = static_cast<vk::DeviceSize>(width * height * 4);
-    ci.buffer.resize(ci.bufferSize);
+    const uint32_t dataSize = width * height * ci.channelsCount;
+    ci.buffer.resize(dataSize);
 
-    unsigned char* copyTo = ci.buffer.data();
-    unsigned char* copyFrom = data;
+    uint8_t* copyTo = ci.buffer.data();
+    uint8_t* copyFrom = data;
     for (uint32_t i = 0; i < width * height; ++i)
     {
-        for (uint32_t j = 0; j < channelsCount; ++j) { copyTo[j] = copyFrom[j]; }
-        copyTo += 4;
-        copyFrom += channelsCount;
+        for (uint32_t j = 0; j < dataChannelsCount; ++j) { copyTo[j] = copyFrom[j]; }
+        copyTo += ci.channelsCount;
+        copyFrom += dataChannelsCount;
     }
 
     ci.width = width;
     ci.height = height;
     ci.mipLevels =
-        static_cast<uint32_t>(std::floor(std::log2(std::max(ci.width, ci.height))) + 1.0);
+        needMips
+            ? static_cast<uint32_t>(std::floor(std::log2(std::max(ci.width, ci.height))) + 1.0)
+            : 1;
 
     ci.textureSampler = textureSampler;
 
     return ci;
 }
 
-bool TextureCreationInfo::IsValid() const
+TextureCreationInfo TextureCreationInfo::CreateHdrFromData(float* data,
+                                                           uint32_t width,
+                                                           uint32_t height,
+                                                           uint32_t dataChannelsCount,
+                                                           const TextureSampler& textureSampler)
 {
-    return width > 0 && height > 0 && bufferSize > 0 && !buffer.empty();
+    TextureCreationInfo ci;
+    ci.format = vk::Format::eR32G32B32Sfloat;
+    ci.channelsCount = 3;
+
+    EZASSERT((dataChannelsCount == ci.channelsCount),
+             "Hdr image channels count should be 3 since we use memcpy into 3-channel");
+
+    const uint8_t floatToUint8SizeRatio = 4;
+    const uint32_t dataSize = width * height * ci.channelsCount * floatToUint8SizeRatio;
+    ci.buffer.resize(dataSize);
+
+    memcpy(ci.buffer.data(), data, dataSize);
+
+    ci.width = width;
+    ci.height = height;
+    ci.mipLevels = 1;
+
+    ci.textureSampler = textureSampler;
+
+    return ci;
 }
+
+bool TextureCreationInfo::IsValid() const { return width > 0 && height > 0 && !buffer.empty(); }
 
 bool Texture::LoadToGpu(vk::Device aLogicalDevice,
                         vk::PhysicalDevice physicalDevice,
@@ -60,27 +90,29 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     }
     // notice CPU texture data in creationInfo is not freed after load
 
+    logicalDevice = aLogicalDevice;
+
+    format = creationInfo.format;
     width = creationInfo.width;
     height = creationInfo.height;
     mipLevels = creationInfo.mipLevels;
 
-    logicalDevice = aLogicalDevice;
+    vk::DeviceSize bufferSize = static_cast<vk::DeviceSize>(creationInfo.buffer.size());
 
-    vk::Format format = vk::Format::eR8G8B8A8Unorm;
     vk::FormatProperties formatProperties;
 
     physicalDevice.getFormatProperties(format, &formatProperties);
 
-    EZASSERT(static_cast<bool>(formatProperties.optimalTilingFeatures &
-                               vk::FormatFeatureFlagBits::eBlitSrc));
-    EZASSERT(static_cast<bool>(formatProperties.optimalTilingFeatures &
-                               vk::FormatFeatureFlagBits::eBlitDst));
+    //    EZASSERT(static_cast<bool>(formatProperties.optimalTilingFeatures &
+    //                               vk::FormatFeatureFlagBits::eBlitSrc));
+    //    EZASSERT(static_cast<bool>(formatProperties.optimalTilingFeatures &
+    //                               vk::FormatFeatureFlagBits::eBlitDst));
 
     vk::Buffer stagingBuffer;
     vk::DeviceMemory stagingMemory;
 
     vk::BufferCreateInfo bufferCI{};
-    bufferCI.setSize(creationInfo.bufferSize);
+    bufferCI.setSize(bufferSize);
     bufferCI.setUsage(vk::BufferUsageFlags(vk::BufferUsageFlagBits::eTransferSrc));
     bufferCI.setSharingMode(vk::SharingMode::eExclusive);
 
@@ -104,7 +136,7 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     uint8_t* data;
     CheckVkResult(logicalDevice.mapMemory(
         stagingMemory, 0, memReqs.size, vk::MemoryMapFlags{}, reinterpret_cast<void**>(&data)));
-    memcpy(data, creationInfo.buffer.data(), creationInfo.bufferSize);
+    memcpy(data, creationInfo.buffer.data(), bufferSize);
     logicalDevice.unmapMemory(stagingMemory);
 
     // /////////////////////////////
@@ -190,9 +222,12 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
 
     // //////////////////////////////////////////////
 
-    const bool mipsCreated = Image::GenerateMipsForImage(
-        logicalDevice, graphicsQueue, graphicsCommandPool, image, width, height, mipLevels);
-    if (!mipsCreated) { return false; }
+    if (mipLevels > 1)
+    {
+        const bool mipsCreated = Image::GenerateMipsForImage(
+            logicalDevice, graphicsQueue, graphicsCommandPool, image, width, height, mipLevels);
+        if (!mipsCreated) { return false; }
+    }
 
     imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 

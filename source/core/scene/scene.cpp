@@ -8,6 +8,21 @@ bool Scene::Load()
 {
     models.emplace_back(SceneConfig::startupModel);
 
+    StbImageLoader::StbImageWrapper hdrPanoramaWrapper =
+        StbImageLoader::LoadHDRImage(SceneConfig::panorama.c_str());
+    TextureSampler panoramaTexSampler = {};
+    TextureCreationInfo panoramaTexCI = TextureCreationInfo::CreateHdrFromData(
+        hdrPanoramaWrapper.hdrData,
+        static_cast<uint32_t>(hdrPanoramaWrapper.width),
+        static_cast<uint32_t>(hdrPanoramaWrapper.height),
+        static_cast<uint32_t>(hdrPanoramaWrapper.channelsCount),
+        panoramaTexSampler);
+    panoramaHdrTexture = std::make_unique<Texture>(std::move(panoramaTexCI));
+
+    // mewmew todo:
+    // 1. Generate env cubemap with computes (with mips)
+    // 2. Draw cubemap on scene
+
     readyToRender = false;
     loaded = true;
 

@@ -218,4 +218,22 @@ struct Model
     vk::DeviceMemory indexBufferMemory;
 };
 
+namespace StbImageLoader
+{
+struct StbImageWrapper
+{
+    ~StbImageWrapper();
+
+    int width;
+    int height;
+    int channelsCount;
+
+    bool isHdr;
+
+    float* hdrData;
+};
+
+StbImageWrapper LoadHDRImage(char const* path);
+}  // namespace StbImageLoader
+
 }  // namespace ez

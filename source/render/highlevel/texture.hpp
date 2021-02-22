@@ -13,13 +13,22 @@ struct TextureCreationInfo final
                                               uint32_t width,
                                               uint32_t height,
                                               uint32_t channelsCount,
+                                              bool needMips,
                                               const TextureSampler& textureSampler);
+
+    static TextureCreationInfo CreateHdrFromData(float* data,
+                                                 uint32_t width,
+                                                 uint32_t height,
+                                                 uint32_t channelsCount,
+                                                 const TextureSampler& textureSampler);
 
     bool IsValid() const;
 
+    vk::Format format = vk::Format::eR8G8B8A8Unorm;
+    uint32_t channelsCount = 4;
+
     // CPU data to load to GPU
-    std::vector<unsigned char> buffer;
-    vk::DeviceSize bufferSize = 0;
+    std::vector<uint8_t> buffer;
     TextureSampler textureSampler;
 
     // other
@@ -45,6 +54,7 @@ class Texture
     vk::DeviceMemory deviceMemory;
 
     vk::DescriptorImageInfo descriptor;
+    vk::Format format;
     vk::Sampler sampler;
 
     uint32_t width;
