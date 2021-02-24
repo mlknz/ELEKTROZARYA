@@ -56,10 +56,19 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(
         return deviceRV.result;
     }
 
-    auto graphicsCommandPoolRV = CreateGraphicsCommandPool(deviceRV.value, queueFamilyIndices);
+    auto graphicsCommandPoolRV =
+        CreateCommandPool(deviceRV.value, queueFamilyIndices.graphicsFamily);
     if (graphicsCommandPoolRV.result != GraphicsResult::Ok)
     {
         EZLOG("Failed to create graphics command pool");
+        return deviceRV.result;
+    }
+
+    auto computeCommandPoolRV =
+        CreateCommandPool(deviceRV.value, queueFamilyIndices.computeFamily);
+    if (graphicsCommandPoolRV.result != GraphicsResult::Ok)
+    {
+        EZLOG("Failed to create compute command pool");
         return deviceRV.result;
     }
 
@@ -75,6 +84,7 @@ ResultValue<std::unique_ptr<VulkanDevice>> VulkanDevice::CreateVulkanDevice(
                                             physicalDeviceRV.value,
                                             deviceRV.value,
                                             graphicsCommandPoolRV.value,
+                                            computeCommandPoolRV.value,
                                             descriptorPoolRV.value,
                                             window,
                                             surface,
@@ -85,6 +95,7 @@ VulkanDevice::VulkanDevice(vk::Instance aInstance,
                            vk::PhysicalDevice aPhysicalDevice,
                            vk::Device aDevice,
                            vk::CommandPool aGraphicsCommandPool,
+                           vk::CommandPool aComputeCommandPool,
                            vk::DescriptorPool aDescriptorPool,
                            SDL_Window* aWindow,
                            vk::SurfaceKHR aSurface,
@@ -95,10 +106,12 @@ VulkanDevice::VulkanDevice(vk::Instance aInstance,
     , window(aWindow)
     , surface(aSurface)
     , graphicsCommandPool(aGraphicsCommandPool)
+    , computeCommandPool(aComputeCommandPool)
     , descriptorPool(aDescriptorPool)
     , queueFamilyIndices(aQueueFamilyIndices)
 {
     device.getQueue(queueFamilyIndices.graphicsFamily, 0, &graphicsQueue);
+    device.getQueue(queueFamilyIndices.computeFamily, 0, &computeQueue);
     device.getQueue(queueFamilyIndices.presentFamily, 0, &presentQueue);
 
     vk::PhysicalDeviceProperties physicalDeviceProperties = physicalDevice.getProperties();
@@ -184,6 +197,7 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
 {
     std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> uniqueQueueFamilies = { queueFamilyIndices.graphicsFamily,
+                                               queueFamilyIndices.computeFamily,
                                                queueFamilyIndices.presentFamily };
 
     float queuePriority = 1.0f;
@@ -233,19 +247,19 @@ ResultValue<vk::Device> VulkanDevice::CreateDevice(vk::PhysicalDevice physicalDe
     return { GraphicsResult::Ok, device };
 }
 
-ResultValue<vk::CommandPool> VulkanDevice::CreateGraphicsCommandPool(
-    vk::Device device, const QueueFamilyIndices& queueFamilyIndices)
+ResultValue<vk::CommandPool> VulkanDevice::CreateCommandPool(vk::Device device,
+                                                             uint32_t queueFamilyIndex)
 {
     vk::CommandPool commandPool;
 
     vk::CommandPoolCreateInfo poolInfo = {};
-    poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily;
+    poolInfo.queueFamilyIndex = queueFamilyIndex;
     poolInfo.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer |
                      vk::CommandPoolCreateFlagBits::eTransient;
 
     if (device.createCommandPool(&poolInfo, nullptr, &commandPool) != vk::Result::eSuccess)
     {
-        EZLOG("Failed to create graphics command pool!");
+        EZLOG("Failed to create command pool!");
         return GraphicsResult::Error;
     }
     return { GraphicsResult::Ok, commandPool };
@@ -280,6 +294,7 @@ ResultValue<vk::DescriptorPool> VulkanDevice::CreateDescriptorPool(vk::Device de
 VulkanDevice::~VulkanDevice()
 {
     device.destroyCommandPool(graphicsCommandPool);
+    device.destroyCommandPool(computeCommandPool);
     device.destroyDescriptorPool(descriptorPool);
 
     device.destroy();

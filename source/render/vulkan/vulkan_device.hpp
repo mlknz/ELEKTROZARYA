@@ -20,7 +20,8 @@ class VulkanDevice
     VulkanDevice(vk::Instance,
                  vk::PhysicalDevice,
                  vk::Device,
-                 vk::CommandPool,
+                 vk::CommandPool graphicsCommandPool,
+                 vk::CommandPool computeCommandPool,
                  vk::DescriptorPool,
                  SDL_Window*,
                  vk::SurfaceKHR,
@@ -33,11 +34,13 @@ class VulkanDevice
     SDL_Window* GetWindow() { return window; }
 
     const QueueFamilyIndices& GetQueueFamilyIndices() const { return queueFamilyIndices; }
-    vk::Queue GetGraphicsQueue() { return graphicsQueue; }
-    vk::Queue GetPresentQueue() { return presentQueue; }
+    vk::Queue GetGraphicsQueue() const { return graphicsQueue; }
+    vk::Queue GetComputeQueue() const { return computeQueue; }
+    vk::Queue GetPresentQueue() const { return presentQueue; }
 
-    vk::CommandPool GetGraphicsCommandPool() { return graphicsCommandPool; }
-    vk::DescriptorPool GetDescriptorPool() { return descriptorPool; }
+    vk::CommandPool GetGraphicsCommandPool() const { return graphicsCommandPool; }
+    vk::CommandPool GetComputeCommandPool() const { return computeCommandPool; }
+    vk::DescriptorPool GetDescriptorPool() const { return descriptorPool; }
 
     bool IsMSAA8xSupported() const { return msaa8xSupported; }
 
@@ -50,8 +53,8 @@ class VulkanDevice
     static bool CheckDeviceExtensionSupport(vk::PhysicalDevice);
 
     static ResultValue<vk::Device> CreateDevice(vk::PhysicalDevice, const QueueFamilyIndices&);
-    static ResultValue<vk::CommandPool> CreateGraphicsCommandPool(vk::Device,
-                                                                  const QueueFamilyIndices&);
+    static ResultValue<vk::CommandPool> CreateCommandPool(vk::Device,
+                                                          uint32_t queueFamilyIndex);
     static ResultValue<vk::DescriptorPool> CreateDescriptorPool(vk::Device device);
 
     vk::Instance instance;
@@ -61,9 +64,11 @@ class VulkanDevice
     SDL_Window* window;
     vk::SurfaceKHR surface;
     vk::Queue graphicsQueue;
+    vk::Queue computeQueue;
     vk::Queue presentQueue;
 
     vk::CommandPool graphicsCommandPool;
+    vk::CommandPool computeCommandPool;
     vk::DescriptorPool descriptorPool;
 
     QueueFamilyIndices queueFamilyIndices;
