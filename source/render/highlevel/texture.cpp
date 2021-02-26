@@ -50,17 +50,29 @@ TextureCreationInfo TextureCreationInfo::CreateHdrFromData(float* data,
                                                            const TextureSampler& textureSampler)
 {
     TextureCreationInfo ci;
-    ci.format = vk::Format::eR32G32B32Sfloat;
-    ci.channelsCount = 3;
+    ci.format = vk::Format::eR32G32B32A32Sfloat;
+    ci.channelsCount = 4;
 
-    EZASSERT((dataChannelsCount == ci.channelsCount),
-             "Hdr image channels count should be 3 since we use memcpy into 3-channel");
+    std::vector<float> fourChannelData;
+    fourChannelData.resize(width * height * ci.channelsCount);
+
+    float* copyTo = fourChannelData.data();
+    float* copyFrom = data;
+
+    for (uint32_t i = 0; i < width * height; ++i)
+    {
+        copyTo[0 + 3] = 1.0f;  // alpha
+        for (uint32_t j = 0; j < dataChannelsCount; ++j) { copyTo[j] = copyFrom[j]; }
+        copyTo += ci.channelsCount;
+        copyFrom += dataChannelsCount;
+    }
 
     const uint8_t floatToUint8SizeRatio = 4;
-    const uint32_t dataSize = width * height * ci.channelsCount * floatToUint8SizeRatio;
+    const uint32_t dataSize =
+        static_cast<uint32_t>(fourChannelData.size()) * floatToUint8SizeRatio;
     ci.buffer.resize(dataSize);
 
-    memcpy(ci.buffer.data(), data, dataSize);
+    memcpy(ci.buffer.data(), fourChannelData.data(), dataSize);
 
     ci.width = width;
     ci.height = height;
