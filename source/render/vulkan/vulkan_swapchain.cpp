@@ -68,6 +68,7 @@ ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapc
                                            1,
                                            swapchainInfo.extent.width,
                                            swapchainInfo.extent.height,
+                                           1,
                                            samplesCount);
         if (multisampledImageRV.result != GraphicsResult::Ok)
         {
@@ -85,6 +86,7 @@ ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapc
                                        1,
                                        swapchainInfo.extent.width,
                                        swapchainInfo.extent.height,
+                                       1,
                                        samplesCount);
     if (depthImageRV.result != GraphicsResult::Ok) { return depthImageRV.result; }
     swapchainInfo.depthImage = depthImageRV.value.image;
@@ -242,11 +244,13 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice,
     for (size_t i = 0; i < info.images.size(); i++)
     {
         ResultValue<vk::ImageView> imageViewRV =
-            Image::CreateImageView2D(logicalDevice,
-                                     info.images[i],
-                                     info.imageFormat,
-                                     vk::ImageAspectFlagBits::eColor,
-                                     1);
+            Image::CreateImageView(vk::ImageViewType::e2D,
+                                   logicalDevice,
+                                   info.images[i],
+                                   info.imageFormat,
+                                   vk::ImageAspectFlagBits::eColor,
+                                   1,
+                                   1);
         if (imageViewRV.result != GraphicsResult::Ok) { return imageViewRV.result; }
         info.imageViews[i] = imageViewRV.value;
     }
@@ -254,11 +258,13 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice,
     if (info.multisampledImage)
     {
         ResultValue<vk::ImageView> multisampledImageViewRV =
-            Image::CreateImageView2D(logicalDevice,
-                                     info.multisampledImage,
-                                     info.imageFormat,
-                                     vk::ImageAspectFlagBits::eColor,
-                                     1);
+            Image::CreateImageView(vk::ImageViewType::e2D,
+                                   logicalDevice,
+                                   info.multisampledImage,
+                                   info.imageFormat,
+                                   vk::ImageAspectFlagBits::eColor,
+                                   1,
+                                   1);
         if (multisampledImageViewRV.result != GraphicsResult::Ok)
         {
             return multisampledImageViewRV.result;
@@ -267,11 +273,13 @@ GraphicsResult VulkanSwapchain::CreateImageViews(vk::Device logicalDevice,
     }
 
     ResultValue<vk::ImageView> depthImageViewRV =
-        Image::CreateImageView2D(logicalDevice,
-                                 info.depthImage,
-                                 Config::DepthAttachmentFormat,
-                                 vk::ImageAspectFlagBits::eDepth,
-                                 1);
+        Image::CreateImageView(vk::ImageViewType::e2D,
+                               logicalDevice,
+                               info.depthImage,
+                               Config::DepthAttachmentFormat,
+                               vk::ImageAspectFlagBits::eDepth,
+                               1,
+                               1);
     if (depthImageViewRV.result != GraphicsResult::Ok) { return depthImageViewRV.result; }
     info.depthImageView = depthImageViewRV.value;
 

@@ -18,7 +18,9 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
                                      uint32_t mipLevels,
                                      uint32_t width,
                                      uint32_t height,
+                                     uint32_t layersCount,
                                      vk::SampleCountFlagBits samplesCount);
+
 ResultValue<ImageWithMemory> CreateImage2DWithMemory(vk::Device logicalDevice,
                                                      vk::PhysicalDevice physicalDevice,
                                                      vk::Format format,
@@ -26,13 +28,16 @@ ResultValue<ImageWithMemory> CreateImage2DWithMemory(vk::Device logicalDevice,
                                                      uint32_t mipLevels,
                                                      uint32_t width,
                                                      uint32_t height,
+                                                     uint32_t layersCount,
                                                      vk::SampleCountFlagBits samplesCount);
 
-ResultValue<vk::ImageView> CreateImageView2D(vk::Device logicalDevice,
-                                             vk::Image image,
-                                             vk::Format format,
-                                             vk::ImageAspectFlagBits aspectMask,
-                                             uint32_t mipLevelsCount);
+ResultValue<vk::ImageView> CreateImageView(vk::ImageViewType imageViewType,
+                                           vk::Device logicalDevice,
+                                           vk::Image image,
+                                           vk::Format format,
+                                           vk::ImageAspectFlagBits aspectMask,
+                                           uint32_t layersCount,
+                                           uint32_t mipLevelsCount);
 
 bool GenerateMipsForImage(vk::Device logicalDevice,
                           vk::Queue graphicsQueue,

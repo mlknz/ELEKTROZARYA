@@ -75,6 +75,7 @@ Model::Model(const std::string& gltfFilePath)
                                                 static_cast<uint32_t>(gltfImage.width),
                                                 static_cast<uint32_t>(gltfImage.height),
                                                 static_cast<uint32_t>(gltfImage.component),
+                                                1,
                                                 true,
                                                 textureSampler);
         textures.emplace_back(std::move(textureCI));  // textures are loaded to GPU later

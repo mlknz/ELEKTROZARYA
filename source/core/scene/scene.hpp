@@ -23,12 +23,14 @@ class Scene final
     std::vector<Model>& GetModelsMutable() { return models; }
 
     Texture* GetPanoramaHdrTexture() { return panoramaHdrTexture.get(); }
+    Texture* GetCubemapTexture() { return cubemapTexture.get(); }
 
     int sceneId = 0;
 
    private:
     std::vector<Model> models;
     std::unique_ptr<Texture> panoramaHdrTexture;
+    std::unique_ptr<Texture> cubemapTexture;
 
     bool loaded = false;
     bool readyToRender = false;

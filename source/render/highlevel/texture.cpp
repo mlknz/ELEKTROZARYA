@@ -11,28 +11,30 @@ namespace ez
 TextureCreationInfo TextureCreationInfo::CreateFromData(uint8_t* data,
                                                         uint32_t width,
                                                         uint32_t height,
-                                                        uint32_t dataChannelsCount,
+                                                        uint32_t colorChannelsCount,
+                                                        uint32_t imageLayersCount,
                                                         bool needMips,
                                                         const TextureSampler& textureSampler)
 {
     TextureCreationInfo ci;
     ci.format = vk::Format::eR8G8B8A8Unorm;
-    ci.channelsCount = 4;
+    ci.colorChannelsCount = 4;
 
-    const uint32_t dataSize = width * height * ci.channelsCount;
+    const uint32_t dataSize = width * height * ci.colorChannelsCount * imageLayersCount;
     ci.buffer.resize(dataSize);
 
     uint8_t* copyTo = ci.buffer.data();
     uint8_t* copyFrom = data;
-    for (uint32_t i = 0; i < width * height; ++i)
+    for (uint32_t i = 0; i < width * height * imageLayersCount; ++i)
     {
-        for (uint32_t j = 0; j < dataChannelsCount; ++j) { copyTo[j] = copyFrom[j]; }
-        copyTo += ci.channelsCount;
-        copyFrom += dataChannelsCount;
+        for (uint32_t j = 0; j < colorChannelsCount; ++j) { copyTo[j] = copyFrom[j]; }
+        copyTo += ci.colorChannelsCount;
+        copyFrom += colorChannelsCount;
     }
 
     ci.width = width;
     ci.height = height;
+    ci.imageLayersCount = imageLayersCount;
     ci.mipLevels =
         needMips
             ? static_cast<uint32_t>(std::floor(std::log2(std::max(ci.width, ci.height))) + 1.0)
@@ -51,10 +53,10 @@ TextureCreationInfo TextureCreationInfo::CreateHdrFromData(float* data,
 {
     TextureCreationInfo ci;
     ci.format = vk::Format::eR32G32B32A32Sfloat;
-    ci.channelsCount = 4;
+    ci.colorChannelsCount = 4;
 
     std::vector<float> fourChannelData;
-    fourChannelData.resize(width * height * ci.channelsCount);
+    fourChannelData.resize(width * height * ci.colorChannelsCount);
 
     float* copyTo = fourChannelData.data();
     float* copyFrom = data;
@@ -63,7 +65,7 @@ TextureCreationInfo TextureCreationInfo::CreateHdrFromData(float* data,
     {
         copyTo[0 + 3] = 1.0f;  // alpha
         for (uint32_t j = 0; j < dataChannelsCount; ++j) { copyTo[j] = copyFrom[j]; }
-        copyTo += ci.channelsCount;
+        copyTo += ci.colorChannelsCount;
         copyFrom += dataChannelsCount;
     }
 
@@ -107,6 +109,7 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     format = creationInfo.format;
     width = creationInfo.width;
     height = creationInfo.height;
+    imageLayersCount = creationInfo.imageLayersCount;
     mipLevels = creationInfo.mipLevels;
 
     vk::DeviceSize bufferSize = static_cast<vk::DeviceSize>(creationInfo.buffer.size());
@@ -162,6 +165,7 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
         creationInfo.mipLevels,
         width,
         height,
+        imageLayersCount,
         vk::SampleCountFlagBits::e1);
     if (imageRV.result != GraphicsResult::Ok) { return false; }
     image = imageRV.value.image;
@@ -173,7 +177,7 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     vk::ImageSubresourceRange subresourceRange = {};
     subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor);
     subresourceRange.setLevelCount(1);
-    subresourceRange.setLayerCount(1);
+    subresourceRange.setLayerCount(imageLayersCount);
 
     {
         vk::ImageMemoryBarrier imageMemoryBarrier{};
@@ -199,7 +203,7 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     bufferCopyRegion.imageSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor);
     bufferCopyRegion.imageSubresource.setMipLevel(0);
     bufferCopyRegion.imageSubresource.setBaseArrayLayer(0);
-    bufferCopyRegion.imageSubresource.setLayerCount(1);
+    bufferCopyRegion.imageSubresource.setLayerCount(imageLayersCount);
     bufferCopyRegion.imageExtent.setWidth(width);
     bufferCopyRegion.imageExtent.setHeight(height);
     bufferCopyRegion.imageExtent.setDepth(1);
@@ -257,8 +261,16 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     samplerInfo.setAnisotropyEnable(VK_TRUE);
     CheckVkResult(logicalDevice.createSampler(&samplerInfo, nullptr, &sampler));
 
-    ResultValue<vk::ImageView> imageViewRV = Image::CreateImageView2D(
-        logicalDevice, image, format, vk::ImageAspectFlagBits::eColor, mipLevels);
+    vk::ImageViewType imageViewType =
+        creationInfo.IsCubemap() ? vk::ImageViewType::eCube : vk::ImageViewType::e2D;
+    ResultValue<vk::ImageView> imageViewRV =
+        Image::CreateImageView(imageViewType,
+                               logicalDevice,
+                               image,
+                               format,
+                               vk::ImageAspectFlagBits::eColor,
+                               imageLayersCount,
+                               mipLevels);
     if (imageViewRV.result != GraphicsResult::Ok) { return false; }
 
     descriptor.sampler = sampler;

@@ -426,6 +426,16 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
         EZASSERT(loadSuccess, "Hdr panorama loading failed");
     }
 
+    Texture* cubemapTexture = scene->GetCubemapTexture();
+    if (cubemapTexture != nullptr && !cubemapTexture->IsLoadedToGPU())
+    {
+        bool loadSuccess = cubemapTexture->LoadToGpu(GetDevice(),
+                                                     GetPhysicalDevice(),
+                                                     vulkanDevice->GetGraphicsQueue(),
+                                                     vulkanDevice->GetGraphicsCommandPool());
+        EZASSERT(loadSuccess, "Cubemap loading failed");
+    }
+
     // todo: cleanup old scene models
     std::vector<Model>& sceneModels = scene->GetModelsMutable();
     bool modelsCreateSuccess = true;

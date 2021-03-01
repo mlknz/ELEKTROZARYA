@@ -11,6 +11,8 @@ namespace Config
 constexpr int WindowWidth = 1024;
 constexpr int WindowHeight = 768;
 
+constexpr uint32_t EnvCubemapSize = 1024;
+
 constexpr uint32_t MaxDescriptorSetsCount = 1000;
 
 const std::map<vk::DescriptorType, uint32_t> VulkanDescriptorPoolSizes = {

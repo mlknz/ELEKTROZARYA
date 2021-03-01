@@ -9,10 +9,11 @@ namespace ez
 {
 struct TextureCreationInfo final
 {
-    static TextureCreationInfo CreateFromData(unsigned char* data,
+    static TextureCreationInfo CreateFromData(uint8_t* data,
                                               uint32_t width,
                                               uint32_t height,
-                                              uint32_t channelsCount,
+                                              uint32_t colorChannelsCount,
+                                              uint32_t imageLayersCount,
                                               bool needMips,
                                               const TextureSampler& textureSampler);
 
@@ -24,8 +25,11 @@ struct TextureCreationInfo final
 
     bool IsValid() const;
 
+    void SetIsCubemap(bool value) { isCubemap = value; }
+    bool IsCubemap() const { return isCubemap; }
+
     vk::Format format = vk::Format::eR8G8B8A8Unorm;
-    uint32_t channelsCount = 4;
+    uint32_t colorChannelsCount = 4;
 
     // CPU data to load to GPU
     std::vector<uint8_t> buffer;
@@ -34,7 +38,11 @@ struct TextureCreationInfo final
     // other
     uint32_t width = 0;
     uint32_t height = 0;
+    uint32_t imageLayersCount = 1;
     uint32_t mipLevels = 0;
+
+   private:
+    bool isCubemap = false;
 };
 
 class Texture
@@ -60,7 +68,7 @@ class Texture
     uint32_t width;
     uint32_t height;
     uint32_t mipLevels;
-    uint32_t layerCount;
+    uint32_t imageLayersCount;
 
     bool loadedToGpu = false;
 
