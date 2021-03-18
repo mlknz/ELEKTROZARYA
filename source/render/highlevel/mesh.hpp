@@ -175,10 +175,16 @@ struct Node
 
 struct Model
 {
+    enum class eType
+    {
+        GltfMesh,
+        Cubemap
+    };
+
     Model() = delete;
     Model(const Model& other) = delete;
 
-    Model(const std::string& gltfFilePath);
+    Model(eType type, const std::string& filePath);
     Model(Model&& other) = default;
     ~Model();
 
@@ -216,6 +222,8 @@ struct Model
 
     vk::DeviceMemory vertexBufferMemory;
     vk::DeviceMemory indexBufferMemory;
+
+    eType type;
 };
 
 namespace StbImageLoader

@@ -39,58 +39,143 @@ BoundingBox BoundingBox::GetAABB(glm::mat4 m)
     return BoundingBox(min, max);
 }
 
-Model::Model(const std::string& gltfFilePath)
+Model::Model(eType type, const std::string& filePath)
 {
-    EZLOG("loading gltf file", gltfFilePath);
-    tinygltf::Model gltfModel;
-    tinygltf::TinyGLTF loader;
-    std::string err;
-    std::string warn;
+    name = filePath;
 
-    bool fileLoaded = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, gltfFilePath);
-
-    EZASSERT(fileLoaded, "Failed to load file");
-
-    name = gltfFilePath;
-
-    for (const tinygltf::Sampler& gltfSampler : gltfModel.samplers)
+    if (type == eType::GltfMesh)
     {
-        textureSamplers.push_back(TextureSampler::FromGltfSampler(gltfSampler.magFilter,
-                                                                  gltfSampler.minFilter,
-                                                                  gltfSampler.wrapS,
-                                                                  gltfSampler.wrapT));
+        const std::string gltfFilePath = filePath;
+
+        EZLOG("loading gltf file", gltfFilePath);
+        tinygltf::Model gltfModel;
+        tinygltf::TinyGLTF loader;
+        std::string err;
+        std::string warn;
+
+        bool fileLoaded = loader.LoadASCIIFromFile(&gltfModel, &err, &warn, gltfFilePath);
+
+        EZASSERT(fileLoaded, "Failed to load file");
+
+        for (const tinygltf::Sampler& gltfSampler : gltfModel.samplers)
+        {
+            textureSamplers.push_back(TextureSampler::FromGltfSampler(gltfSampler.magFilter,
+                                                                      gltfSampler.minFilter,
+                                                                      gltfSampler.wrapS,
+                                                                      gltfSampler.wrapT));
+        }
+        textures.reserve(12);
+        for (tinygltf::Texture& tex : gltfModel.textures)
+        {
+            const size_t imageIndex = static_cast<size_t>(tex.source);
+            const size_t samplerIndex = static_cast<size_t>(tex.sampler);
+
+            tinygltf::Image gltfImage = gltfModel.images.at(imageIndex);
+            TextureSampler textureSampler =
+                (tex.sampler >= 0) ? textureSamplers.at(samplerIndex) : TextureSampler{};
+
+            TextureCreationInfo textureCI =
+                TextureCreationInfo::CreateFromData(&gltfImage.image.at(0),
+                                                    static_cast<uint32_t>(gltfImage.width),
+                                                    static_cast<uint32_t>(gltfImage.height),
+                                                    static_cast<uint32_t>(gltfImage.component),
+                                                    1,
+                                                    true,
+                                                    textureSampler);
+            textures.emplace_back(std::move(textureCI));  // textures are loaded to GPU later
+        }
+        LoadMaterials(gltfModel);
+
+        indices = {};
+        vertices = {};
+
+        const tinygltf::Scene& scene = gltfModel.scenes.at(size_t(gltfModel.defaultScene));
+        for (size_t i = 0; i < scene.nodes.size(); i++)
+        {
+            const tinygltf::Node node = gltfModel.nodes.at(size_t(scene.nodes[i]));
+            EZLOG("Loading Node", node.name);
+            LoadNodeFromGLTF(
+                nullptr, node, uint32_t(scene.nodes[i]), gltfModel, indices, vertices);
+        }
     }
-    textures.reserve(12);
-    for (tinygltf::Texture& tex : gltfModel.textures)
+    else if (type == eType::Cubemap)
     {
-        const size_t imageIndex = static_cast<size_t>(tex.source);
-        const size_t samplerIndex = static_cast<size_t>(tex.sampler);
+        // tex0 - panorama HDR
+        // tex1 - cubemap
+        const std::string hdrPanoramaFilePath = filePath;
+        EZLOG("loading hdr panorama file", hdrPanoramaFilePath);
+        StbImageLoader::StbImageWrapper hdrPanoramaWrapper =
+            StbImageLoader::LoadHDRImage(hdrPanoramaFilePath.c_str());
+        TextureSampler panoramaTexSampler = {};
+        TextureCreationInfo panoramaTexCI = TextureCreationInfo::CreateHdrFromData(
+            hdrPanoramaWrapper.hdrData,
+            static_cast<uint32_t>(hdrPanoramaWrapper.width),
+            static_cast<uint32_t>(hdrPanoramaWrapper.height),
+            static_cast<uint32_t>(hdrPanoramaWrapper.channelsCount),
+            panoramaTexSampler);
+        textures.emplace_back(std::move(panoramaTexCI));
 
-        tinygltf::Image gltfImage = gltfModel.images.at(imageIndex);
-        TextureSampler textureSampler =
-            (tex.sampler >= 0) ? textureSamplers.at(samplerIndex) : TextureSampler{};
+        uint32_t cubemapWidth = 512;
+        uint32_t cubemapHeight = 512;
+        const uint32_t cubemapColorChannelsCount = 4;
+        uint32_t singleFaceSize = cubemapWidth * cubemapWidth * cubemapColorChannelsCount;
 
-        TextureCreationInfo textureCI =
-            TextureCreationInfo::CreateFromData(&gltfImage.image.at(0),
-                                                static_cast<uint32_t>(gltfImage.width),
-                                                static_cast<uint32_t>(gltfImage.height),
-                                                static_cast<uint32_t>(gltfImage.component),
-                                                1,
+        const uint32_t cubemapImageLayersCount = 6;
+
+        std::array<std::array<uint8_t, cubemapColorChannelsCount>, cubemapImageLayersCount>
+            faceColors;
+        faceColors[0] = { 255, 0, 0, 255 };
+        faceColors[1] = { 128, 0, 0, 255 };
+        faceColors[2] = { 0, 255, 0, 255 };
+        faceColors[3] = { 0, 128, 0, 255 };
+        faceColors[4] = { 0, 0, 255, 255 };
+        faceColors[5] = { 0, 0, 128, 255 };
+
+        std::vector<uint8_t> cubemapData;
+        cubemapData.resize(singleFaceSize * cubemapImageLayersCount);
+        for (uint32_t face = 0; face < cubemapImageLayersCount; ++face)
+        {
+            for (uint32_t i = 0; i < singleFaceSize; i += cubemapColorChannelsCount)
+            {
+                cubemapData[face * singleFaceSize + i + 0] = faceColors[face][0];
+                cubemapData[face * singleFaceSize + i + 1] = faceColors[face][1];
+                cubemapData[face * singleFaceSize + i + 2] = faceColors[face][2];
+                cubemapData[face * singleFaceSize + i + 3] = faceColors[face][3];
+            }
+        }
+
+        TextureSampler cubemapTexSampler = {};
+        TextureCreationInfo cubemapTexCI =
+            TextureCreationInfo::CreateFromData(cubemapData.data(),
+                                                cubemapWidth,
+                                                cubemapHeight,
+                                                cubemapColorChannelsCount,
+                                                cubemapImageLayersCount,
                                                 true,
-                                                textureSampler);
-        textures.emplace_back(std::move(textureCI));  // textures are loaded to GPU later
+                                                cubemapTexSampler);
+        cubemapTexCI.SetIsCubemap(true);
+        textures.emplace_back(std::move(cubemapTexCI));
+
+        // todo: vertices and custom vertex layout
+        //        Vector3f(-1, -1, -1),
+        //            Vector3f(1, -1, -1),
+        //            Vector3f(1, 1, -1),
+        //            Vector3f(-1, 1, -1),
+        //            Vector3f(-1, -1, 1),
+        //            Vector3f(1, -1, 1),
+        //            Vector3f(1, 1, 1),
+        //            Vector3f(-1, 1, 1)
+        indices = { 0, 1, 3, 3, 1, 2,  //
+                    1, 5, 2, 2, 5, 6,  //
+                    5, 4, 6, 6, 4, 7,  //
+                    4, 0, 7, 7, 0, 3,  //
+                    3, 2, 7, 7, 2, 6,  //
+                    4, 5, 0, 0, 5, 1 };
+        // todo: material
     }
-    LoadMaterials(gltfModel);
-
-    indices = {};
-    vertices = {};
-
-    const tinygltf::Scene& scene = gltfModel.scenes.at(size_t(gltfModel.defaultScene));
-    for (size_t i = 0; i < scene.nodes.size(); i++)
+    else
     {
-        const tinygltf::Node node = gltfModel.nodes.at(size_t(scene.nodes[i]));
-        EZLOG("Loading Node", node.name);
-        LoadNodeFromGLTF(nullptr, node, uint32_t(scene.nodes[i]), gltfModel, indices, vertices);
+        EZASSERT(false, "Unsupported Model Type");
     }
 }
 
@@ -400,7 +485,9 @@ bool Model::CreateVertexBuffers(vk::PhysicalDevice physicalDevice,
                                 vk::Queue graphicsQueue,
                                 vk::CommandPool graphicsCommandPool)
 {
-    assert(logicalDevice);
+    EZASSERT(logicalDevice);
+    EZASSERT(!vertices.empty(), "Model can't have empty vertices");
+    EZASSERT(!indices.empty(), "Model can't have empty indices");
     vk::DeviceSize vertexBufferSize = sizeof(vertices[0]) * vertices.size();
     vk::DeviceSize indexBufferSize = sizeof(indices[0]) * indices.size();
 

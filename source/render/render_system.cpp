@@ -415,27 +415,6 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
     }
     if (scene->ReadyToRender()) { return; }
 
-    Texture* panoramaHdrTexture = scene->GetPanoramaHdrTexture();
-    if (panoramaHdrTexture != nullptr && !panoramaHdrTexture->IsLoadedToGPU())
-    {
-        bool loadSuccess =
-            panoramaHdrTexture->LoadToGpu(GetDevice(),
-                                          GetPhysicalDevice(),
-                                          vulkanDevice->GetGraphicsQueue(),
-                                          vulkanDevice->GetGraphicsCommandPool());
-        EZASSERT(loadSuccess, "Hdr panorama loading failed");
-    }
-
-    Texture* cubemapTexture = scene->GetCubemapTexture();
-    if (cubemapTexture != nullptr && !cubemapTexture->IsLoadedToGPU())
-    {
-        bool loadSuccess = cubemapTexture->LoadToGpu(GetDevice(),
-                                                     GetPhysicalDevice(),
-                                                     vulkanDevice->GetGraphicsQueue(),
-                                                     vulkanDevice->GetGraphicsCommandPool());
-        EZASSERT(loadSuccess, "Cubemap loading failed");
-    }
-
     // todo: cleanup old scene models
     std::vector<Model>& sceneModels = scene->GetModelsMutable();
     bool modelsCreateSuccess = true;
@@ -591,12 +570,7 @@ void RenderSystem::Draw(const std::unique_ptr<View>& view,
                                           nullptr,
                                           &imageIndex);
 
-    if (result == vk::Result::eErrorOutOfDateKHR)
-    {
-        RecreateTotalPipeline();
-        return;
-    }
-    else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+    if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
     {
         EZASSERT(false, "Failed to acquire swapchain image!");
     }
