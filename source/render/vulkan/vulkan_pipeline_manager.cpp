@@ -15,10 +15,19 @@ ResultValue<std::shared_ptr<VulkanGraphicsPipeline>>
 VulkanPipelineManager::CreateGraphicsPipeline(
     vk::Extent2D swapchainExtent,
     vk::RenderPass renderPass,
-    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts)
+    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
+    VertexLayout vertexLayout,
+    const std::string& vertexShaderName,
+    const std::string& fragmentShaderName)
 {
-    auto vulkanGraphicsPipeline = VulkanGraphicsPipeline::CreateVulkanGraphicsPipeline(
-        logicalDevice, swapchainExtent, renderPass, descriptorSetLayouts);
+    auto vulkanGraphicsPipeline =
+        VulkanGraphicsPipeline::CreateVulkanGraphicsPipeline(logicalDevice,
+                                                             swapchainExtent,
+                                                             renderPass,
+                                                             descriptorSetLayouts,
+                                                             vertexLayout,
+                                                             vertexShaderName,
+                                                             fragmentShaderName);
     if (vulkanGraphicsPipeline)
     {
         return { GraphicsResult::Ok, std::move(vulkanGraphicsPipeline) };

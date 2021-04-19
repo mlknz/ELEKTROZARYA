@@ -483,8 +483,13 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
         std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
             globalUBO.descriptorSetLayout, samplersDescriptorSetLayout
         };
-        auto vulkanGraphicsPipelineRV = vulkanPipelineManager->CreateGraphicsPipeline(
-            GetSwapchainInfo().extent, vulkanRenderPass->GetRenderPass(), descriptorSetLayouts);
+        auto vulkanGraphicsPipelineRV =
+            vulkanPipelineManager->CreateGraphicsPipeline(GetSwapchainInfo().extent,
+                                                          vulkanRenderPass->GetRenderPass(),
+                                                          descriptorSetLayouts,
+                                                          model.GetVertexLayout(),
+                                                          model.vertexShaderName,
+                                                          model.fragmentShaderName);
         if (vulkanGraphicsPipelineRV.result != GraphicsResult::Ok)
         {
             EZASSERT(false, "Failed to create graphics pipeline for model");

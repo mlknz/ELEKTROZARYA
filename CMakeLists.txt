@@ -28,6 +28,8 @@ set(SOURCE_FILES
     ${SOURCES}/render/graphics_result.hpp
     ${SOURCES}/render/vulkan_include.hpp
 
+    ${SOURCES}/render/highlevel/primitive.cpp
+    ${SOURCES}/render/highlevel/primitive.hpp
     ${SOURCES}/render/highlevel/mesh.cpp
     ${SOURCES}/render/highlevel/mesh.hpp
     ${SOURCES}/render/highlevel/material.cpp

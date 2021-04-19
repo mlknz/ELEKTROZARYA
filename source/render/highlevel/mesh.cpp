@@ -12,33 +12,6 @@
 
 namespace ez
 {
-BoundingBox BoundingBox::GetAABB(glm::mat4 m)
-{
-    glm::vec3 min = glm::vec3(m[3]);
-    glm::vec3 max = min;
-    glm::vec3 v0, v1;
-
-    glm::vec3 right = glm::vec3(m[0]);
-    v0 = right * this->min.x;
-    v1 = right * this->max.x;
-    min += glm::min(v0, v1);
-    max += glm::max(v0, v1);
-
-    glm::vec3 up = glm::vec3(m[1]);
-    v0 = up * this->min.y;
-    v1 = up * this->max.y;
-    min += glm::min(v0, v1);
-    max += glm::max(v0, v1);
-
-    glm::vec3 back = glm::vec3(m[2]);
-    v0 = back * this->min.z;
-    v1 = back * this->max.z;
-    min += glm::min(v0, v1);
-    max += glm::max(v0, v1);
-
-    return BoundingBox(min, max);
-}
-
 Model::Model(eType type, const std::string& filePath)
 {
     name = filePath;
@@ -88,6 +61,10 @@ Model::Model(eType type, const std::string& filePath)
 
         indices = {};
         vertices = {};
+        vertexShaderName = "../source/shaders/shader.vert";
+        fragmentShaderName = "../source/shaders/shader.frag";
+        vertexLayout = eVertexLayout::vlPosition | eVertexLayout::vlNormal |
+                       eVertexLayout::vlTexcoord0 | eVertexLayout::vlTexcoord1;
 
         const tinygltf::Scene& scene = gltfModel.scenes.at(size_t(gltfModel.defaultScene));
         for (size_t i = 0; i < scene.nodes.size(); i++)
@@ -156,15 +133,22 @@ Model::Model(eType type, const std::string& filePath)
         cubemapTexCI.SetIsCubemap(true);
         textures.emplace_back(std::move(cubemapTexCI));
 
-        // todo: vertices and custom vertex layout
-        //        Vector3f(-1, -1, -1),
-        //            Vector3f(1, -1, -1),
-        //            Vector3f(1, 1, -1),
-        //            Vector3f(-1, 1, -1),
-        //            Vector3f(-1, -1, 1),
-        //            Vector3f(1, -1, 1),
-        //            Vector3f(1, 1, 1),
-        //            Vector3f(-1, 1, 1)
+        vertexShaderName = "../source/shaders/env_cubemap.vert";
+        fragmentShaderName = "../source/shaders/env_cubemap.frag";
+        vertexLayout = eVertexLayout::vlPosition;
+
+        glm::vec3 fakeN = glm::vec3(0, 0, 1);
+        glm::vec2 zeroVec2 = glm::zero<glm::vec2>();
+        vertices = {
+            { glm::vec3(-1, -1, -1), fakeN, zeroVec2, zeroVec2 },
+            { glm::vec3(1, -1, -1), fakeN, zeroVec2, zeroVec2 },
+            { glm::vec3(1, 1, -1), fakeN, zeroVec2, zeroVec2 },
+            { glm::vec3(-1, 1, -1), fakeN, zeroVec2, zeroVec2 },
+            { glm::vec3(-1, -1, 1), fakeN, zeroVec2, zeroVec2 },
+            { glm::vec3(1, -1, 1), fakeN, zeroVec2, zeroVec2 },
+            { glm::vec3(1, 1, 1), fakeN, zeroVec2, zeroVec2 },
+            { glm::vec3(-1, 1, 1), fakeN, zeroVec2, zeroVec2 },
+        };
         indices = { 0, 1, 3, 3, 1, 2,  //
                     1, 5, 2, 2, 5, 6,  //
                     5, 4, 6, 6, 4, 7,  //

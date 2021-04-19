@@ -37,10 +37,18 @@ std::shared_ptr<VulkanGraphicsPipeline> VulkanGraphicsPipeline::CreateVulkanGrap
     vk::Device logicalDevice,
     vk::Extent2D swapchainExtent,
     vk::RenderPass renderPass,
-    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts)
+    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
+    VertexLayout vertexLayout,
+    const std::string& vertexShaderName,
+    const std::string& fragmentShaderName)
 {
     VulkanGraphicsPipeline obj{ logicalDevice };
-    if (obj.CreateGraphicsPipeline(swapchainExtent, renderPass, descriptorSetLayouts))
+    if (obj.CreateGraphicsPipeline(swapchainExtent,
+                                   renderPass,
+                                   descriptorSetLayouts,
+                                   vertexLayout,
+                                   vertexShaderName,
+                                   fragmentShaderName))
     {
         return std::make_shared<VulkanGraphicsPipeline>(std::move(obj));
     }
@@ -66,12 +74,15 @@ vk::ShaderModule VulkanGraphicsPipeline::CreateShaderModule(const std::vector<ui
 bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
     vk::Extent2D swapchainExtent,
     vk::RenderPass renderPass,
-    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts)
+    const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
+    VertexLayout vertexLayout,
+    const std::string& vertexShaderName,
+    const std::string& fragmentShaderName)
 {
     const std::vector<uint32_t> vertShaderCode =
-        SpirVShaderCompiler::CompileFromGLSL("../source/shaders/shader.vert");
+        SpirVShaderCompiler::CompileFromGLSL(vertexShaderName);
     const std::vector<uint32_t> fragShaderCode =
-        SpirVShaderCompiler::CompileFromGLSL("../source/shaders/shader.frag");
+        SpirVShaderCompiler::CompileFromGLSL(fragmentShaderName);
 
     vk::ShaderModule vertShaderModule = CreateShaderModule(vertShaderCode);
     vk::ShaderModule fragShaderModule = CreateShaderModule(fragShaderCode);
@@ -92,7 +103,7 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo = {};
 
     auto bindingDescription = ez::Vertex::getBindingDescription();
-    auto attributeDescriptions = ez::Vertex::getAttributeDescriptions();
+    auto attributeDescriptions = ez::Vertex::getAttributeDescriptions(vertexLayout);
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount =
