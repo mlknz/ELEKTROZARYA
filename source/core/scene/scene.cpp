@@ -7,7 +7,7 @@ namespace ez
 {
 bool Scene::Load()
 {
-    // models.emplace_back(Model::eType::Cubemap, SceneConfig::panorama);
+    models.emplace_back(Model::eType::Cubemap, SceneConfig::panorama);
     models.emplace_back(Model::eType::GltfMesh, SceneConfig::startupModel);
 
     readyToRender = false;

@@ -156,6 +156,9 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
 
     // /////////////////////////////
 
+    vk::ImageCreateFlags imageCreateFlags = creationInfo.IsCubemap()
+                                              ? vk::ImageCreateFlagBits::eCubeCompatible
+                                              : vk::ImageCreateFlags{};
     ResultValue<ImageWithMemory> imageRV = Image::CreateImage2DWithMemory(
         logicalDevice,
         physicalDevice,
@@ -166,6 +169,7 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
         width,
         height,
         imageLayersCount,
+        imageCreateFlags,
         vk::SampleCountFlagBits::e1);
     if (imageRV.result != GraphicsResult::Ok) { return false; }
     image = imageRV.value.image;

@@ -19,6 +19,7 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
                                      uint32_t width,
                                      uint32_t height,
                                      uint32_t layersCount,
+                                     vk::ImageCreateFlags imageCreateFlags,
                                      vk::SampleCountFlagBits samplesCount);
 
 ResultValue<ImageWithMemory> CreateImage2DWithMemory(vk::Device logicalDevice,
@@ -29,6 +30,7 @@ ResultValue<ImageWithMemory> CreateImage2DWithMemory(vk::Device logicalDevice,
                                                      uint32_t width,
                                                      uint32_t height,
                                                      uint32_t layersCount,
+                                                     vk::ImageCreateFlags imageCreateFlags,
                                                      vk::SampleCountFlagBits samplesCount);
 
 ResultValue<vk::ImageView> CreateImageView(vk::ImageViewType imageViewType,

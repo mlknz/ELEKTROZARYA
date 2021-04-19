@@ -13,6 +13,7 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
                                      uint32_t width,
                                      uint32_t height,
                                      uint32_t layersCount,
+                                     vk::ImageCreateFlags imageCreateFlags,
                                      vk::SampleCountFlagBits samplesCount)
 {
     vk::Image image;
@@ -22,6 +23,7 @@ ResultValue<vk::Image> CreateImage2D(vk::Device logicalDevice,
     imageCreateInfo.setFormat(format);
     imageCreateInfo.setMipLevels(mipLevels);
     imageCreateInfo.setArrayLayers(layersCount);
+    imageCreateInfo.setFlags(imageCreateFlags);
     imageCreateInfo.setSamples(samplesCount);
     imageCreateInfo.setTiling(vk::ImageTiling::eOptimal);
     imageCreateInfo.setUsage(usage);
@@ -46,10 +48,18 @@ ResultValue<ImageWithMemory> CreateImage2DWithMemory(vk::Device logicalDevice,
                                                      uint32_t width,
                                                      uint32_t height,
                                                      uint32_t layersCount,
+                                                     vk::ImageCreateFlags imageCreateFlags,
                                                      vk::SampleCountFlagBits samplesCount)
 {
-    ResultValue<vk::Image> imageRV = CreateImage2D(
-        logicalDevice, format, usage, mipLevels, width, height, layersCount, samplesCount);
+    ResultValue<vk::Image> imageRV = CreateImage2D(logicalDevice,
+                                                   format,
+                                                   usage,
+                                                   mipLevels,
+                                                   width,
+                                                   height,
+                                                   layersCount,
+                                                   imageCreateFlags,
+                                                   samplesCount);
     if (imageRV.result != GraphicsResult::Ok) { return imageRV.result; }
     vk::Image image = imageRV.value;
     vk::DeviceMemory imageMemory;

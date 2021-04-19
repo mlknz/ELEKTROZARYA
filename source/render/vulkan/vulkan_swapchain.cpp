@@ -69,6 +69,7 @@ ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapc
                                            swapchainInfo.extent.width,
                                            swapchainInfo.extent.height,
                                            1,
+                                           vk::ImageCreateFlags{},
                                            samplesCount);
         if (multisampledImageRV.result != GraphicsResult::Ok)
         {
@@ -87,6 +88,7 @@ ResultValue<std::unique_ptr<VulkanSwapchain>> VulkanSwapchain::CreateVulkanSwapc
                                        swapchainInfo.extent.width,
                                        swapchainInfo.extent.height,
                                        1,
+                                       vk::ImageCreateFlags{},
                                        samplesCount);
     if (depthImageRV.result != GraphicsResult::Ok) { return depthImageRV.result; }
     swapchainInfo.depthImage = depthImageRV.value.image;
