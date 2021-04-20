@@ -23,6 +23,7 @@ class VulkanGraphicsPipeline
         vk::RenderPass renderPass,
         const std::vector<vk::DescriptorSetLayout>& descriptorSetLayout,
         VertexLayout vertexLayout,
+        vk::CompareOp depthCompareOp,
         const std::string& vertexShaderName,
         const std::string& fragmentShaderName);
 
@@ -34,6 +35,7 @@ class VulkanGraphicsPipeline
                                 vk::RenderPass renderPass,
                                 const std::vector<vk::DescriptorSetLayout>& descriptorSetLayout,
                                 VertexLayout vertexLayout,
+                                vk::CompareOp depthCompareOp,
                                 const std::string& vertexShaderName,
                                 const std::string& fragmentShaderName);
 

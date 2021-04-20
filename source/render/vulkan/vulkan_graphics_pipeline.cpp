@@ -39,6 +39,7 @@ std::shared_ptr<VulkanGraphicsPipeline> VulkanGraphicsPipeline::CreateVulkanGrap
     vk::RenderPass renderPass,
     const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
     VertexLayout vertexLayout,
+    vk::CompareOp depthCompareOp,
     const std::string& vertexShaderName,
     const std::string& fragmentShaderName)
 {
@@ -47,6 +48,7 @@ std::shared_ptr<VulkanGraphicsPipeline> VulkanGraphicsPipeline::CreateVulkanGrap
                                    renderPass,
                                    descriptorSetLayouts,
                                    vertexLayout,
+                                   depthCompareOp,
                                    vertexShaderName,
                                    fragmentShaderName))
     {
@@ -76,6 +78,7 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
     vk::RenderPass renderPass,
     const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
     VertexLayout vertexLayout,
+    vk::CompareOp depthCompareOp,
     const std::string& vertexShaderName,
     const std::string& fragmentShaderName)
 {
@@ -167,7 +170,7 @@ bool VulkanGraphicsPipeline::CreateGraphicsPipeline(
     vk::PipelineDepthStencilStateCreateInfo depthStencilState = {};
     depthStencilState.depthWriteEnable = true;
     depthStencilState.depthTestEnable = true;
-    depthStencilState.depthCompareOp = vk::CompareOp::eLess;
+    depthStencilState.depthCompareOp = depthCompareOp;
 
     static_assert(Mesh::PushConstantsBlockSize <= 128);
     vk::PushConstantRange pushConstantRange(

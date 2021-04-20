@@ -14,6 +14,12 @@ enum class BlendMode
     eAlphaBlend
 };
 
+enum class MaterialType
+{
+    eDefault,
+    eCubemap
+};
+
 struct Material
 {
     struct PbrTextures
@@ -35,6 +41,9 @@ struct Material
         uint8_t emissive = 0;
     } texCoordSets;
 
+    Texture* cubemapTexture;
+
+    MaterialType type = MaterialType::eDefault;
     BlendMode blendMode = BlendMode::eOpaque;
     float alphaCutoff = 0.5f;
 

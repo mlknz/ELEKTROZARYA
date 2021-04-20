@@ -435,49 +435,93 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
             }
         }
 
+        vk::CompareOp depthCompareOp = vk::CompareOp::eLess;
         for (Material& material : model.materials)
         {
-            if (material.textures.baseColor == nullptr) { continue; }
-            vk::DescriptorSetAllocateInfo descriptorSetAllocInfo{};
-            descriptorSetAllocInfo.descriptorPool = vulkanDevice->GetDescriptorPool();
-            descriptorSetAllocInfo.pSetLayouts = &samplersDescriptorSetLayout;
-            descriptorSetAllocInfo.descriptorSetCount = 1;
-            CheckVkResult(GetDevice().allocateDescriptorSets(&descriptorSetAllocInfo,
-                                                             &material.descriptorSet));
-            // todo: handle missing textures - create white and black tex
-            vk::DescriptorImageInfo defaultWhiteTexture =
-                material.textures.baseColor->descriptor;
-            vk::DescriptorImageInfo defaultBlackTexture =
-                material.textures.baseColor->descriptor;
-            const std::vector<vk::DescriptorImageInfo> imageDescriptors = {
-                material.textures.baseColor ? material.textures.baseColor->descriptor
-                                            : defaultWhiteTexture,
-                material.textures.metallicRoughness
-                    ? material.textures.metallicRoughness->descriptor
-                    : defaultBlackTexture,
-                material.textures.normal ? material.textures.normal->descriptor
-                                         : defaultWhiteTexture,
-                material.textures.occlusion ? material.textures.occlusion->descriptor
-                                            : defaultWhiteTexture,
-                material.textures.emission ? material.textures.emission->descriptor
-                                           : defaultBlackTexture
-            };
-
-            std::array<vk::WriteDescriptorSet, 5> writeDescriptorSets{};
-            for (size_t i = 0; i < imageDescriptors.size(); i++)
+            if (material.type == MaterialType::eDefault &&
+                material.textures.baseColor != nullptr)
             {
-                writeDescriptorSets[i].descriptorType =
-                    vk::DescriptorType::eCombinedImageSampler;
-                writeDescriptorSets[i].descriptorCount = 1;
-                writeDescriptorSets[i].dstSet = material.descriptorSet;
-                writeDescriptorSets[i].dstBinding = static_cast<uint32_t>(i);
-                writeDescriptorSets[i].pImageInfo = &imageDescriptors[i];
-            }
+                vk::DescriptorSetAllocateInfo descriptorSetAllocInfo{};
+                descriptorSetAllocInfo.descriptorPool = vulkanDevice->GetDescriptorPool();
+                descriptorSetAllocInfo.pSetLayouts = &samplersDescriptorSetLayout;
+                descriptorSetAllocInfo.descriptorSetCount = 1;
+                CheckVkResult(GetDevice().allocateDescriptorSets(&descriptorSetAllocInfo,
+                                                                 &material.descriptorSet));
+                // todo: handle missing textures - create white and black tex
+                vk::DescriptorImageInfo defaultWhiteTexture =
+                    material.textures.baseColor->descriptor;
+                vk::DescriptorImageInfo defaultBlackTexture =
+                    material.textures.baseColor->descriptor;
+                const std::vector<vk::DescriptorImageInfo> imageDescriptors = {
+                    material.textures.baseColor ? material.textures.baseColor->descriptor
+                                                : defaultWhiteTexture,
+                    material.textures.metallicRoughness
+                        ? material.textures.metallicRoughness->descriptor
+                        : defaultBlackTexture,
+                    material.textures.normal ? material.textures.normal->descriptor
+                                             : defaultWhiteTexture,
+                    material.textures.occlusion ? material.textures.occlusion->descriptor
+                                                : defaultWhiteTexture,
+                    material.textures.emission ? material.textures.emission->descriptor
+                                               : defaultBlackTexture
+                };
 
-            GetDevice().updateDescriptorSets(static_cast<uint32_t>(writeDescriptorSets.size()),
-                                             writeDescriptorSets.data(),
-                                             0,
-                                             nullptr);
+                std::vector<vk::WriteDescriptorSet> writeDescriptorSets{};
+                for (size_t i = 0; i < imageDescriptors.size(); i++)
+                {
+                    writeDescriptorSets.emplace_back();
+                    writeDescriptorSets.back().descriptorType =
+                        vk::DescriptorType::eCombinedImageSampler;
+                    writeDescriptorSets.back().descriptorCount = 1;
+                    writeDescriptorSets.back().dstSet = material.descriptorSet;
+                    writeDescriptorSets.back().dstBinding = static_cast<uint32_t>(i);
+                    writeDescriptorSets.back().pImageInfo = &imageDescriptors[i];
+                }
+
+                GetDevice().updateDescriptorSets(
+                    static_cast<uint32_t>(writeDescriptorSets.size()),
+                    writeDescriptorSets.data(),
+                    0,
+                    nullptr);
+            }
+            else if (material.type == MaterialType::eCubemap &&
+                     material.cubemapTexture != nullptr)
+            {
+                vk::DescriptorSetAllocateInfo descriptorSetAllocInfo{};
+                descriptorSetAllocInfo.descriptorPool = vulkanDevice->GetDescriptorPool();
+                descriptorSetAllocInfo.pSetLayouts = &samplersDescriptorSetLayout;
+                descriptorSetAllocInfo.descriptorSetCount = 1;
+                CheckVkResult(GetDevice().allocateDescriptorSets(&descriptorSetAllocInfo,
+                                                                 &material.descriptorSet));
+
+                const std::vector<vk::DescriptorImageInfo> imageDescriptors = {
+                    material.cubemapTexture->descriptor
+                };
+
+                std::vector<vk::WriteDescriptorSet> writeDescriptorSets{};
+                for (size_t i = 0; i < imageDescriptors.size(); i++)
+                {
+                    writeDescriptorSets.emplace_back();
+                    writeDescriptorSets.back().descriptorType =
+                        vk::DescriptorType::eCombinedImageSampler;
+                    writeDescriptorSets.back().descriptorCount = 1;
+                    writeDescriptorSets.back().dstSet = material.descriptorSet;
+                    writeDescriptorSets.back().dstBinding = static_cast<uint32_t>(i);
+                    writeDescriptorSets.back().pImageInfo = &imageDescriptors[i];
+                }
+
+                GetDevice().updateDescriptorSets(
+                    static_cast<uint32_t>(writeDescriptorSets.size()),
+                    writeDescriptorSets.data(),
+                    0,
+                    nullptr);
+
+                depthCompareOp = vk::CompareOp::eLessOrEqual;
+            }
+            else
+            {
+                // EZASSERT(false);
+            }
         }
 
         std::vector<vk::DescriptorSetLayout> descriptorSetLayouts = {
@@ -488,6 +532,7 @@ void RenderSystem::PrepareToRender(std::shared_ptr<Scene> scene)
                                                           vulkanRenderPass->GetRenderPass(),
                                                           descriptorSetLayouts,
                                                           model.GetVertexLayout(),
+                                                          depthCompareOp,
                                                           model.vertexShaderName,
                                                           model.fragmentShaderName);
         if (vulkanGraphicsPipelineRV.result != GraphicsResult::Ok)

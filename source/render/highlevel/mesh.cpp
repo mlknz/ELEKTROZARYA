@@ -128,7 +128,7 @@ Model::Model(eType type, const std::string& filePath)
                                                 cubemapHeight,
                                                 cubemapColorChannelsCount,
                                                 cubemapImageLayersCount,
-                                                true,
+                                                false,
                                                 cubemapTexSampler);
         cubemapTexCI.SetIsCubemap(true);
         textures.emplace_back(std::move(cubemapTexCI));
@@ -155,7 +155,21 @@ Model::Model(eType type, const std::string& filePath)
                     4, 0, 7, 7, 0, 3,  //
                     3, 2, 7, 7, 2, 6,  //
                     4, 5, 0, 0, 5, 1 };
-        // todo: material
+
+        materials.emplace_back();
+        Material& cubemapMat = materials.back();
+        cubemapMat.type = MaterialType::eCubemap;
+        cubemapMat.cubemapTexture = &textures[1];
+
+        std::unique_ptr<Node> envCubemapNode = std::make_unique<Node>();
+        envCubemapNode->name = "env cubemap";
+        envCubemapNode->aabb = BoundingBox(glm::vec3(-10000), glm::vec3(10000));
+        envCubemapNode->mesh = std::make_unique<Mesh>(glm::mat4(1.0f));
+        envCubemapNode->mesh->bb = envCubemapNode->aabb;
+        std::unique_ptr<Primitive> primitive =
+            std::make_unique<Primitive>(0, indices.size(), vertices.size(), materials.back());
+        envCubemapNode->mesh->primitives.push_back(std::move(primitive));
+        nodes.push_back(std::move(envCubemapNode));
     }
     else
     {

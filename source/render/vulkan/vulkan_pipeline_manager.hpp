@@ -21,6 +21,7 @@ class VulkanPipelineManager
         vk::RenderPass renderPass,
         const std::vector<vk::DescriptorSetLayout>& descriptorSetLayouts,
         VertexLayout vertexLayout,
+        vk::CompareOp depthCompareOp,
         const std::string& vertexShaderName,
         const std::string& fragmentShaderName);
 

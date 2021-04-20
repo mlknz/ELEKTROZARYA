@@ -218,7 +218,9 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     {
         vk::ImageMemoryBarrier imageMemoryBarrier{};
         imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
-        imageMemoryBarrier.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
+        imageMemoryBarrier.setNewLayout(mipLevels > 1
+                                            ? vk::ImageLayout::eTransferSrcOptimal
+                                            : vk::ImageLayout::eShaderReadOnlyOptimal);
         imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
         imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
         imageMemoryBarrier.setImage(image);
