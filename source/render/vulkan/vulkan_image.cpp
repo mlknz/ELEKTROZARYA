@@ -146,25 +146,16 @@ bool GenerateMipsForImage(vk::Device logicalDevice,
         mipSubRange.setLevelCount(1);
         mipSubRange.setLayerCount(1);
 
-        {
-            vk::ImageMemoryBarrier imageMemoryBarrier{};
-            imageMemoryBarrier.setOldLayout(vk::ImageLayout::eUndefined);
-            imageMemoryBarrier.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
-            imageMemoryBarrier.setSrcAccessMask(vk::AccessFlags{});
-            imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
-            imageMemoryBarrier.setImage(image);
-            imageMemoryBarrier.setSubresourceRange(mipSubRange);
-            blitOneTimeCB.GetCommandBuffer().pipelineBarrier(
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::DependencyFlags{},
-                0,
-                nullptr,
-                0,
-                nullptr,
-                1,
-                &imageMemoryBarrier);
-        }
+        SubmitChangeImageLayout(blitOneTimeCB.GetCommandBuffer(),
+                                vk::PipelineStageFlagBits::eTransfer,
+                                vk::PipelineStageFlagBits::eTransfer,
+                                image,
+                                mipSubRange,
+                                vk::ImageLayout::eUndefined,
+                                vk::ImageLayout::eTransferDstOptimal,
+                                vk::AccessFlags{},
+                                vk::AccessFlagBits::eTransferWrite);
+
         blitOneTimeCB.GetCommandBuffer().blitImage(image,
                                                    vk::ImageLayout::eTransferSrcOptimal,
                                                    image,
@@ -173,53 +164,56 @@ bool GenerateMipsForImage(vk::Device logicalDevice,
                                                    &imageBlit,
                                                    vk::Filter::eLinear);
 
-        {
-            vk::ImageMemoryBarrier imageMemoryBarrier{};
-            imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
-            imageMemoryBarrier.setNewLayout(vk::ImageLayout::eTransferSrcOptimal);
-            imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
-            imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
-            imageMemoryBarrier.setImage(image);
-            imageMemoryBarrier.setSubresourceRange(mipSubRange);
-
-            blitOneTimeCB.GetCommandBuffer().pipelineBarrier(
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::PipelineStageFlagBits::eTransfer,
-                vk::DependencyFlags{},
-                0,
-                nullptr,
-                0,
-                nullptr,
-                1,
-                &imageMemoryBarrier);
-        }
+        SubmitChangeImageLayout(blitOneTimeCB.GetCommandBuffer(),
+                                vk::PipelineStageFlagBits::eTransfer,
+                                vk::PipelineStageFlagBits::eTransfer,
+                                image,
+                                mipSubRange,
+                                vk::ImageLayout::eTransferDstOptimal,
+                                vk::ImageLayout::eTransferSrcOptimal,
+                                vk::AccessFlagBits::eTransferWrite,
+                                vk::AccessFlagBits::eTransferRead);
     }
 
     subresourceRange.setLevelCount(mipLevels);
 
-    {
-        vk::ImageMemoryBarrier imageMemoryBarrier{};
-        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferSrcOptimal);
-        imageMemoryBarrier.setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
-        imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
-        imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
-        imageMemoryBarrier.setImage(image);
-        imageMemoryBarrier.setSubresourceRange(subresourceRange);
-        blitOneTimeCB.GetCommandBuffer().pipelineBarrier(
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::DependencyFlags{},
-            0,
-            nullptr,
-            0,
-            nullptr,
-            1,
-            &imageMemoryBarrier);
-    }
+    SubmitChangeImageLayout(blitOneTimeCB.GetCommandBuffer(),
+                            vk::PipelineStageFlagBits::eAllCommands,
+                            vk::PipelineStageFlagBits::eAllCommands,
+                            image,
+                            subresourceRange,
+                            vk::ImageLayout::eTransferSrcOptimal,
+                            vk::ImageLayout::eShaderReadOnlyOptimal,
+                            vk::AccessFlagBits::eTransferWrite,
+                            vk::AccessFlagBits::eTransferRead);
 
     blitOneTimeCB.EndSubmitAndWait(graphicsQueue);
 
     return true;
+}
+
+void SubmitChangeImageLayout(vk::CommandBuffer cb,
+                             vk::PipelineStageFlags srcBarrierStageMask,
+                             vk::PipelineStageFlags dstBarrierStageMask,
+                             vk::Image image,
+                             vk::ImageSubresourceRange subresourceRange,
+                             vk::ImageLayout srcLayout,
+                             vk::ImageLayout dstLayout,
+                             vk::AccessFlags srcMask,
+                             vk::AccessFlags dstMask)
+{
+    vk::ImageMemoryBarrier imageMemoryBarrier = vk::ImageMemoryBarrier(
+        srcMask, dstMask, srcLayout, dstLayout, {}, {}, image, subresourceRange);
+
+    cb.pipelineBarrier(srcBarrierStageMask,
+                       dstBarrierStageMask,
+                       vk::DependencyFlags{},
+                       0,
+                       nullptr,
+                       0,
+                       nullptr,
+                       1,
+                       &imageMemoryBarrier);
 }
 
 }  // namespace ez::Image

@@ -49,4 +49,14 @@ bool GenerateMipsForImage(vk::Device logicalDevice,
                           uint32_t height,
                           uint32_t mipLevels);
 
+void SubmitChangeImageLayout(vk::CommandBuffer cb,
+                             vk::PipelineStageFlags srcBarrierStageMask,
+                             vk::PipelineStageFlags dstBarrierStageMask,
+                             vk::Image image,
+                             vk::ImageSubresourceRange subresourceRange,
+                             vk::ImageLayout srcLayout,
+                             vk::ImageLayout dstLayout,
+                             vk::AccessFlags srcMask,
+                             vk::AccessFlags dstMask);
+
 }  // namespace ez::Image

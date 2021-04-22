@@ -183,25 +183,15 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     subresourceRange.setLevelCount(1);
     subresourceRange.setLayerCount(imageLayersCount);
 
-    {
-        vk::ImageMemoryBarrier imageMemoryBarrier{};
-        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eUndefined);
-        imageMemoryBarrier.setNewLayout(vk::ImageLayout::eTransferDstOptimal);
-        imageMemoryBarrier.setSrcAccessMask(vk::AccessFlags{});
-        imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferWrite);
-        imageMemoryBarrier.setImage(image);
-        imageMemoryBarrier.setSubresourceRange(subresourceRange);
-        copyOneTimeCB.GetCommandBuffer().pipelineBarrier(
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::DependencyFlags{},
-            0,
-            nullptr,
-            0,
-            nullptr,
-            1,
-            &imageMemoryBarrier);
-    }
+    ez::Image::SubmitChangeImageLayout(copyOneTimeCB.GetCommandBuffer(),
+                                       vk::PipelineStageFlagBits::eAllCommands,
+                                       vk::PipelineStageFlagBits::eAllCommands,
+                                       image,
+                                       subresourceRange,
+                                       vk::ImageLayout::eUndefined,
+                                       vk::ImageLayout::eTransferDstOptimal,
+                                       vk::AccessFlags{},
+                                       vk::AccessFlagBits::eTransferWrite);
 
     vk::BufferImageCopy bufferCopyRegion = {};
     bufferCopyRegion.imageSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor);
@@ -215,27 +205,16 @@ bool Texture::LoadToGpu(vk::Device aLogicalDevice,
     copyOneTimeCB.GetCommandBuffer().copyBufferToImage(
         stagingBuffer, image, vk::ImageLayout::eTransferDstOptimal, 1, &bufferCopyRegion);
 
-    {
-        vk::ImageMemoryBarrier imageMemoryBarrier{};
-        imageMemoryBarrier.setOldLayout(vk::ImageLayout::eTransferDstOptimal);
-        imageMemoryBarrier.setNewLayout(mipLevels > 1
-                                            ? vk::ImageLayout::eTransferSrcOptimal
-                                            : vk::ImageLayout::eShaderReadOnlyOptimal);
-        imageMemoryBarrier.setSrcAccessMask(vk::AccessFlagBits::eTransferWrite);
-        imageMemoryBarrier.setDstAccessMask(vk::AccessFlagBits::eTransferRead);
-        imageMemoryBarrier.setImage(image);
-        imageMemoryBarrier.setSubresourceRange(subresourceRange);
-        copyOneTimeCB.GetCommandBuffer().pipelineBarrier(
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::PipelineStageFlagBits::eAllCommands,
-            vk::DependencyFlags{},
-            0,
-            nullptr,
-            0,
-            nullptr,
-            1,
-            &imageMemoryBarrier);
-    }
+    ez::Image::SubmitChangeImageLayout(copyOneTimeCB.GetCommandBuffer(),
+                                       vk::PipelineStageFlagBits::eAllCommands,
+                                       vk::PipelineStageFlagBits::eAllCommands,
+                                       image,
+                                       subresourceRange,
+                                       vk::ImageLayout::eTransferDstOptimal,
+                                       mipLevels > 1 ? vk::ImageLayout::eTransferSrcOptimal
+                                                     : vk::ImageLayout::eShaderReadOnlyOptimal,
+                                       vk::AccessFlagBits::eTransferWrite,
+                                       vk::AccessFlagBits::eTransferRead);
 
     copyOneTimeCB.EndSubmitAndWait(graphicsQueue);
 
